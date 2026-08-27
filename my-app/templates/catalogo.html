@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="pt">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>Catálogo</title>
+
+    <style>
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f6f9;
+            color: #333;
+        }
+
+        /* HEADER */
+
+        header {
+            background: white;
+            padding: 20px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, .1);
+        }
+
+        header h1 {
+            color: #2f6fed;
+        }
+
+        nav a {
+            text-decoration: none;
+            color: #2f6fed;
+            font-weight: bold;
+            margin-left: 20px;
+        }
+
+        nav a:hover {
+            text-decoration: underline;
+        }
+
+        /* CONTAINER */
+
+        .container {
+            max-width: 1400px;
+            margin: auto;
+            padding: 30px;
+        }
+
+        /* FAMÍLIA */
+
+        .familia {
+            margin-top: 40px;
+            margin-bottom: 20px;
+            padding: 15px 20px;
+            background: #2f6fed;
+            color: white;
+            border-radius: 10px;
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        /* SUBFAMÍLIA */
+
+        .subfamilia {
+            margin-top: 25px;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid #2f6fed;
+            font-size: 22px;
+            font-weight: bold;
+        }
+
+        /* PRODUTOS */
+
+        .produtos {
+            display: grid;
+            grid-template-columns:
+                repeat(
+                    auto-fill,
+                    minmax(260px, 1fr)
+                );
+
+            gap: 20px;
+        }
+
+        /* LINK DO PRODUTO */
+
+        .produto-link {
+            display: block;
+            text-decoration: none;
+            color: inherit;
+        }
+
+        /* CARD */
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, .08);
+            transition: .2s;
+        }
+
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 6px 15px rgba(0, 0, 0, .12);
+        }
+
+        .referencia {
+            color: #999;
+            font-size: 13px;
+        }
+
+        .nome {
+            font-size: 20px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+
+        .descricao {
+            color: #666;
+            min-height: 60px;
+        }
+
+        .preco {
+            margin-top: 15px;
+            color: #159947;
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .stock {
+            margin-top: 8px;
+            color: #555;
+        }
+
+        /* PAGINAÇÃO */
+
+        .paginacao {
+            margin-top: 40px;
+            text-align: center;
+            padding-bottom: 30px;
+        }
+
+        .paginacao a {
+            display: inline-block;
+            background: #2f6fed;
+            color: white;
+            text-decoration: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            margin: 0 10px;
+        }
+
+        .paginacao a:hover {
+            background: #2458c4;
+        }
+
+        .pagina-atual {
+            font-weight: bold;
+            font-size: 18px;
+        }
+
+    </style>
+
+</head>
+
+<body>
+
+    <header>
+
+        <h1>Catálogo Digital</h1>
+
+        <nav>
+
+            <a href="/perfil">
+                Perfil
+            </a>
+
+            <a href="/logout">
+                Logout
+            </a>
+
+        </nav>
+
+    </header>
+
+
+    <div class="container">
+
+        {% set familia_anterior = namespace(valor='') %}
+
+        {% set subfamilia_anterior = namespace(valor='') %}
+
+
+        {% for produto in produtos %}
+
+
+            {% if familia_anterior.valor != produto.familia %}
+
+                {% if not loop.first %}
+                    </div>
+                {% endif %}
+
+                <div class="familia">
+                    {{ produto.familia }}
+                </div>
+
+                {% set familia_anterior.valor = produto.familia %}
+
+                {% set subfamilia_anterior.valor = '' %}
+
+            {% endif %}
+
+
+            {% if subfamilia_anterior.valor != produto.subfamilia %}
+
+                {% if not loop.first %}
+                    </div>
+                {% endif %}
+
+                <div class="subfamilia">
+                    {{ produto.subfamilia }}
+                </div>
+
+                <div class="produtos">
+
+                {% set subfamilia_anterior.valor = produto.subfamilia %}
+
+            {% endif %}
+
+
+            <!-- PRODUTO CLICÁVEL -->
+
+            <a
+                href="/produto/{{ produto.nome }}"
+                class="produto-link"
+            >
+
+                <div class="card">
+
+                    <div class="referencia">
+                        Ref. {{ produto.referencia }}
+                    </div>
+
+                    <div class="nome">
+                        {{ produto.nome }}
+                    </div>
+
+                    <div class="descricao">
+                        {{ produto.descricao }}
+                    </div>
+
+                    <div class="preco">
+                        {{ produto.preco }} €
+                    </div>
+
+                    <div class="stock">
+                        Stock: {{ produto.stock }}
+                    </div>
+
+                </div>
+
+            </a>
+
+
+            {% if loop.last %}
+                </div>
+            {% endif %}
+
+
+        {% endfor %}
+
+
+        <!-- PAGINAÇÃO -->
+
+        <div class="paginacao">
+
+            {% if pagina > 1 %}
+
+                <a href="/catalogo?pagina={{ pagina - 1 }}">
+                    ← Anterior
+                </a>
+
+            {% endif %}
+
+
+            <span class="pagina-atual">
+                Página {{ pagina }} de {{ total_paginas }}
+            </span>
+
+
+            {% if pagina < total_paginas %}
+
+                <a href="/catalogo?pagina={{ pagina + 1 }}">
+                    Seguinte →
+                </a>
+
+            {% endif %}
+
+        </div>
+
+    </div>
+
+</body>
+
+</html>

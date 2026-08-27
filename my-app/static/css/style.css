@@ -1,0 +1,317 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: Arial, Helvetica, sans-serif;
+    background: #f4f6f9;
+    color: #333;
+}
+
+
+/* =========================
+   HEADER
+   ========================= */
+
+header {
+    background: #4472C4;
+    color: white;
+    padding: 20px 40px;
+
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+header h1 {
+    font-size: 28px;
+}
+
+header a {
+    color: white;
+    text-decoration: none;
+    margin-left: 20px;
+    font-weight: bold;
+}
+
+header a:hover {
+    text-decoration: underline;
+}
+
+
+/* =========================
+   CONTAINER
+   ========================= */
+
+.container {
+    max-width: 1400px;
+    margin: auto;
+    padding: 30px;
+}
+
+
+/* =========================
+   FAMÍLIA
+   ========================= */
+
+.familia {
+    margin-top: 40px;
+    margin-bottom: 20px;
+
+    padding: 15px 20px;
+
+    background: #4472C4;
+    color: white;
+
+    border-radius: 10px;
+
+    font-size: 28px;
+    font-weight: bold;
+}
+
+
+/* =========================
+   SUBFAMÍLIA
+   ========================= */
+
+.subfamilia {
+    margin-top: 25px;
+    margin-bottom: 20px;
+
+    padding-bottom: 10px;
+
+    border-bottom: 3px solid #4472C4;
+
+    font-size: 22px;
+    font-weight: bold;
+}
+
+
+/* =========================
+   PRODUTOS
+   ========================= */
+
+.produtos {
+    display: grid;
+
+    grid-template-columns:
+        repeat(
+            auto-fill,
+            minmax(260px, 1fr)
+        );
+
+    gap: 20px;
+
+    margin-bottom: 30px;
+}
+
+
+/* =========================
+   LINK DO PRODUTO
+   ========================= */
+
+/*
+   O link não deve parecer um link.
+   Ele apenas torna o cartão inteiro clicável.
+*/
+
+.produto-link {
+    display: block;
+
+    text-decoration: none;
+
+    color: inherit;
+}
+
+
+/* =========================
+   CARTÃO DO PRODUTO
+   ========================= */
+
+.card {
+    background: white;
+
+    border-radius: 12px;
+
+    padding: 20px;
+
+    box-shadow:
+        0 3px 10px rgba(0, 0, 0, 0.08);
+
+    transition:
+        transform 0.2s ease,
+        box-shadow 0.2s ease;
+
+    cursor: pointer;
+
+    height: 100%;
+}
+
+
+/* Efeito ao passar o rato */
+
+.produto-link:hover .card {
+    transform: translateY(-4px);
+
+    box-shadow:
+        0 6px 16px rgba(0, 0, 0, 0.15);
+}
+
+
+/* =========================
+   REFERÊNCIA
+   ========================= */
+
+.referencia {
+    color: #999;
+    font-size: 13px;
+    margin-bottom: 8px;
+}
+
+
+/* =========================
+   NOME
+   ========================= */
+
+.nome {
+    font-size: 20px;
+    font-weight: bold;
+
+    margin: 10px 0;
+
+    color: #222;
+}
+
+
+/* =========================
+   DESCRIÇÃO
+   ========================= */
+
+.descricao {
+    color: #666;
+
+    line-height: 1.5;
+
+    min-height: 60px;
+}
+
+
+/* =========================
+   PREÇO
+   ========================= */
+
+.preco {
+    margin-top: 15px;
+
+    color: #159947;
+
+    font-size: 24px;
+
+    font-weight: bold;
+}
+
+
+/* =========================
+   STOCK
+   ========================= */
+
+.stock {
+    margin-top: 8px;
+
+    color: #555;
+}
+
+
+/* =========================
+   VER DETALHES
+   ========================= */
+
+.ver-detalhes {
+    margin-top: 15px;
+
+    color: #4472C4;
+
+    font-size: 14px;
+
+    font-weight: bold;
+}
+
+.produto-link:hover .ver-detalhes {
+    text-decoration: underline;
+}
+
+
+/* =========================
+   PAGINAÇÃO
+   ========================= */
+
+.paginacao {
+    margin-top: 40px;
+
+    padding-bottom: 40px;
+
+    text-align: center;
+}
+
+.paginacao a {
+    display: inline-block;
+
+    background: #4472C4;
+
+    color: white;
+
+    text-decoration: none;
+
+    padding: 10px 20px;
+
+    border-radius: 8px;
+
+    margin: 0 10px;
+}
+
+.paginacao a:hover {
+    background: #2f5ca8;
+}
+
+.pagina-atual {
+    font-weight: bold;
+
+    font-size: 18px;
+}
+
+
+/* =========================
+   RESPONSIVO
+   ========================= */
+
+@media (max-width: 700px) {
+
+    header {
+        padding: 20px;
+    }
+
+    header h1 {
+        font-size: 22px;
+    }
+
+    .container {
+        padding: 20px;
+    }
+
+    .produtos {
+        grid-template-columns: 1fr;
+    }
+
+    .familia {
+        font-size: 23px;
+    }
+
+    .subfamilia {
+        font-size: 19px;
+    }
+
+}

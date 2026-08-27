@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <title>DataEme</title>
+
+    {{ url_for('static', filename='css/style.css') }}
+</head>
+
+<body>
+
+<header>
+
+    <h1>DataEme</h1>
+
+    <nav>
+        /Início</a>
+        /login
+    </nav>
+
+</header>
+
+<main>
+
+{% block content %}
+{% endblock %}
+
+</main>
+
+</body>
+</html>

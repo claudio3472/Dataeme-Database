@@ -1,0 +1,75 @@
+{% extends "layout.html" %}
+
+{% block content %}
+
+<h2>Redefinir password</h2>
+
+<p>
+    Introduza o código que recebeu por email
+    e escolha uma nova password.
+</p>
+
+{% if erro %}
+<p style="color:red;">
+    {{ erro }}
+</p>
+{% endif %}
+
+<form method="POST">
+
+    <label for="codigo">
+        Código de recuperação
+    </label>
+
+    <br>
+
+    <input
+        type="text"
+        id="codigo"
+        name="codigo"
+        placeholder="123456"
+        maxlength="6"
+        required
+    >
+
+    <br><br>
+
+    <label for="password">
+        Nova password
+    </label>
+
+    <br>
+
+    <input
+        type="password"
+        id="password"
+        name="password"
+        placeholder="Nova password"
+        required
+    >
+
+    <br><br>
+
+    <label for="password_confirmacao">
+        Confirmar password
+    </label>
+
+    <br>
+
+    <input
+        type="password"
+        id="password_confirmacao"
+        name="password_confirmacao"
+        placeholder="Confirmar password"
+        required
+    >
+
+    <br><br>
+
+    <button type="submit">
+        Alterar password
+    </button>
+
+</form>
+
+{% endblock %}

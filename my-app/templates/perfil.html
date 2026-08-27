@@ -1,0 +1,85 @@
+{% extends "layout.html" %}
+
+{% block content %}
+
+<h2>Perfil</h2>
+
+{% if erro %}
+<p style="color:red;">
+    {{ erro }}
+</p>
+{% endif %}
+
+<div class="card">
+
+    <form method="POST">
+
+        <p><strong>Nome:</strong> <input
+            type="text"
+            name="nome"
+            value="{{cliente.nome}}" 
+            required>
+        </p>
+
+        <p><strong>Nif:</strong> <input
+            type="text"
+            name="nif"
+            value="{{ cliente.nif }}" 
+            required>
+        </p>
+
+        <p><strong>Email:</strong> <input
+            type="email"
+            name="email"
+            value="{{ cliente.email }}" 
+            required>
+        </p>
+
+        <p><strong>Telefone:</strong> <input
+            type="text"
+            name="ind"
+            value= "{{ cliente.indicativo }}" 
+            required
+            style="width: 40px;">
+            
+            <input
+            type="tel"
+            name="tel"
+            value="{{ cliente.tel }}"
+            required>
+        </p>
+
+        <p><strong>Código Postal:</strong> <input
+            type="text"
+            name="postal"
+            value= "{{ cliente.postal }}" 
+            required
+            style="width: 60px;">
+
+            <input
+            type="text"
+            name="local"
+            value="{{ cliente.local }}"
+            required>
+        </p>
+
+        <p><strong>Morada:</strong> <input
+            type="text"
+            name="morada"
+            value= "{{ cliente.morada }}" 
+            required> 
+        </p>
+
+    <br><br>
+
+    <button type="submit">
+        Salvar Alterações
+    </button>
+
+    </form>
+
+   
+
+</div>
+
+{% endblock %}

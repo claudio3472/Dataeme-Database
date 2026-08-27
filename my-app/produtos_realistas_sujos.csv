@@ -1,0 +1,51 @@
+Ref Produto,Product Name,Desc,Preço Base,Barcode,Stock,Family,SubFamily,Color,Email Fornecedor
+P001,Parafuso M6,Parafuso galvanizado,0.25,5601234500001,500,Fixacao,Parafusos,,compras@metal.pt
+P002,Tinta Exterior Branco,Tinta para exterior,12.99,5601234500002,55,Tintas,Exterior,Branco,tintas@cor.pt
+P003,Martelo Profissional,Martelo aço forjado,19.90,5601234500003,20,Ferramentas,Manuais,Vermelho,ferr@tools.pt
+P004,Broca 6mm,Broca para metal,abc,5601234500004,75,Ferramentas,Brocas,,suporte@tools.pt
+P005,Anilha M6,Anilha aço zincado,0.05,5601234500005,1200,Fixacao,Anilhas,Cinza,stock@metal.pt
+P006,Porca M8,Porca sextavada,0.08,5601234500006,900,Fixacao,Porcas,Cinza,vendas@metal.pt
+P007,Escada Alumínio,Escada 6 degraus,89.99,5601234500007,5,Equipamento,Escadas,Prateado,equip@empresa.pt
+P008,Lanterna LED,Lanterna recarregável,19.99,5601234500008,15,Iluminacao,Lanternas,Preto,mail.com
+P009,Tinta Interior Bege,Tinta lavável,11.50,5601234500009,150,Tintas,Interior,Bege,tintas@cor.pt
+P010,Parafuso M8,Parafuso galvanizado,0.35,5601234500010,400,Fixacao,Parafusos,Prata,fornecedor@metal.pt
+P011,Óculos Segurança,Proteção ocular,8.90,5601234500011,35,Equipamento,Protecao,Transparente,seguranca@empresa.pt
+P012,Chave Inglesa,Ajustável,15.75,5601234500012,20 unidades,Ferramentas,Manuais,,ferr@tools.pt
+P013,Luva Proteção,Luva anti-corte,4.50,5601234500013,70,Equipamento,Protecao,Preto,epi@empresa.pt
+P014,Fita Isoladora,Fita elétrica,1.99,5601234500014,250,Equipamento,Protecao,Preto,stock@empresa.pt
+P015,Tinta Exterior Azul,Tinta exterior premium,13.49,5601234500015,60,Tintas,Exterior,Azul,tintas@cor.pt
+,Serra Manual,Serra de mão,22.50,5601234500016,18,Ferramentas,Manuais,,ferr@tools.pt
+P017,Parafuso M10,Parafuso inox,0.45,5601234500017,300,Fixacao,Parafusos,,compras@metal.pt
+P018,Porca M10,Porca inox,0.10,5601234500018,450,Fixacao,Porcas,,compras@metal.pt
+P019,Lanterna Industrial,Lanterna alta potência,34.99,5601234500019,12,Iluminacao,Lanternas,Amarelo,led@light.pt
+P020,Broca 8mm,Broca para metal,4.20,,75,Ferramentas,Brocas,,suporte@tools.pt
+P021,Tinta Interior Branco,Tinta premium,12.50,5601234500021,110,Tintas,Interior,Branco,tintas@cor.pt
+P022,Escada Fibra,Escada profissional,125.00,5601234500022,2,Equipamento,Escadas,Amarelo,equip@empresa.pt
+P023,Parafuso Madeira,Parafuso madeira,0.12,5601234500023,600,Fixacao,Parafusos,,compras@metal.pt
+P024,,Produto sem nome,9.99,5601234500024,30,Outros,Diversos,Preto,contacto@empresa.pt
+P025,Anilha M8,Anilha aço,0.07,5601234500025,850,Fixacao,Anilhas,,stock@metal.pt
+P026,Capacete Obra,Capacete proteção,12.40,5601234500026,20,Equipamento,Protecao,Amarelo,epi@empresa.pt
+P027,Lanterna Compacta,Lanterna pequena,9.50,5601234500027,45,Iluminacao,Lanternas,Preto,led@light.pt
+P028,Broca SDS 10mm,Broca betão,7.80,5601234500028,-10,Ferramentas,Brocas,,tools@empresa.pt
+P029,Tinta Exterior Verde,Tinta premium,14.30,5601234500029,70,Tintas,Exterior,Verde,tintas@cor.pt
+P030,Escada Dobrável,Escada compacta,69.99,5601234500030,4,Equipamento,Escadas,Prateado,equip@empresa.pt
+P031,Parafuso M12,Parafuso inox,0.55,5601234500031,250,Fixacao,Parafusos,,compras@metal.pt
+P032,Tinta Interior Cinza,Tinta lavável,"12,50",5601234500032,120,Tintas,Interior,Cinza,tintas@cor.pt
+P033,Anilha M10,Anilha inox,0.09,5601234500033,400,Fixacao,Anilhas,,stock@metal.pt
+P034,Projetor LED,Projetor exterior,45.90,5601234500034,10,Iluminacao,LED,Branco,led@light.pt
+P035,Luva Industrial,Luva resistente,5.90,5601234500035,80,Equipamento,Protecao,Preto,epi@empresa.pt
+P036,Martelo Borracha,Martelo técnico,11.00,5601234500036,26,ferramentas,Manuais,Preto,ferr@tools.pt
+P037,Fita Métrica,5 metros,3.50,5601234500037,90,Ferramentas,Manuais,,tools@empresa.pt
+P038,Broca Madeira 5mm,Broca específica,2.20,5601234500038,150,Ferramentas,Brocas,,tools@empresa.pt
+P039,Porca M12,Porca inox,0.12,5601234500039,300,Fixacao,Porcas,,compras@metal.pt
+P005,Parafuso M6,Duplicado referência,0.25,5601234500040,100,Fixacao,Parafusos,,compras@metal.pt
+P041,Tinta Exterior Preto,Tinta premium,14.90,5601234500041,50,Tintas,Exterior,Preto,tintas@cor.pt
+P042,Escada Telescópica,Escada ajustável,149.90,5601234500042,2,Equipamento,Escadas,,equip@empresa.pt
+P043,Lanterna Camping,Lanterna portátil,17.50,5601234500043,33,Iluminacao,Lanternas,Verde,led@light.pt
+P044,Broca 12mm,Broca para metal,5.80,5601234500005,80,Ferramentas,Brocas,,tools@empresa.pt
+P045,Capacete Branco,Capacete obra,11.90,5601234500045,60,Equipamento,Protecao,Branco,epi@empresa.pt
+P046,Parafuso Auto-Roscante,Auto-roscante,0.18,5601234500046,700,Fixacao,Parafusos,,compras@metal.pt
+P047,Tinta Interior Azul,Tinta lavável,12.90,5601234500047,100,Tintas,Interior,Azul,tintas@cor.pt
+P048, Produto 48 ,Com espaços extra,9.90,5601234500048,40,Outros,Diversos,,contacto@empresa.pt
+P049,Lâmpada LED,Lâmpada económica,3.50,5601234500049,300,Iluminacao,LED,Branco,led@light.pt
+P012,Chave Inglesa,Duplicado distante,15.75,5601234500050,20,Ferramentas,Manuais,,ferr@tools.pt
