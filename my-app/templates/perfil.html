@@ -1,85 +1,205 @@
-{% extends "layout.html" %}
+<!DOCTYPE html>
+<html lang="pt">
+<head>
 
-{% block content %}
+    <meta charset="UTF-8">
 
-<h2>Perfil</h2>
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
 
-{% if erro %}
-<p style="color:red;">
-    {{ erro }}
-</p>
-{% endif %}
+    <title>Catálogo</title>
 
-<div class="card">
+    <style>
 
-    <form method="POST">
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
 
-        <p><strong>Nome:</strong> <input
-            type="text"
-            name="nome"
-            value="{{cliente.nome}}" 
-            required>
-        </p>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f6f9;
+            color: #333;
+        }
 
-        <p><strong>Nif:</strong> <input
-            type="text"
-            name="nif"
-            value="{{ cliente.nif }}" 
-            required>
-        </p>
+        /* HEADER */
 
-        <p><strong>Email:</strong> <input
-            type="email"
-            name="email"
-            value="{{ cliente.email }}" 
-            required>
-        </p>
+        header {
+            background: white;
+            padding: 20px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, .1);
+        }
 
-        <p><strong>Telefone:</strong> <input
-            type="text"
-            name="ind"
-            value= "{{ cliente.indicativo }}" 
-            required
-            style="width: 40px;">
+        header h1 {
+            color: #2f6fed;
+        }
+
+        nav a {
+            text-decoration: none;
+            color: #2f6fed;
+            font-weight: bold;
+            margin-left: 20px;
+        }
+
+        nav a:hover {
+            text-decoration: underline;
+        }
+
+        form p {
+            padding: 20px;
+            box-shadow: 0 3px 10px rgba(68, 67, 67, 0.08);
+        }
             
-            <input
-            type="tel"
-            name="tel"
-            value="{{ cliente.tel }}"
-            required>
-        </p>
+        form button {
+            margin-left: 20px;
+            padding: 10px;
+            font-size: 15px;
+        }
 
-        <p><strong>Código Postal:</strong> <input
-            type="text"
-            name="postal"
-            value= "{{ cliente.postal }}" 
-            required
-            style="width: 60px;">
+        .submitContainer {
+            display: flex;
+            flex-direction: row;
+            gap: 20px;
+        }
 
-            <input
-            type="text"
-            name="local"
-            value="{{ cliente.local }}"
-            required>
-        </p>
+        .submitContainer div{
+            margin-top: 15px;
+        }
+        
+    </style>
 
-        <p><strong>Morada:</strong> <input
-            type="text"
-            name="morada"
-            value= "{{ cliente.morada }}" 
-            required> 
-        </p>
+</head>
 
-    <br><br>
+<body>
 
-    <button type="submit">
-        Salvar Alterações
-    </button>
+    <header>
 
-    </form>
+        <h1>Perfil</h1>
 
-   
+        <nav>
 
-</div>
+            <a href="/catalogo">
+                Catálogo
+            </a>
 
-{% endblock %}
+            <a href="/logout">
+                Logout
+            </a>
+
+        </nav>
+
+    </header>
+
+    <div>
+
+        <form method="POST">
+
+            <p>
+                <strong>Nome:</strong>
+                <input
+                    type="text"
+                    name="nome"
+                    value="{{ cliente.nome }}"
+                    required
+                >
+            </p>
+
+            <p>
+                <strong>NIF:</strong>
+                <input
+                    type="text"
+                    name="nif"
+                    value="{{ cliente.nif }}"
+                    required
+                >
+            </p>
+
+            <p>
+                <strong>Email:</strong>
+                <input
+                    type="email"
+                    name="email"
+                    value="{{ cliente.email }}"
+                    required
+                >
+            </p>
+
+            <p>
+                <strong>Telefone:</strong>
+
+                <input
+                    type="text"
+                    name="ind"
+                    value="{{ cliente.indicativo }}"
+                    required
+                    style="width: 60px;"
+                >
+
+                <input
+                    type="tel"
+                    name="tel"
+                    value="{{ cliente.tel }}"
+                    required
+                >
+            </p>
+
+            <p>
+                <strong>Código Postal:</strong>
+
+                <input
+                    type="text"
+                    name="postal"
+                    value="{{ cliente.postal }}"
+                    required
+                    style="width: 90px;"
+                >
+
+                <input
+                    type="text"
+                    name="local"
+                    value="{{ cliente.local }}"
+                    required
+                >
+            </p>
+
+            <p>
+                <strong>Morada:</strong>
+
+                <input
+                    type="text"
+                    name="morada"
+                    value="{{ cliente.morada }}"
+                    required
+                >
+            </p>
+
+            <br>
+
+            <div class="submitContainer">
+
+                <button type="submit">
+                    Salvar Alterações
+                </button>
+                
+                {% if sucesso %}
+                <div style="color: green; margin-bottom: 15px; font-weight: bold;">
+                    {{ sucesso }}
+                </div>
+                {% endif %}
+
+                {% if erro %}
+                <div style="color: red; margin-bottom: 15px; font-weight: bold;">
+                    {{ erro }}
+                </div>
+                {% endif %}
+
+            </div>
+
+        </form>
+
+    </div>
+</body>

@@ -3,7 +3,9 @@ from flask import (
     render_template,
     request,
     redirect,
-    session
+    session,
+    url_for,
+    flash
 )
 
 import time
@@ -211,6 +213,8 @@ def catalogo():
 # PERFIL
 # ============================================================
 
+
+
 @app.route("/perfil", methods=["GET", "POST"])
 def perfil():
 
@@ -245,16 +249,55 @@ def perfil():
             validar_morada(morada)
 
         except Exception as e:
-            return render_template(
-                "perfil.html",
-                cliente=cliente,
-                erro=str(e)
+            return redirect(
+                            url_for(
+                                "perfil",
+                                erro=e
+                            )
+                        )
+
+        response = (
+            supabase
+            .table("cliente")
+            .update({
+                "nif": nif,
+                "nome": nome,
+                "morada": morada,
+                "email": email,
+                "telefone": tel,
+                "codigo_postal": postal,
+                "localizacao": local,
+                "indicativo": ind
+            })
+            .eq("id_utilizador", id_utilizador)
+            .execute()
+        )
+
+        if not response.data:
+            return redirect(
+                url_for(
+                    "perfil",
+                    erro="Não foi possível alterar os dados."
+                )
             )
+
+        return redirect(
+            url_for(
+                "perfil",
+                sucesso="Os dados foram alterados com sucesso!"
+            )
+        )
+
+    sucesso = request.args.get("sucesso")
+    erro = request.args.get("erro")
 
     return render_template(
         "perfil.html",
-        cliente=cliente
+        cliente=cliente,
+        sucesso=sucesso,
+        erro=erro
     )
+
 
 
 

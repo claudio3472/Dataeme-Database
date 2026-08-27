@@ -95,7 +95,7 @@ def validar_codigo_postal(codigo_postal):
         codigo_postal
     ):
         raise ValueError(
-            "Código postal inválido. Exemplo: 2700-123."
+            "Código postal inválido. Exemplo: 0000-000."
         )
 
 """FUTURAMENTE USAR WEB SCRAPPER PARA ATRAVES DO CODIGO POSTAL PREENCHER A LOCALIZACAO"""
