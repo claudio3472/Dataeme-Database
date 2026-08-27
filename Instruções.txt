@@ -1,0 +1,25 @@
+Utilizadores:
+- Login só para administrativo.
+- Preenchimento de dados automaticamente através do nif, sem necessidade de login.
+- Clientes podem ter preços diferentes para o mesmo produto consoante taxas.
+
+Produtos:
+- Preço só visível no momento da compra, não visível no catálogo. (Já com IVA).
+- Preço sujeito às taxas especificas do cliente. (Por default, usar o preço original do produto).
+- Produtos sem descontos, para já
+- Stock apenas visível para a conta administrativa.
+- Descrição do produto pode ser diferente entre a página do catálogo (tem de ter as cores do produto caso se aplique) e a página do produto (página do produto com descrição mais pormenorizada).
+- Produtos apresentados por famílias e sub-familias no catálogo.
+- Produtos apresentados com imagem, podendo ter mais do que 1 imagem ou vídeo na página do próprio produto.
+- Produtos com múltiplas cores tem botões para alterar a cor do produto na imagem na página do produto.
+- ID do produto será a referência do fabricante
+- Cliente pode avaliar o produto
+- Produto tem de ter campo para indicar se foi descontinuado ou se está em continuidade de produção/distribuição.
+- Código de barras na nota de encomenda.
+
+
+Pedidos/Encomendas:
+- Valor total e por linha (valor obtido multiplicando o valor do produto pela quantidade)
+- ID do pedido
+- Data de emissão do pedido pelo utilizador
+- Portes de envio, geralmente a 0 pode ser mudado posteriormente
