@@ -10,7 +10,7 @@ from barcode.writer import SVGWriter
 #    .execute()
 #)
 
-referencia = "Teste123"
+referencia = "Teste456"
 
 # a usar code128 porque não sei se querem usar outro
 codigo = barcode.get("code128",referencia,writer=SVGWriter())
