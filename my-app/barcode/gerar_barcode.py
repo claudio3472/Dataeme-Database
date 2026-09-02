@@ -1,4 +1,4 @@
-
+import io
 import barcode
 from barcode.writer import SVGWriter
 
@@ -10,13 +10,12 @@ from barcode.writer import SVGWriter
 #    .execute()
 #)
 
-referencia = "Teste456"
-
-# a usar code128 porque não sei se querem usar outro
-codigo = barcode.get("code128",referencia,writer=SVGWriter())
-
-#module_width,module_height,font_size,text_distance,quiet_zone
-codigo.save("barcode",options={ "module_width": 1,"module_height": 60})
-
-print(f"Código de barras criado para: {referencia}")
-
+def gerar_conteudo_svg_barcode(referencia):
+    fp = io.BytesIO()
+    codigo = barcode.get("code128", referencia, writer=SVGWriter())
+    
+    codigo.write(fp, options={"module_width": 0.3,"module_height":25, "quiet_zone": 1.5 })
+    
+    # RETORNAR BYTES diretamente, não string pois estava a dar problema no outro lado
+    fp.seek(0)
+    return fp.read()
