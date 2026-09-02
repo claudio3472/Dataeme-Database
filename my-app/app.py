@@ -43,7 +43,10 @@ from services.carrinho_service import (
     obter_preco_por_referencia,
     criar_pedido,
     criar_linha,
-    somar_preco_linhas
+    somar_preco_linhas,
+    obter_linha,
+    atualizar_linha,
+    get_linhas
 )
 
 app = Flask(__name__)
@@ -536,14 +539,31 @@ def produto(referencia):
 
 
 # ============================================================
-# Carrinho
+# CARRINHO
 # ============================================================
 
 #Página do carrinho
+
 @app.route("/carrinho")
 def carrinho():
 
-    print("Página do carrinho acedida")
+    if "id_utilizador" not in session:
+        return redirect("/login")
+
+    cliente = obter_cliente(session["id_utilizador"])
+    pedido = obter_pedido(cliente["id_cliente"])
+    linha, valor_total = get_linhas(pedido)
+
+    if linha is None:
+        return "Linha não encontrada"
+
+    return render_template(
+        "carrinho.html",
+        linha=linha,
+        valor_total=valor_total
+    )
+
+
 
 
 @app.route(
@@ -599,15 +619,47 @@ def adicionar_carrinho(referencia):
                 )
             )
     
+    id_linha = obter_linha(referencia, id_pedido)
+
+    if id_linha is None:
+
+        linha = criar_linha(quantidade, preco, preco_qtd, id_pedido, referencia)
+        
+        if linha is not None:
+            a = somar_preco_linhas(id_pedido)
+            if a is None:
+                print("ocorreu um erro")
 
 
+        return redirect(
+                url_for(
+                    "produto",
+                    referencia=referencia
+                )
+            )
 
-    return redirect(
-        url_for(
-            "produto",
-            referencia=referencia
+    else:
+        linha_atualizar = atualizar_linha(quantidade, preco, id_linha)
+        if linha_atualizar is None:
+            print("erro ao atualizar linha")
+            return redirect(
+                url_for(
+                    "produto",
+                    referencia=referencia
+                )
+            )
+
+        pedido_atualizar = somar_preco_linhas(id_pedido)
+        if linha_atualizar is None:
+            print("erro ao atualizar pedido")
+                
+
+        return redirect(
+            url_for(
+                "produto",
+                referencia=referencia
+            )
         )
-    )
 
 
 

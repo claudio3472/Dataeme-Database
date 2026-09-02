@@ -25,7 +25,22 @@ body {
    ========================= */
 
 header {
-    background-color: #4472C4;
+    background: linear-gradient(
+        135deg,
+        #1FB5B5,
+        #17999E,
+        #0E7C86,
+        #1682B6,
+        #1E88E5,
+        #1A77D3,
+        #1565C0,
+        #1151A6,
+        #0D3C8C,
+        #598046,
+        #A4C400,
+        #7FAF00
+    );
+
     color: white;
 
     padding: 20px 40px;

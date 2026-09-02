@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <title>Carrinho</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+
+    <style>
+        .linha {
+            display: flex;
+            flex-direction: column;
+            margin-top: 40px;
+            margin-bottom: 20px;
+            padding: 15px 20px;
+            border-radius: 10px;
+            font-size: 20px;
+            font-weight: bold;
+            gap: 30px;
+            padding: 10px;
+        }
+        
+    </style>
+</head>
+
+<body>
+
+    <header>
+
+        <h1>Carrinho</h1>
+
+        <nav>
+
+            <a href="/catalogo">
+                Catálogo
+            </a>
+
+            <a href="/perfil">
+                Perfil
+            </a>
+
+            <a href="/logout">
+                Logout
+            </a>
+
+        </nav>
+
+    </header>
+
+    <div class="container">
+
+        <div class="card">  
+
+            <div class="linha"> 
+                <!-- Nome | Cor | Qnt. | Prc. Uni. | Prc. Total -->
+                {% for l in linha %}
+                    
+                        <div >
+                            {{ l.nome }}
+                            {{ l.cor }}
+                            {{ l.quantidade }}
+                            {{ l.preco_unitario }}€
+                            {{ l.valor_linha }}€
+                        </div>
+                        
+                {% endfor %}
+
+                <strong>Valor Total: {{ valor_total }}€</strong>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+</body>
+</html>
