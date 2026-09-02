@@ -11,47 +11,11 @@
     >
 
     <title>{{ produto.nome }} - DataEme</title>
-
+    <link
+    rel="stylesheet"
+    href="{{ url_for('static', filename='css/style.css') }}"
+    >
     <style> 
-
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-    }
-
-        body {
-            font-family: Arial, sans-serif;
-            background: #f4f6f9;
-            color: #333;
-        }
-
-        /* HEADER */
-
-        header {
-            background: white;
-            padding: 20px 40px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, .1);
-        }
-
-        header h1 {
-            color: #2f6fed;
-        }
-
-        nav a {
-            text-decoration: none;
-            color: #2f6fed;
-            font-weight: bold;
-            margin-left: 20px;
-        }
-
-        nav a:hover {
-            text-decoration: underline;
-        }
-
         /* CONTAINER */
 
         .container {
@@ -297,6 +261,10 @@
 
             <a href="/catalogo">
                 Catálogo
+            </a>
+
+            <a href="/carrinho">
+                Carrinho
             </a>
 
             <a href="/perfil">
