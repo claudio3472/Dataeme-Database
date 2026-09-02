@@ -127,3 +127,7 @@ def importar_subfamilias():
         )
 
         ordem += 1
+
+
+importar_familias()
+importar_subfamilias()

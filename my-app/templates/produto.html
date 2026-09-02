@@ -12,13 +12,13 @@
 
     <title>{{ produto.nome }} - DataEme</title>
 
-    <style>
+    <style> 
 
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
-        }
+    }
 
         body {
             font-family: Arial, sans-serif;
@@ -183,6 +183,12 @@
             color: #d33;
         }
 
+
+        .produto-botao {
+            display: flex;
+            width: 100%;
+        }
+        
         /* BOTÃO VOLTAR */
 
         .voltar {
@@ -198,6 +204,63 @@
 
         .voltar:hover {
             background: #2458c4;
+        }
+
+        /* BOTÃO CARRINHO */
+
+        .carrinho { 
+            margin-top: 30px;
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .carrinho-botao {
+            background: linear-gradient(
+                90deg,
+                #1E88E5,
+                #1565C0,
+                #0D3C8C,
+                #1FB5B5,
+                #0E7C86,
+                #A4C400,
+                #7FAF00,
+                #1E88E5
+            );
+            background-size: 500% 100%;
+            color: white;
+            border: none;
+            padding: 12px 22px;
+            border-radius: 8px;
+            font-weight: bold;
+        }
+
+        .carrinho-botao:hover {
+            animation: gradientMove 2s linear infinite alternate;
+        }
+
+        @keyframes gradientMove {
+            from {
+                background-position: 100% 50%;
+            }
+            to {
+                background-position: 0% 50%;
+            }
+        }
+                
+
+        .carrinho-num { 
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+        }
+
+        .carrinho-num input {
+            padding: 2px;
+            width: 40px;
+            border-radius: 3px;
         }
 
         @media (max-width: 600px) {
@@ -417,7 +480,7 @@
                 <!-- PREÇO -->
 
                 <div class="preco">
-                    {{ produto.preco }} €
+                    {{ produto.preco_com_iva }} €
                 </div>
 
 
@@ -440,14 +503,53 @@
             </div>
 
 
-            <!-- VOLTAR -->
+            <!-- VOLTAR / ADICIONAR CARRINHO -->
 
-            <a
-                href="/catalogo"
-                class="voltar"
-            >
-                ← Voltar ao catálogo
-            </a>
+            <div class="produto-botao">
+
+                <a
+                    href="/catalogo"
+                    class="voltar"
+                >
+                    ← Voltar ao catálogo
+                </a>
+
+
+                {% if not produto.descontinuado %}
+
+                    <form
+                        method="POST"
+                        action="{{ url_for('adicionar_carrinho', referencia=produto.referencia) }}"
+                        class="carrinho"
+                    >
+
+                        <label class="carrinho-num">
+
+                            <strong>Qtd:</strong>
+
+                            <input
+                                type="number"
+                                name="quantidade"
+                                value="1"
+                                min="1"
+                                required
+                            >
+
+                        </label>
+
+
+                        <button
+                            type="submit"
+                            class="carrinho-botao"
+                        >
+                            Adicionar ao carrinho
+                        </button>
+
+                    </form>
+
+                {% endif %}
+
+            </div>
 
         </div>
 

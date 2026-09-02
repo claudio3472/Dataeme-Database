@@ -321,6 +321,7 @@ def obter_cliente(id_utilizador):
     cliente = response.data[0]
 
     return {
+        "id_cliente": cliente["id_cliente"],
         "nif": cliente["nif"],
         "nome": cliente["nome"],
         "morada": cliente["morada"],

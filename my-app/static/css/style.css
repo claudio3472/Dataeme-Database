@@ -1,12 +1,21 @@
+/* =========================
+   RESET
+   ========================= */
+
 * {
     box-sizing: border-box;
     margin: 0;
     padding: 0;
 }
 
+
+/* =========================
+   BODY
+   ========================= */
+
 body {
     font-family: Arial, Helvetica, sans-serif;
-    background: #f4f6f9;
+    background-color: #f4f6f9;
     color: #333;
 }
 
@@ -16,8 +25,9 @@ body {
    ========================= */
 
 header {
-    background: #4472C4;
+    background-color: #4472C4;
     color: white;
+
     padding: 20px 40px;
 
     display: flex;
@@ -31,10 +41,14 @@ header h1 {
     font-size: 28px;
 }
 
+header nav {
+    display: flex;
+    gap: 20px;
+}
+
 header a {
     color: white;
     text-decoration: none;
-    margin-left: 20px;
     font-weight: bold;
 }
 
@@ -49,7 +63,7 @@ header a:hover {
 
 .container {
     max-width: 1400px;
-    margin: auto;
+    margin: 0 auto;
     padding: 30px;
 }
 
@@ -64,7 +78,7 @@ header a:hover {
 
     padding: 15px 20px;
 
-    background: #4472C4;
+    background-color: #4472C4;
     color: white;
 
     border-radius: 10px;
@@ -79,7 +93,7 @@ header a:hover {
    ========================= */
 
 .subfamilia {
-    margin-top: 25px;
+    margin-top: 30px;
     margin-bottom: 20px;
 
     padding-bottom: 10px;
@@ -92,17 +106,16 @@ header a:hover {
 
 
 /* =========================
-   PRODUTOS
+   GRID DE PRODUTOS
    ========================= */
 
 .produtos {
     display: grid;
 
-    grid-template-columns:
-        repeat(
-            auto-fill,
-            minmax(260px, 1fr)
-        );
+    grid-template-columns: repeat(
+        auto-fill,
+        minmax(260px, 1fr)
+    );
 
     gap: 20px;
 
@@ -111,54 +124,29 @@ header a:hover {
 
 
 /* =========================
-   LINK DO PRODUTO
-   ========================= */
-
-/*
-   O link não deve parecer um link.
-   Ele apenas torna o cartão inteiro clicável.
-*/
-
-.produto-link {
-    display: block;
-
-    text-decoration: none;
-
-    color: inherit;
-}
-
-
-/* =========================
-   CARTÃO DO PRODUTO
+   CARD
    ========================= */
 
 .card {
-    background: white;
+    height: 100%;
+
+    background-color: white;
 
     border-radius: 12px;
 
     padding: 20px;
 
-    box-shadow:
-        0 3px 10px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
 
     transition:
         transform 0.2s ease,
         box-shadow 0.2s ease;
-
-    cursor: pointer;
-
-    height: 100%;
 }
 
-
-/* Efeito ao passar o rato */
-
-.produto-link:hover .card {
+.card:hover {
     transform: translateY(-4px);
 
-    box-shadow:
-        0 6px 16px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
 }
 
 
@@ -169,7 +157,6 @@ header a:hover {
 .referencia {
     color: #999;
     font-size: 13px;
-    margin-bottom: 8px;
 }
 
 
@@ -181,7 +168,8 @@ header a:hover {
     font-size: 20px;
     font-weight: bold;
 
-    margin: 10px 0;
+    margin-top: 10px;
+    margin-bottom: 10px;
 
     color: #222;
 }
@@ -210,7 +198,6 @@ header a:hover {
     color: #159947;
 
     font-size: 24px;
-
     font-weight: bold;
 }
 
@@ -227,20 +214,84 @@ header a:hover {
 
 
 /* =========================
+   CORES
+   ========================= */
+
+.cores-modelo {
+    margin-top: 15px;
+
+    display: flex;
+    align-items: center;
+
+    gap: 10px;
+
+    flex-wrap: wrap;
+}
+
+
+/*
+   Link que contém cada bola.
+*/
+
+.cor-link {
+    width: 28px;
+    height: 28px;
+
+    display: inline-flex;
+
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 50%;
+
+    text-decoration: none;
+
+    transition:
+        transform 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+.cor-link:hover {
+    transform: scale(1.15);
+
+    box-shadow: 0 0 0 2px #4472C4;
+}
+
+
+/*
+   Bola da cor.
+*/
+
+.cor-bola {
+    width: 20px;
+    height: 20px;
+
+    display: block;
+
+    border-radius: 50%;
+
+    border: 1px solid #999;
+}
+
+
+/* =========================
    VER DETALHES
    ========================= */
 
 .ver-detalhes {
-    margin-top: 15px;
+    display: inline-block;
+
+    margin-top: 18px;
 
     color: #4472C4;
 
-    font-size: 14px;
+    text-decoration: none;
 
+    font-size: 14px;
     font-weight: bold;
 }
 
-.produto-link:hover .ver-detalhes {
+.ver-detalhes:hover {
     text-decoration: underline;
 }
 
@@ -260,7 +311,7 @@ header a:hover {
 .paginacao a {
     display: inline-block;
 
-    background: #4472C4;
+    background-color: #4472C4;
 
     color: white;
 
@@ -271,16 +322,17 @@ header a:hover {
     border-radius: 8px;
 
     margin: 0 10px;
+
+    transition: background-color 0.2s ease;
 }
 
 .paginacao a:hover {
-    background: #2f5ca8;
+    background-color: #2f5ca8;
 }
 
 .pagina-atual {
-    font-weight: bold;
-
     font-size: 18px;
+    font-weight: bold;
 }
 
 

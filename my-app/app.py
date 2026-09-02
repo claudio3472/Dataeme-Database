@@ -4,8 +4,7 @@ from flask import (
     request,
     redirect,
     session,
-    url_for,
-    flash
+    url_for
 )
 
 import time
@@ -30,18 +29,21 @@ from services.clientes_service import (
     validar_morada
 )
 
-from services.familia_service import (
-    importar_familias,
-    importar_subfamilias
-)
-
 from services.produto_service import (
     obter_produtos,
-    obter_produto_por_nome
+    obter_produto_por_referencia
 )
 
 from services.email_service import (
     enviar_codigo_recuperacao
+)
+
+from services.carrinho_service import (
+    obter_pedido,
+    obter_preco_por_referencia,
+    criar_pedido,
+    criar_linha,
+    somar_preco_linhas
 )
 
 app = Flask(__name__)
@@ -185,9 +187,7 @@ def registar():
 def catalogo():
 
     if "id_utilizador" not in session:
-        return redirect(
-            "/login"
-        )
+        return redirect("/login")
 
     pagina = request.args.get(
         "pagina",
@@ -195,11 +195,7 @@ def catalogo():
         type=int
     )
 
-    produtos, total_paginas = (
-        obter_produtos(
-            pagina
-        )
-    )
+    produtos, total_paginas = obter_produtos(pagina)
 
     return render_template(
         "catalogo.html",
@@ -207,7 +203,6 @@ def catalogo():
         pagina=pagina,
         total_paginas=total_paginas
     )
-
 
 # ============================================================
 # PERFIL
@@ -524,23 +519,97 @@ def limpar_recuperacao():
 # ============================================================
 
 #Página do produto
-@app.route("/produto/<nome>")
-def produto(nome):
+@app.route("/produto/<int:referencia>")
+def produto(referencia):
 
-    if "id_utilizador" not in session:
-        return redirect("/login")
-
-    produto = obter_produto_por_nome(
-        nome
+    produto = obter_produto_por_referencia(
+        referencia
     )
 
     if produto is None:
-        return redirect("/catalogo")
+        return "Produto não encontrado", 404
 
     return render_template(
         "produto.html",
         produto=produto
     )
+
+
+# ============================================================
+# Carrinho
+# ============================================================
+
+#Página do carrinho
+@app.route("/carrinho")
+def carrinho():
+
+    print("Página do carrinho acedida")
+
+
+@app.route(
+    "/produto/<int:referencia>/adicionar-carrinho",
+    methods=["POST"]
+)
+def adicionar_carrinho(referencia):
+
+    quantidade = int(
+        request.form.get("quantidade", 1)
+    )
+
+    if quantidade < 1:
+        quantidade = 1
+
+    print(
+        f"Produto: {referencia} | Quantidade: {quantidade}"
+    )
+
+    if "id_utilizador" not in session:
+        return redirect("/login")
+
+    id_utilizador = session["id_utilizador"]
+
+    cliente = obter_cliente(id_utilizador)
+
+    if cliente is None:
+        return redirect("/logout")
+
+    id_pedido = obter_pedido(cliente["id_cliente"])
+    print(id_pedido)
+
+
+    preco = obter_preco_por_referencia(referencia) 
+    preco_qtd = preco*quantidade
+    print(preco_qtd)
+
+    if id_pedido is None:
+        id_pedido = criar_pedido(cliente["id_cliente"])
+        print(id_pedido)
+
+        linha = criar_linha(quantidade, preco, preco_qtd, id_pedido, referencia)
+
+        if linha is not None:
+            a = somar_preco_linhas(id_pedido)
+            if a is None:
+                print("ocorreu um erro")
+
+        return redirect(
+                url_for(
+                    "produto",
+                    referencia=referencia
+                )
+            )
+    
+
+
+
+    return redirect(
+        url_for(
+            "produto",
+            referencia=referencia
+        )
+    )
+
+
 
 
 # ============================================================
