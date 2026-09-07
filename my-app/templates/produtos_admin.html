@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="pt">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>DataEme - Produtos</title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='css/style.css') }}"
+    >
+</head>
+
+<body>
+
+<header>
+
+    <h1>Lista de Produtos</h1>
+
+    <nav>
+        <a href="{{ url_for('confirm_admin') }}">
+            Dashboard
+        </a>
+
+        <a href="{{ url_for('logout') }}">
+            Logout
+        </a>
+    </nav>
+
+</header>
+
+
+<div class="container">
+
+    <!-- PESQUISA -->
+
+    <form
+        method="GET"
+        action="{{ url_for('produtos_admin') }}"
+        class="filtro-form"
+    >
+
+        <input
+            type="text"
+            name="filtro"
+            placeholder="Pesquisar por nome do modelo..."
+            value="{{ filtro }}"
+        >
+
+        <button type="submit">
+            Pesquisar
+        </button>
+
+        {% if filtro %}
+            <a href="{{ url_for('produtos_admin') }}">
+                Limpar
+            </a>
+        {% endif %}
+
+    </form>
+
+
+    {% if request.args.get("sucesso") %}
+        <div class="mensagem sucesso">
+            {{ request.args.get("sucesso") }}
+        </div>
+    {% endif %}
+
+
+    {% if request.args.get("erro") %}
+        <div class="mensagem erro">
+            {{ request.args.get("erro") }}
+        </div>
+    {% endif %}
+
+
+    {% if not produtos %}
+
+        <p>
+            Não foram encontrados produtos.
+        </p>
+
+    {% endif %}
+
+
+    {% set familia_anterior = namespace(valor='') %}
+
+
+    {% for produto in produtos %}
+
+        <!-- FAMÍLIA -->
+
+        {% if familia_anterior.valor != produto.familia %}
+
+            <div class="familia">
+                {{ produto.familia }}
+            </div>
+
+            {% set familia_anterior.valor = produto.familia %}
+
+        {% endif %}
+
+
+        <!-- SUBFAMÍLIA -->
+
+        <div class="subfamilia">
+            {{ produto.subfamilia }}
+        </div>
+
+
+        <!-- MODELO -->
+
+        <div class="card produto-modelo">
+
+            <div class="modelo-header">
+
+                <h2>
+                    {{ produto.nome }}
+                </h2>
+
+                {% if produto.descricao %}
+                    <p>
+                        {{ produto.descricao }}
+                    </p>
+                {% endif %}
+
+            </div>
+
+
+            {% if produto.variantes %}
+
+                <div class="variantes">
+
+                    {% for variante in produto.variantes %}
+
+                        <div class="variante">
+
+                            <form
+                                method="POST"
+                                action="{{ url_for('produtos_admin') }}"
+                            >
+
+                                <input
+                                    type="hidden"
+                                    name="referencia"
+                                    value="{{ variante.referencia }}"
+                                >
+
+
+                                <!-- REFERÊNCIA -->
+
+                                <div class="campo">
+
+                                    <label>
+                                        Referência
+                                    </label>
+
+                                    <input
+                                        type="text"
+                                        value="{{ variante.referencia }}"
+                                        disabled
+                                    >
+
+                                </div>
+
+
+                                <!-- COR -->
+
+                                <div class="campo">
+
+                                    <label>
+                                        Cor
+                                    </label>
+
+                                    <input
+                                        type="text"
+                                        value="{{ variante.cor }}"
+                                        disabled
+                                    >
+
+                                </div>
+
+
+                                <!-- CÓDIGO DA COR -->
+
+                                <div class="campo">
+
+                                    <label>
+                                        Código da cor
+                                    </label>
+
+                                    <input
+                                        type="text"
+                                        value="{{ variante.codigo_cor }}"
+                                        disabled
+                                    >
+
+                                </div>
+
+
+                                <!-- PREÇO -->
+
+                                <div class="campo">
+
+                                    <label>
+                                        Preço base
+                                    </label>
+
+                                    <input
+                                        type="number"
+                                        name="preco_base"
+                                        value="{{ variante.preco_base }}"
+                                        step="0.01"
+                                        min="0"
+                                        required
+                                    >
+
+                                </div>
+
+
+                                <!-- STOCK -->
+
+                                <div class="campo">
+
+                                    <label>
+                                        Stock
+                                    </label>
+
+                                    <input
+                                        type="number"
+                                        name="stock"
+                                        value="{{ variante.stock }}"
+                                        min="0"
+                                        required
+                                    >
+
+                                </div>
+
+
+                                <!-- CÓDIGO DE BARRAS -->
+
+                                <div class="campo">
+
+                                    <label>
+                                        Código de barras
+                                    </label>
+
+                                    <input
+                                        type="text"
+                                        value="{{ variante.codigo_barras }}"
+                                        disabled
+                                    >
+
+                                </div>
+
+
+                                <!-- DESCONTINUADO -->
+
+                                <div class="campo checkbox">
+
+                                    <label>
+
+                                        <input
+                                            type="checkbox"
+                                            name="descontinuado"
+                                            {% if variante.descontinuado %}
+                                                checked
+                                            {% endif %}
+                                        >
+
+                                        Produto descontinuado
+
+                                    </label>
+
+                                </div>
+
+
+                                <button type="submit">
+                                    Guardar alterações
+                                </button>
+
+                            </form>
+
+                        </div>
+
+                    {% endfor %}
+
+                </div>
+
+            {% else %}
+
+                <p>
+                    Este modelo não tem variantes.
+                </p>
+
+            {% endif %}
+
+        </div>
+
+    {% endfor %}
+
+</div>
+
+</body>
+</html>

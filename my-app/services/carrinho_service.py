@@ -130,7 +130,8 @@ def somar_preco_linhas(id_pedido):
     )
 
     if not response.data:
-        return None
+        att = atualizar_preco_total(0, id_pedido)
+        return att
     
     total = 0
 
@@ -218,6 +219,7 @@ def get_linhas(pedido):
         supabase
         .table("linhas_pedido")
         .select("""
+        id_linha,
         produto_referencia, 
         quantidade, 
         preco_unitario, 
@@ -232,8 +234,9 @@ def get_linhas(pedido):
         .eq("id_pedido", pedido)
         .execute()
     )
+
     if not response_linha.data:
-        return None
+        return [], "0.00"
 
     valor = response_linha.data[0].get("pedido") or {}
     valor_total = f"{valor['valor_total']:.2f}"
@@ -267,6 +270,7 @@ def get_linhas(pedido):
         cor = response_produtos.data[0].get("cores_produto") or {}
 
         lista.append({
+            "id": prod["id_linha"],
             "nome": modelo.get("nome_catalogo"),
             "cor": cor.get("nome_cor"),
             "quantidade": prod["quantidade"],
@@ -274,11 +278,19 @@ def get_linhas(pedido):
             "valor_linha": f"{prod['valor_linha']:.2f}"
         })
 
-    
-
     print(lista)
     return lista, valor_total
 
+def apagar_linha(id_linha):
+    response = (
+        supabase
+        .table("linhas_pedido")
+        .delete()
+        .eq("id_linha", id_linha)
+        .execute()
+    )
+
+    return response.data
     
     
 

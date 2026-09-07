@@ -6,7 +6,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 
     <style>
-        .linha {
+        .pedido {
             display: flex;
             flex-direction: column;
             margin-top: 40px;
@@ -17,8 +17,27 @@
             font-weight: bold;
             gap: 30px;
             padding: 10px;
+            
+        }
+
+        .linha {
+            box-shadow: 0 3px 10px rgba(68, 67, 67, 0.08);
+            padding: 5px;
+
+        }
+
+        .botao_preco {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
         }
         
+        form {
+            display: inline;
+            margin-left: 20px;
+
+        }
+
     </style>
 </head>
 
@@ -37,6 +56,10 @@
             <a href="/perfil">
                 Perfil
             </a>
+     
+            <a href="/admin">
+                Admin
+            </a>
 
             <a href="/logout">
                 Logout
@@ -50,21 +73,44 @@
 
         <div class="card">  
 
-            <div class="linha"> 
+            <div class="pedido"> 
                 <!-- Nome | Cor | Qnt. | Prc. Uni. | Prc. Total -->
                 {% for l in linha %}
                     
-                        <div >
+                        <div class="linha">
                             {{ l.nome }}
                             {{ l.cor }}
                             {{ l.quantidade }}
                             {{ l.preco_unitario }}€
                             {{ l.valor_linha }}€
+
+                            <form class="form-horizontal" method="POST">
+
+                                <input
+                                    type="hidden"
+                                    name="id_linha"
+                                    value="{{ l.id }}"
+                                >
+                                <button type="submit">
+                                    Eliminar linha
+                                </button>
+                            </form>
+                            
                         </div>
                         
                 {% endfor %}
+                
+                <div class="botao_preco">
+                    <strong>Valor Total: {{ valor_total }}€</strong>
 
-                <strong>Valor Total: {{ valor_total }}€</strong>
+                    <form class="form-horizontal" method="POST" action="/carrinhofinalizar">
+
+                        <button type="submit">
+                            Finalizar Pedido
+                        </button>
+                    
+                    </form>
+                </div>
 
             </div>
 
