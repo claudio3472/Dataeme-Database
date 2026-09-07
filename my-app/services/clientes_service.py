@@ -166,7 +166,7 @@ def validar_morada(morada):
 
     resto = morada[len(prefixo_encontrado):].strip()
 
-    if len(resto) < 2:
+    if not resto:
         raise ValueError(
             "A morada deve conter um nome após o tipo de via."
         )

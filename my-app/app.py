@@ -20,7 +20,7 @@ from services.clientes_service import (
     obter_cliente_por_email,
     validar_password,
     validar_nome,
-    validar_nif, 
+    validar_nif,
     validar_indicativo,
     validar_telefone,
     validar_email,
@@ -46,10 +46,21 @@ from services.carrinho_service import (
     somar_preco_linhas,
     obter_linha,
     atualizar_linha,
-    get_linhas
+    get_linhas,
+    apagar_linha
 )
 
+from services.admin_service import (
+    obter_clientes,
+    obter_cliente_admin,
+    atualizar_cliente_admin,
+    obter_produtos_admin,
+    atualizar_produto_admin
+)
+
+
 app = Flask(__name__)
+
 app.secret_key = "ALTERAR_PARA_UMA_CHAVE_SECRETA"
 
 
@@ -59,6 +70,7 @@ app.secret_key = "ALTERAR_PARA_UMA_CHAVE_SECRETA"
 
 @app.route("/")
 def home():
+
     return render_template(
         "index.html"
     )
@@ -72,6 +84,7 @@ def home():
 def login():
 
     if request.method == "GET":
+
         return render_template(
             "login.html"
         )
@@ -92,26 +105,35 @@ def login():
     )
 
     if not response.data:
+
         return render_template(
             "login.html",
-            erro="NIF ou password incorretos."
+            erro="User ou password incorretos."
         )
 
     utilizador = response.data[0]
 
     try:
+
         password_correta = ph.verify(
             utilizador["password"],
             password
         )
+
     except Exception:
+
         password_correta = False
 
     if not password_correta:
+
         return render_template(
             "login.html",
-            erro="NIF ou password incorretos."
+            erro="User ou password incorretos."
         )
+
+    # ========================================================
+    # GUARDAR DADOS DO UTILIZADOR NA SESSION
+    # ========================================================
 
     session["id_utilizador"] = (
         utilizador["id_utilizador"]
@@ -121,8 +143,44 @@ def login():
         utilizador["is_admin"]
     )
 
+    # ========================================================
+    # REDIRECIONAR CONSOANTE O TIPO DE UTILIZADOR
+    # ========================================================
+
+    if session["is_admin"]:
+
+        return redirect(
+            url_for("confirm_admin")
+        )
+
     return redirect(
-        "/catalogo"
+        url_for("catalogo")
+    )
+
+
+# ============================================================
+# ADMIN DASHBOARD
+# ============================================================
+
+@app.route("/admin")
+def confirm_admin():
+
+    # Primeiro verificar se existe sessão
+    if "id_utilizador" not in session:
+
+        return redirect(
+            url_for("login")
+        )
+
+    # Depois verificar se é administrador
+    if not session.get("is_admin", False):
+
+        return redirect(
+            url_for("login")
+        )
+
+    return render_template(
+        "admin.html"
     )
 
 
@@ -136,7 +194,7 @@ def logout():
     session.clear()
 
     return redirect(
-        "/"
+        url_for("home")
     )
 
 
@@ -148,6 +206,7 @@ def logout():
 def registar():
 
     if request.method == "GET":
+
         return render_template(
             "registar.html"
         )
@@ -178,7 +237,7 @@ def registar():
         )
 
     return redirect(
-        "/login"
+        url_for("login")
     )
 
 
@@ -189,8 +248,12 @@ def registar():
 @app.route("/catalogo")
 def catalogo():
 
+    # Verificar se está autenticado
     if "id_utilizador" not in session:
-        return redirect("/login")
+
+        return redirect(
+            url_for("login")
+        )
 
     pagina = request.args.get(
         "pagina",
@@ -198,7 +261,9 @@ def catalogo():
         type=int
     )
 
-    produtos, total_paginas = obter_produtos(pagina)
+    produtos, total_paginas = obter_produtos(
+        pagina
+    )
 
     return render_template(
         "catalogo.html",
@@ -207,24 +272,43 @@ def catalogo():
         total_paginas=total_paginas
     )
 
+
 # ============================================================
 # PERFIL
 # ============================================================
 
-
-
 @app.route("/perfil", methods=["GET", "POST"])
 def perfil():
 
+    # Verificar login ANTES de aceder à session
     if "id_utilizador" not in session:
-        return redirect("/login")
+
+        return redirect(
+            url_for("login")
+        )
+
+    # Admin não usa o perfil normal
+    if session.get("is_admin", False):
+
+        return redirect(
+            url_for("confirm_admin")
+        )
 
     id_utilizador = session["id_utilizador"]
 
-    cliente = obter_cliente(id_utilizador)
+    cliente = obter_cliente(
+        id_utilizador
+    )
 
     if cliente is None:
-        return redirect("/logout")
+
+        return redirect(
+            url_for("logout")
+        )
+
+    # ========================================================
+    # ALTERAR DADOS
+    # ========================================================
 
     if request.method == "POST":
 
@@ -238,6 +322,7 @@ def perfil():
         morada = request.form["morada"]
 
         try:
+
             validar_nome(nome)
             validar_nif(nif)
             validar_email(email)
@@ -247,12 +332,13 @@ def perfil():
             validar_morada(morada)
 
         except Exception as e:
+
             return redirect(
-                            url_for(
-                                "perfil",
-                                erro=e
-                            )
-                        )
+                url_for(
+                    "perfil",
+                    erro=str(e)
+                )
+            )
 
         response = (
             supabase
@@ -267,11 +353,15 @@ def perfil():
                 "localizacao": local,
                 "indicativo": ind
             })
-            .eq("id_utilizador", id_utilizador)
+            .eq(
+                "id_utilizador",
+                id_utilizador
+            )
             .execute()
         )
 
         if not response.data:
+
             return redirect(
                 url_for(
                     "perfil",
@@ -286,8 +376,13 @@ def perfil():
             )
         )
 
-    sucesso = request.args.get("sucesso")
-    erro = request.args.get("erro")
+    sucesso = request.args.get(
+        "sucesso"
+    )
+
+    erro = request.args.get(
+        "erro"
+    )
 
     return render_template(
         "perfil.html",
@@ -295,8 +390,6 @@ def perfil():
         sucesso=sucesso,
         erro=erro
     )
-
-
 
 
 # ============================================================
@@ -376,7 +469,7 @@ def recuperar_password():
         )
 
     return redirect(
-        "/confirmar-codigo"
+        url_for("confirmar_codigo")
     )
 
 
@@ -394,11 +487,13 @@ def confirmar_codigo():
         "recuperacao_codigo"
         not in session
     ):
+
         return redirect(
-            "/recuperar-password"
+            url_for("recuperar_password")
         )
 
     if request.method == "GET":
+
         return render_template(
             "confirmar_codigo.html"
         )
@@ -486,7 +581,7 @@ def confirmar_codigo():
     limpar_recuperacao()
 
     return redirect(
-        "/login"
+        url_for("login")
     )
 
 
@@ -521,7 +616,6 @@ def limpar_recuperacao():
 # PRODUTO
 # ============================================================
 
-#Página do produto
 @app.route("/produto/<int:referencia>")
 def produto(referencia):
 
@@ -530,6 +624,7 @@ def produto(referencia):
     )
 
     if produto is None:
+
         return "Produto não encontrado", 404
 
     return render_template(
@@ -542,29 +637,193 @@ def produto(referencia):
 # CARRINHO
 # ============================================================
 
-#Página do carrinho
-
-@app.route("/carrinho")
+@app.route(
+    "/carrinho",
+    methods=["GET", "POST"]
+)
 def carrinho():
 
+    # ========================================================
+    # VERIFICAR LOGIN
+    # ========================================================
+
     if "id_utilizador" not in session:
-        return redirect("/login")
 
-    cliente = obter_cliente(session["id_utilizador"])
-    pedido = obter_pedido(cliente["id_cliente"])
-    linha, valor_total = get_linhas(pedido)
+        return redirect(
+            url_for("login")
+        )
 
-    if linha is None:
-        return "Linha não encontrada"
+    # ========================================================
+    # ADMIN NÃO TEM CARRINHO NORMAL
+    # ========================================================
 
-    return render_template(
-        "carrinho.html",
-        linha=linha,
-        valor_total=valor_total
+    if session.get("is_admin", False):
+
+        return redirect(
+            url_for("confirm_admin")
+        )
+
+    # ========================================================
+    # OBTER CLIENTE
+    # ========================================================
+
+    cliente = obter_cliente(
+        session["id_utilizador"]
+    )
+
+    if cliente is None:
+
+        return redirect(
+            url_for("logout")
+        )
+
+    # ========================================================
+    # OBTER PEDIDO
+    # ========================================================
+
+    pedido = obter_pedido(
+        cliente["id_cliente"]
+    )
+
+    # ========================================================
+    # GET
+    # ========================================================
+
+    if request.method == "GET":
+
+        if pedido is None:
+
+            return render_template(
+                "carrinho.html",
+                linha=[],
+                valor_total=0
+            )
+
+        linha, valor_total = get_linhas(
+            pedido
+        )
+
+        if linha is None:
+
+            return render_template(
+                "carrinho.html",
+                linha=[],
+                valor_total=0
+            )
+
+        return render_template(
+            "carrinho.html",
+            linha=linha,
+            valor_total=valor_total
+        )
+
+    # ========================================================
+    # POST - APAGAR LINHA
+    # ========================================================
+
+    id_linha = request.form[
+        "id_linha"
+    ]
+
+    b = apagar_linha(
+        id_linha
+    )
+
+    if b is not None:
+
+        a = somar_preco_linhas(
+            pedido
+        )
+
+        if a is None:
+
+            print(
+                "Erro ao recalcular o preço do pedido."
+            )
+
+    return redirect(
+        url_for("carrinho")
     )
 
 
+# ============================================================
+# FINALIZAR PEDIDO
+# ============================================================
 
+@app.route(
+    "/carrinhofinalizar",
+    methods=["POST"]
+)
+def finalizar_compra():
+
+    # ========================================================
+    # VERIFICAR LOGIN
+    # ========================================================
+
+    if "id_utilizador" not in session:
+
+        return redirect(
+            url_for("login")
+        )
+
+    # Admin não finaliza pedidos desta forma
+    if session.get("is_admin", False):
+
+        return redirect(
+            url_for("confirm_admin")
+        )
+
+    cliente = obter_cliente(
+        session["id_utilizador"]
+    )
+
+    if cliente is None:
+
+        return redirect(
+            url_for("logout")
+        )
+
+    pedido = obter_pedido(
+        cliente["id_cliente"]
+    )
+
+    if pedido is None:
+
+        return redirect(
+            url_for("carrinho")
+        )
+
+    response = (
+        supabase
+        .table("pedido")
+        .update({
+            "estado": "finalizado"
+        })
+        .eq(
+            "id_pedido",
+            pedido
+        )
+        .execute()
+    )
+
+    if not response.data:
+
+        print(
+            "Ocorreu um erro ao finalizar o pedido."
+        )
+
+        return redirect(
+            url_for("carrinho")
+        )
+
+    return redirect(
+        url_for("carrinho")
+    )
+
+
+# ============================================================
+# ADICIONAR AO CARRINHO
+# ============================================================
 
 @app.route(
     "/produto/<int:referencia>/adicionar-carrinho",
@@ -572,87 +831,122 @@ def carrinho():
 )
 def adicionar_carrinho(referencia):
 
+    # ========================================================
+    # VERIFICAR LOGIN
+    # ========================================================
+
+    if "id_utilizador" not in session:
+
+        return redirect(
+            url_for("login")
+        )
+
+    # Admin não adiciona produtos ao carrinho normal
+    if session.get("is_admin", False):
+
+        return redirect(
+            url_for("confirm_admin")
+        )
+
+    # ========================================================
+    # QUANTIDADE
+    # ========================================================
+
     quantidade = int(
-        request.form.get("quantidade", 1)
+        request.form.get(
+            "quantidade",
+            1
+        )
     )
 
     if quantidade < 1:
+
         quantidade = 1
 
     print(
-        f"Produto: {referencia} | Quantidade: {quantidade}"
+        f"Produto: {referencia} | "
+        f"Quantidade: {quantidade}"
     )
 
-    if "id_utilizador" not in session:
-        return redirect("/login")
+    # ========================================================
+    # CLIENTE
+    # ========================================================
 
-    id_utilizador = session["id_utilizador"]
+    id_utilizador = session[
+        "id_utilizador"
+    ]
 
-    cliente = obter_cliente(id_utilizador)
+    cliente = obter_cliente(
+        id_utilizador
+    )
 
     if cliente is None:
-        return redirect("/logout")
 
-    id_pedido = obter_pedido(cliente["id_cliente"])
-    print(id_pedido)
+        return redirect(
+            url_for("logout")
+        )
 
+    # ========================================================
+    # PEDIDO
+    # ========================================================
 
-    preco = obter_preco_por_referencia(referencia) 
-    preco_qtd = preco*quantidade
-    print(preco_qtd)
+    id_pedido = obter_pedido(
+        cliente["id_cliente"]
+    )
+
+    print(
+        id_pedido
+    )
+
+    # ========================================================
+    # PREÇO
+    # ========================================================
+
+    preco = obter_preco_por_referencia(
+        referencia
+    )
+
+    preco_qtd = (
+        preco * quantidade
+    )
+
+    print(
+        preco_qtd
+    )
+
+    # ========================================================
+    # NÃO EXISTE PEDIDO
+    # ========================================================
 
     if id_pedido is None:
-        id_pedido = criar_pedido(cliente["id_cliente"])
-        print(id_pedido)
 
-        linha = criar_linha(quantidade, preco, preco_qtd, id_pedido, referencia)
+        id_pedido = criar_pedido(
+            cliente["id_cliente"]
+        )
+
+        print(
+            id_pedido
+        )
+
+        linha = criar_linha(
+            quantidade,
+            preco,
+            preco_qtd,
+            id_pedido,
+            referencia
+        )
 
         if linha is not None:
-            a = somar_preco_linhas(id_pedido)
+
+            a = somar_preco_linhas(
+                id_pedido
+            )
+
             if a is None:
-                print("ocorreu um erro")
 
-        return redirect(
-                url_for(
-                    "produto",
-                    referencia=referencia
+                print(
+                    "Ocorreu um erro."
                 )
-            )
-    
-    id_linha = obter_linha(referencia, id_pedido)
-
-    if id_linha is None:
-
-        linha = criar_linha(quantidade, preco, preco_qtd, id_pedido, referencia)
-        
-        if linha is not None:
-            a = somar_preco_linhas(id_pedido)
-            if a is None:
-                print("ocorreu um erro")
-
-
-        return redirect(
-                url_for(
-                    "produto",
-                    referencia=referencia
-                )
-            )
-
-    else:
-        linha_atualizar = atualizar_linha(quantidade, preco, id_linha)
-        if linha_atualizar is None:
-            print("erro ao atualizar linha")
-            return redirect(
-                url_for(
-                    "produto",
-                    referencia=referencia
-                )
-            )
-
-        pedido_atualizar = somar_preco_linhas(id_pedido)
-        if linha_atualizar is None:
-            print("erro ao atualizar pedido")
-                
 
         return redirect(
             url_for(
@@ -661,7 +955,288 @@ def adicionar_carrinho(referencia):
             )
         )
 
+    # ========================================================
+    # VERIFICAR SE JÁ EXISTE LINHA
+    # ========================================================
 
+    id_linha = obter_linha(
+        referencia,
+        id_pedido
+    )
+
+    # ========================================================
+    # CRIAR NOVA LINHA
+    # ========================================================
+
+    if id_linha is None:
+
+        linha = criar_linha(
+            quantidade,
+            preco,
+            preco_qtd,
+            id_pedido,
+            referencia
+        )
+
+        if linha is not None:
+
+            a = somar_preco_linhas(
+                id_pedido
+            )
+
+            if a is None:
+
+                print(
+                    "Ocorreu um erro."
+                )
+
+        return redirect(
+            url_for(
+                "produto",
+                referencia=referencia
+            )
+        )
+
+    # ========================================================
+    # ATUALIZAR LINHA EXISTENTE
+    # ========================================================
+
+    linha_atualizar = atualizar_linha(
+        quantidade,
+        preco,
+        id_linha
+    )
+
+    if linha_atualizar is None:
+
+        print(
+            "Erro ao atualizar linha."
+        )
+
+        return redirect(
+            url_for(
+                "produto",
+                referencia=referencia
+            )
+        )
+
+    pedido_atualizar = somar_preco_linhas(
+        id_pedido
+    )
+
+    if pedido_atualizar is None:
+
+        print(
+            "Erro ao atualizar pedido."
+        )
+
+    return redirect(
+        url_for(
+            "produto",
+            referencia=referencia
+        )
+    )
+
+
+# ============================================================
+# ADMIN - PRODUTOS
+# ============================================================
+
+@app.route("/produtos_admin", methods=["GET", "POST"])
+def produtos_admin():
+
+    if "id_utilizador" not in session:
+        return redirect(url_for("login"))
+
+    if not session.get("is_admin", False):
+        return redirect(url_for("login"))
+
+    if request.method == "POST":
+
+        referencia = request.form["referencia"]
+
+        preco_base = request.form["preco_base"]
+        stock = request.form["stock"]
+
+        descontinuado = (
+            "descontinuado" in request.form
+        )
+
+        resposta = atualizar_produto_admin(
+            referencia=referencia,
+            preco_base=preco_base,
+            stock=stock,
+            descontinuado=descontinuado
+        )
+
+        if not resposta:
+            return redirect(
+                url_for(
+                    "produtos_admin",
+                    erro="Não foi possível atualizar o produto."
+                )
+            )
+
+        return redirect(
+            url_for(
+                "produtos_admin",
+                sucesso="Produto atualizado com sucesso."
+            )
+        )
+
+    filtro = request.args.get("filtro", "").strip()
+
+    produtos = obter_produtos_admin(filtro)
+
+    return render_template(
+        "produtos_admin.html",
+        produtos=produtos,
+        filtro=filtro
+    )
+
+# ============================================================
+# ADMIN - CLIENTES
+# ============================================================
+
+@app.route(
+    "/clientes_admin",
+    methods=["GET", "POST"]
+)
+def clientes_admin():
+
+    # ========================================================
+    # VERIFICAR LOGIN
+    # ========================================================
+
+    if "id_utilizador" not in session:
+
+        return redirect(
+            url_for("login")
+        )
+
+    # ========================================================
+    # VERIFICAR ADMIN
+    # ========================================================
+
+    if not session.get("is_admin", False):
+
+        return redirect(
+            url_for("login")
+        )
+
+    # ========================================================
+    # POST - ALTERAR CLIENTE
+    # ========================================================
+
+    if request.method == "POST":
+
+        id_cliente = request.form[
+            "id_cliente"
+        ]
+
+        nome = request.form[
+            "nome"
+        ]
+
+        nif = request.form[
+            "nif"
+        ]
+
+        email = request.form[
+            "email"
+        ]
+
+        ind = request.form[
+            "ind"
+        ]
+
+        tel = request.form[
+            "tel"
+        ]
+
+        postal = request.form[
+            "postal"
+        ]
+
+        local = request.form[
+            "local"
+        ]
+
+        morada = request.form[
+            "morada"
+        ]
+
+        response = atualizar_cliente_admin(
+            id_cliente,
+            nome,
+            nif,
+            email,
+            ind,
+            tel,
+            postal,
+            local,
+            morada
+        )
+
+        if not response:
+
+            return redirect(
+                url_for(
+                    "clientes_admin",
+                    erro="Não foi possível alterar os dados."
+                )
+            )
+
+        return redirect(
+            url_for(
+                "clientes_admin",
+                cliente=id_cliente,
+                sucesso="Os dados foram alterados com sucesso!"
+            )
+        )
+
+    # ========================================================
+    # GET - PESQUISA
+    # ========================================================
+
+    filtro = request.args.get(
+        "filtro",
+        ""
+    ).strip()
+
+    clientes = obter_clientes(
+        filtro
+    )
+
+    id_cliente = request.args.get(
+        "cliente",
+        type=int
+    )
+
+    cliente = None
+
+    if id_cliente:
+
+        cliente = obter_cliente_admin(
+            id_cliente
+        )
+
+    sucesso = request.args.get(
+        "sucesso"
+    )
+
+    erro = request.args.get(
+        "erro"
+    )
+
+    return render_template(
+        "clientes_admin.html",
+        clientes=clientes,
+        cliente=cliente,
+        filtro=filtro,
+        sucesso=sucesso,
+        erro=erro
+    )
 
 
 # ============================================================
