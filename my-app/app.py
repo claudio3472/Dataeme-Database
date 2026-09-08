@@ -55,7 +55,8 @@ from services.admin_service import (
     obter_cliente_admin,
     atualizar_cliente_admin,
     obter_produtos_admin,
-    atualizar_produto_admin
+    atualizar_produto_admin,
+    obter_info
 )
 
 
@@ -1237,6 +1238,42 @@ def clientes_admin():
         sucesso=sucesso,
         erro=erro
     )
+
+# ============================================================
+# ADMIN - PEDIDOS
+# ============================================================
+@app.route("/pedidos_admin", methods=["GET", "POST"])
+
+def pedidos_admin():
+    # ========================================================
+    # VERIFICAR LOGIN
+    # ========================================================
+
+    if "id_utilizador" not in session:
+
+        return redirect(
+            url_for("login")
+        )
+
+    # ========================================================
+    # VERIFICAR ADMIN
+    # ========================================================
+
+    if not session.get("is_admin", False):
+
+        return redirect(
+            url_for("login")
+        )
+  
+    info = obter_info()
+
+    print(info)
+    return render_template(
+        "pedidos_admin.html",
+        info=info
+    )
+    
+
 
 
 # ============================================================

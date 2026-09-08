@@ -1,50 +1,96 @@
-from geopy.geocoders import Nominatim
+import requests
 import re
+
 
 def autofill_portugal_address(zip_code: str):
     """
-    Looks up a Portuguese NNNN-NNN postal code and extracts 
-    the components needed to autofill a form.
+    Obtém informação de um código postal português (CP7).
+
+    Retorna:
+        - street: rua/artéria
+        - city: localidade
+        - municipality: concelho
+        - district_region: distrito
+        - country: Portugal
+        - postal_code: código postal
+        - latitude: latitude
+        - longitude: longitude
     """
-    # Clean and validate format (NNNN-NNN or NNNNNNN)
-    clean_zip = re.sub(r'\D', '', zip_code)
+
+    # Limpar o código postal
+    clean_zip = re.sub(r"\D", "", zip_code)
+
     if len(clean_zip) != 7:
-        return {"error": "Invalid Portuguese zip code format. Must be 7 digits (e.g., 1250-096)."}
-    
-    formatted_zip = f"{clean_zip[:4]}-{clean_zip[4:]}"
-    
-    # Initialize OpenStreetMap Nominatim Geocoder
-    # Make sure to use a unique user_agent string per OSM policy
-    geolocator = Nominatim(user_agent="pt_address_autofill_agent")
-    
-    try:
-        # Search specifically within Portugal (country_codes='pt') for better speed and accuracy
-        location = geolocator.geocode(formatted_zip, addressdetails=True, country_codes='pt')
-        
-        if not location or 'address' not in location.raw:
-            return {"error": f"No address details found for zip code {formatted_zip}."}
-        
-        address_data = location.raw['address']
-        
-        # Safely parse structural elements with fallback values
-        autofill_form = {
-            "street": address_data.get('road', address_data.get('suburb', '')),
-            "city": address_data.get('city', address_data.get('town', address_data.get('village', ''))),
-            "municipality": address_data.get('municipality', ''),
-            "district_region": address_data.get('state', address_data.get('county', '')),
-            "country": address_data.get('country', 'Portugal'),
-            "postal_code": formatted_zip
+        return {
+            "error": "Código postal inválido. Deve ter 7 dígitos."
         }
-        
-        return autofill_form
 
-    except Exception as e:
-        return {"error": f"An API connection error occurred: {str(e)}"}
+    formatted_zip = f"{clean_zip[:4]}-{clean_zip[4:]}"
+
+    url = f"https://json.geoapi.pt/codigo_postal/{formatted_zip}"
+
+    try:
+        response = requests.get(
+            url,
+            params={"json": "true"},
+            timeout=10
+        )
+
+        if response.status_code == 404:
+            return {
+                "error": f"Código postal {formatted_zip} não encontrado."
+            }
+
+        response.raise_for_status()
+
+        data = response.json()
+
+        # A API pode devolver informação sobre várias ruas
+        ruas = data.get("ruas", [])
+
+        # Se houver várias ruas, devolvemos todas
+        if isinstance(ruas, list):
+            streets = ruas
+        else:
+            streets = [ruas] if ruas else []
+
+        return {
+            "streets": streets,
+            "city": data.get("Localidade", ""),
+            "municipality": data.get("Concelho", ""),
+            "district_region": data.get("Distrito", ""),
+            "country": "Portugal",
+            "postal_code": formatted_zip,
+
+            # Coordenadas do código postal
+            "latitude": (
+                data.get("centro", [None, None])[0]
+                if data.get("centro")
+                else None
+            ),
+            "longitude": (
+                data.get("centro", [None, None])[1]
+                if data.get("centro")
+                else None
+            ),
+
+            # Informação original, caso precises dela
+            "raw": data
+        }
+
+    except requests.RequestException as e:
+        return {
+            "error": f"Erro ao contactar a API: {str(e)}"
+        }
 
 
-zip_input = "2700-329"
+# Teste
+zip_input = "2720-233"
+
 form_data = autofill_portugal_address(zip_input)
 
-print(f"Results for {zip_input}:")
+print(f"Resultados para {zip_input}:")
+
 for field, value in form_data.items():
-    print(f"  {field.capitalize()}: {value}")
+    if field != "raw":
+        print(f"  {field}: {value}")

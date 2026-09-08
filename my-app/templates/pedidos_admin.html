@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="pt">
 
@@ -64,57 +65,129 @@
 
 <div class="container">
 
-    {% set cliente_anterior = namespace(valor='') %}
+    <!-- PESQUISA
+    <form
+        method="GET"
+        action="{{ url_for('pedidos_admin') }}"
+        class="filtro-form"
+    >
+
+        <input
+            type="text"
+            name="filtro"
+            placeholder="Pesquisar por nome do modelo..."
+            value="{{ filtro }}"
+        >
+
+        <button type="submit">
+            Pesquisar
+        </button>
+
+        {% if filtro %}
+            <a href="{{ url_for('produtos_admin') }}">
+                Limpar
+            </a>
+        {% endif %}
+
+    </form>
+    -->
+
+
+    {% set pedido_anterior = namespace(valor='') %}
+
 
     {% for pedido in info %}
 
+
         <!-- CLIENTE -->
 
-        {% if cliente_anterior.valor != pedido.nome_cliente %}
+        {% if pedido_anterior.valor != pedido.id_pedido %}
 
             <div class="familia">
                 {{ pedido.nome_cliente }}
             </div>
+             <!-- PEDIDO -->
 
-            {% set cliente_anterior.valor = pedido.nome_cliente %}
+            <div class="card produto-modelo">
+
+
+                <div class="modelo-header">
+
+                    <h2>
+                        Pedido #{{ pedido.id_pedido }}
+                    </h2>
+
+                </div>
+
+
+                <!-- INFORMAÇÃO DO PEDIDO -->
+
+                <div class="campo">
+
+                    <label>
+                        Cliente
+                    </label>
+
+                    <input
+                        type="text"
+                        value="{{ pedido.nome_cliente }}"
+                        disabled
+                    >
+
+                </div>
+
+
+                <div class="campo">
+
+                    <label>
+                        Nº Cliente
+                    </label>
+
+                    <input
+                        type="text"
+                        value="{{ pedido.num_cliente }}"
+                        disabled
+                    >
+
+                </div>
+
+
+                <div class="campo">
+
+                    <label>
+                        Estado
+                    </label>
+
+                    <input
+                        type="text"
+                        value="{{ pedido.estado_pedido }}"
+                        disabled
+                    >
+
+                </div>
+
+
+                <div class="campo">
+
+                    <label>
+                        Data
+                    </label>
+
+                    <input
+                        type="text"
+                        value="{{ pedido.data }}"
+                        disabled
+                    >
+
+                </div>
+        
 
         {% endif %}
 
 
-        <!-- PEDIDO -->
+                <!-- PRODUTO -->
 
-        <div class="card produto-modelo">
-
-            <div class="modelo-header">
-
-                <h2>
-                    Pedido #{{ pedido.id_pedido }}
-                </h2>
-
-                <p>
-                    Cliente: {{ pedido.nome_cliente }}
-                </p>
-
-                <p>
-                    Nº Cliente: {{ pedido.num_cliente }}
-                </p>
-
-                <p>
-                    Estado: {{ pedido.estado_pedido }}
-                </p>
-
-                <p>
-                    Data: {{ pedido.data }}
-                </p>
-
-            </div>
-
-
-            <!-- ITENS DO PEDIDO -->
-
-            <div class="variantes">
-
-                {% for variante in pedido.itens %}
+                <div class="variantes">
 
                     <div class="variante">
 
@@ -123,7 +196,8 @@
                             action="{{ url_for('pedidos_admin') }}"
                         >
 
-                            <!-- ID DO PEDIDO -->
+
+                            <!-- ID PEDIDO -->
 
                             <input
                                 type="hidden"
@@ -142,7 +216,7 @@
 
                                 <input
                                     type="text"
-                                    value="{{ variante.referencia }}"
+                                    value="{{ pedido.referencia }}"
                                     disabled
                                 >
 
@@ -159,7 +233,7 @@
 
                                 <input
                                     type="text"
-                                    value="{{ variante.nome_produto }}"
+                                    value="{{ pedido.nome_produto }}"
                                     disabled
                                 >
 
@@ -176,7 +250,7 @@
 
                                 <input
                                     type="text"
-                                    value="{{ variante.id_modelo }}"
+                                    value="{{ pedido.id_modelo }}"
                                     disabled
                                 >
 
@@ -193,7 +267,7 @@
 
                                 <input
                                     type="text"
-                                    value="{{ variante.cor }}"
+                                    value="{{ pedido.cor }}"
                                     disabled
                                 >
 
@@ -211,7 +285,7 @@
                                 <input
                                     type="number"
                                     name="preco_base"
-                                    value="{{ variante.preco }}"
+                                    value="{{ pedido.preco }}"
                                     step="0.01"
                                     min="0"
                                     required
@@ -230,7 +304,7 @@
 
                                 <input
                                     type="text"
-                                    value="{{ variante.quantidade }}"
+                                    value="{{ pedido.quantidade }}"
                                     disabled
                                 >
 
@@ -247,7 +321,7 @@
 
                                 <input
                                     type="text"
-                                    value="{{ variante.preco_total }}"
+                                    value="{{ pedido.preco_total }}"
                                     disabled
                                 >
 
@@ -264,7 +338,7 @@
 
                                 <input
                                     type="text"
-                                    value="{{ variante.codigo }}"
+                                    value="{{ pedido.codigo }}"
                                     disabled
                                 >
 
@@ -275,15 +349,13 @@
                                 Guardar alterações
                             </button>
 
+
                         </form>
 
                     </div>
 
-                {% endfor %}
-
-            </div>
-
-
+                </div>
+            {% if pedido_anterior.valor != pedido.id_pedido %}
             <!-- OBSERVAÇÕES -->
 
             <div class="campo">
@@ -312,15 +384,19 @@
                 </p>
 
             </div>
+            {% set pedido_anterior.valor = pedido.id_pedido %}
+
+        {% endif %}
 
 
         </div>
 
+
     {% endfor %}
+
 
 </div>
 
 </body>
 
 </html>
-
