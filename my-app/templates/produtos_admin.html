@@ -9,7 +9,7 @@
         content="width=device-width, initial-scale=1.0"
     >
 
-    <title>DataEme - Pedidos</title>
+    <title>DataEme - Produtos</title>
 
     <link
         rel="stylesheet"
@@ -25,6 +25,7 @@
 
         .variante {
             display: flex;
+            flex-direction: column;
             margin-bottom: 15px;
             height: 100%;
             width: min-content;
@@ -45,10 +46,9 @@
 
 <header>
 
-    <h1>Lista de Pedidos</h1>
+    <h1>Lista de Produtos</h1>
 
     <nav>
-
         <a href="{{ url_for('confirm_admin') }}">
             Dashboard
         </a>
@@ -56,7 +56,6 @@
         <a href="{{ url_for('logout') }}">
             Logout
         </a>
-
     </nav>
 
 </header>
@@ -64,255 +63,268 @@
 
 <div class="container">
 
-    {% set cliente_anterior = namespace(valor='') %}
+    <!-- PESQUISA -->
 
-    {% for pedido in info %}
+    <form
+        method="GET"
+        action="{{ url_for('produtos_admin') }}"
+        class="filtro-form"
+    >
 
-        <!-- CLIENTE -->
+        <input
+            type="text"
+            name="filtro"
+            placeholder="Pesquisar por nome do modelo..."
+            value="{{ filtro }}"
+        >
 
-        {% if cliente_anterior.valor != pedido.nome_cliente %}
+        <button type="submit">
+            Pesquisar
+        </button>
+
+        {% if filtro %}
+            <a href="{{ url_for('produtos_admin') }}">
+                Limpar
+            </a>
+        {% endif %}
+
+    </form>
+
+
+    {% if request.args.get("sucesso") %}
+        <div class="mensagem sucesso">
+            {{ request.args.get("sucesso") }}
+        </div>
+    {% endif %}
+
+
+    {% if request.args.get("erro") %}
+        <div class="mensagem erro">
+            {{ request.args.get("erro") }}
+        </div>
+    {% endif %}
+
+
+    {% if not produtos %}
+
+        <p>
+            Não foram encontrados produtos.
+        </p>
+
+    {% endif %}
+
+
+    {% set familia_anterior = namespace(valor='') %}
+
+
+    {% for produto in produtos %}
+
+        <!-- FAMÍLIA -->
+
+        {% if familia_anterior.valor != produto.familia %}
 
             <div class="familia">
-                {{ pedido.nome_cliente }}
+                {{ produto.familia }}
             </div>
 
-            {% set cliente_anterior.valor = pedido.nome_cliente %}
+            {% set familia_anterior.valor = produto.familia %}
 
         {% endif %}
 
 
-        <!-- PEDIDO -->
+        <!-- SUBFAMÍLIA -->
+
+        <div class="subfamilia">
+            {{ produto.subfamilia }}
+        </div>
+
+
+        <!-- MODELO -->
 
         <div class="card produto-modelo">
 
             <div class="modelo-header">
 
                 <h2>
-                    Pedido #{{ pedido.id_pedido }}
+                    {{ produto.nome }}
                 </h2>
 
-                <p>
-                    Cliente: {{ pedido.nome_cliente }}
-                </p>
-
-                <p>
-                    Nº Cliente: {{ pedido.num_cliente }}
-                </p>
-
-                <p>
-                    Estado: {{ pedido.estado_pedido }}
-                </p>
-
-                <p>
-                    Data: {{ pedido.data }}
-                </p>
+                {% if produto.descricao %}
+                    <p>
+                        {{ produto.descricao }}
+                    </p>
+                {% endif %}
 
             </div>
 
 
-            <!-- ITENS DO PEDIDO -->
+            {% if produto.variantes %}
 
-            <div class="variantes">
+                <div class="variantes">
 
-                {% for variante in pedido.itens %}
+                    {% for variante in produto.variantes %}
 
-                    <div class="variante">
+                        <div class="variante">
 
-                        <form
-                            method="POST"
-                            action="{{ url_for('pedidos_admin') }}"
-                        >
-
-                            <!-- ID DO PEDIDO -->
-
-                            <input
-                                type="hidden"
-                                name="id_pedido"
-                                value="{{ pedido.id_pedido }}"
+                            <form
+                                method="POST"
+                                action="{{ url_for('produtos_admin') }}"
                             >
 
-
-                            <!-- REFERÊNCIA -->
-
-                            <div class="campo">
-
-                                <label>
-                                    Referência
-                                </label>
-
                                 <input
-                                    type="text"
+                                    type="hidden"
+                                    name="referencia"
                                     value="{{ variante.referencia }}"
-                                    disabled
                                 >
 
-                            </div>
+
+                                <!-- REFERÊNCIA -->
+
+                                <div class="campo">
+
+                                    <label>
+                                        Referência
+                                    </label>
+
+                                    <input
+                                        type="text"
+                                        value="{{ variante.referencia }}"
+                                        disabled
+                                    >
+
+                                </div>
 
 
-                            <!-- NOME -->
+                                <!-- COR -->
 
-                            <div class="campo">
+                                <div class="campo">
 
-                                <label>
-                                    Nome do Produto
-                                </label>
+                                    <label>
+                                        Cor
+                                    </label>
 
-                                <input
-                                    type="text"
-                                    value="{{ variante.nome_produto }}"
-                                    disabled
-                                >
+                                    <input
+                                        type="text"
+                                        value="{{ variante.cor }}"
+                                        disabled
+                                    >
 
-                            </div>
-
-
-                            <!-- ID MODELO -->
-
-                            <div class="campo">
-
-                                <label>
-                                    ID Modelo
-                                </label>
-
-                                <input
-                                    type="text"
-                                    value="{{ variante.id_modelo }}"
-                                    disabled
-                                >
-
-                            </div>
+                                </div>
 
 
-                            <!-- COR -->
+                                <!-- CÓDIGO DA COR -->
 
-                            <div class="campo">
+                                <div class="campo">
 
-                                <label>
-                                    Cor
-                                </label>
+                                    <label>
+                                        Código da cor
+                                    </label>
 
-                                <input
-                                    type="text"
-                                    value="{{ variante.cor }}"
-                                    disabled
-                                >
+                                    <input
+                                        type="text"
+                                        value="{{ variante.codigo_cor }}"
+                                        disabled
+                                    >
 
-                            </div>
-
-
-                            <!-- PREÇO -->
-
-                            <div class="campo">
-
-                                <label>
-                                    Preço com IVA
-                                </label>
-
-                                <input
-                                    type="number"
-                                    name="preco_base"
-                                    value="{{ variante.preco }}"
-                                    step="0.01"
-                                    min="0"
-                                    required
-                                >
-
-                            </div>
+                                </div>
 
 
-                            <!-- QUANTIDADE -->
+                                <!-- PREÇO -->
 
-                            <div class="campo">
+                                <div class="campo">
 
-                                <label>
-                                    Quantidade
-                                </label>
+                                    <label>
+                                        Preço base
+                                    </label>
 
-                                <input
-                                    type="text"
-                                    value="{{ variante.quantidade }}"
-                                    disabled
-                                >
+                                    <input
+                                        type="number"
+                                        name="preco_base"
+                                        value="{{ variante.preco_base }}"
+                                        step="0.01"
+                                        min="0"
+                                        required
+                                    >
 
-                            </div>
-
-
-                            <!-- PREÇO DA LINHA -->
-
-                            <div class="campo">
-
-                                <label>
-                                    Preço da Linha
-                                </label>
-
-                                <input
-                                    type="text"
-                                    value="{{ variante.preco_total }}"
-                                    disabled
-                                >
-
-                            </div>
+                                </div>
 
 
-                            <!-- CÓDIGO DE BARRAS -->
+                                <!-- STOCK -->
 
-                            <div class="campo">
+                                <div class="campo">
 
-                                <label>
-                                    Código de Barras
-                                </label>
+                                    <label>
+                                        Stock
+                                    </label>
 
-                                <input
-                                    type="text"
-                                    value="{{ variante.codigo }}"
-                                    disabled
-                                >
+                                    <input
+                                        type="number"
+                                        name="stock"
+                                        value="{{ variante.stock }}"
+                                        min="0"
+                                        required
+                                    >
 
-                            </div>
-
-
-                            <button type="submit">
-                                Guardar alterações
-                            </button>
-
-                        </form>
-
-                    </div>
-
-                {% endfor %}
-
-            </div>
+                                </div>
 
 
-            <!-- OBSERVAÇÕES -->
+                                <!-- CÓDIGO DE BARRAS -->
 
-            <div class="campo">
+                                <div class="campo">
 
-                <label>
-                    Observações
-                </label>
+                                    <label>
+                                        Código de barras
+                                    </label>
+
+                                    <input
+                                        type="text"
+                                        value="{{ variante.codigo_barras }}"
+                                        disabled
+                                    >
+
+                                </div>
+
+
+                                <!-- DESCONTINUADO -->
+
+                                <div class="campo checkbox">
+
+                                    <label>
+
+                                        <input
+                                            type="checkbox"
+                                            name="descontinuado"
+                                            {% if variante.descontinuado %}
+                                                checked
+                                            {% endif %}
+                                        >
+
+                                        Produto descontinuado
+
+                                    </label>
+
+                                </div>
+
+
+                                <button type="submit">
+                                    Guardar alterações
+                                </button>
+
+                            </form>
+
+                        </div>
+
+                    {% endfor %}
+
+                </div>
+
+            {% else %}
 
                 <p>
-                    {{ pedido.observacoes }}
+                    Este modelo não tem variantes.
                 </p>
 
-            </div>
-
-
-            <!-- VALOR TOTAL -->
-
-            <div class="campo">
-
-                <label>
-                    Valor Total
-                </label>
-
-                <p>
-                    {{ pedido.valor_total }}
-                </p>
-
-            </div>
-
+            {% endif %}
 
         </div>
 
@@ -321,6 +333,4 @@
 </div>
 
 </body>
-
 </html>
-

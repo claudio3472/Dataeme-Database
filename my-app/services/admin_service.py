@@ -408,3 +408,18 @@ def obter_info():
         key=lambda p: p["num_cliente"]
     )
 
+def atualizar_estado_pedido_admin(id_pedido, estado):
+
+    response = (
+        supabase
+        .table("pedido")
+        .update({"estado": estado})
+        .eq("id_pedido", id_pedido)
+        .execute()
+    )
+
+    if not response.data:
+        return None
+
+    return response.data[0]
+

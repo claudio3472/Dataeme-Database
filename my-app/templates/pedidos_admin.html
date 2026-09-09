@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="pt">
 
@@ -18,23 +17,34 @@
     >
 
     <style>
+
         .variantes {
             display: flex;
+            flex-wrap: wrap; 
             gap: 10px;
             margin-top: 10px;
+            height: auto;
         }
 
         .variante {
             display: flex;
+            flex-direction: column;
             margin-bottom: 15px;
             height: 100%;
             width: min-content;
             background-color: white;
             border-radius: 12px;
             padding: 30px;
-            row-gap: 25px;
+            row-gap: 5px;
             box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
         }
+
+        .card.produto-modelo {
+            box-sizing: border-box;
+            width: 100%;
+            overflow-x: hidden;   
+        }
+
 
         .campo {
             margin-bottom: 10px;
@@ -65,331 +75,159 @@
 
 <div class="container">
 
-    <!-- PESQUISA
-    <form
-        method="GET"
-        action="{{ url_for('pedidos_admin') }}"
-        class="filtro-form"
-    >
-
-        <input
-            type="text"
-            name="filtro"
-            placeholder="Pesquisar por nome do modelo..."
-            value="{{ filtro }}"
-        >
-
-        <button type="submit">
-            Pesquisar
-        </button>
-
-        {% if filtro %}
-            <a href="{{ url_for('produtos_admin') }}">
-                Limpar
-            </a>
-        {% endif %}
-
-    </form>
-    -->
-
-
     {% set pedido_anterior = namespace(valor='') %}
 
 
     {% for pedido in info %}
 
 
-        <!-- CLIENTE -->
+        {% set inicio_grupo = (pedido_anterior.valor != pedido.id_pedido) %}
 
-        {% if pedido_anterior.valor != pedido.id_pedido %}
+
+        <!-- INÍCIO DE UM NOVO PEDIDO -->
+
+        {% if inicio_grupo %}
 
             <div class="familia">
                 {{ pedido.nome_cliente }}
             </div>
-             <!-- PEDIDO -->
 
             <div class="card produto-modelo">
 
-
                 <div class="modelo-header">
-
                     <h2>
                         Pedido #{{ pedido.id_pedido }}
                     </h2>
-
                 </div>
-
 
                 <!-- INFORMAÇÃO DO PEDIDO -->
 
-                <div class="campo">
+                <form
+                    method="POST"
+                    action="{{ url_for('pedidos_admin') }}"
+                >
 
-                    <label>
-                        Cliente
-                    </label>
-
+                    
                     <input
-                        type="text"
-                        value="{{ pedido.nome_cliente }}"
-                        disabled
+                        type="hidden"
+                        name="id_pedido"
+                        value="{{ pedido.id_pedido }}"
                     >
+                    
+                    <div class="campo">
+                        <label>Cliente</label>
+                        <input type="text" value="{{ pedido.nome_cliente }}" disabled>
+                    </div>
 
-                </div>
+                    <div class="campo">
+                        <label>Nº Cliente</label>
+                        <input type="text" value="{{ pedido.num_cliente }}" disabled>
+                    </div>
 
+                    <div class="campo">
+                        <label>Estado</label>
+                        <select name="estado">
+                                <option value = "aberto"{{ 'selected' if pedido.estado_pedido == 'aberto' else '' }}> Aberto</option>
+                                <option value = "finalizado" {{ 'selected' if pedido.estado_pedido == 'finalizado' else '' }}> Finalizado </option>
+                        </select>
+                    </div>
 
-                <div class="campo">
+                    <div class="campo">
+                        <label>Data</label>
+                        <input type="text" value="{{ pedido.data }}" disabled>
+                    </div>
 
-                    <label>
-                        Nº Cliente
-                    </label>
+                    <button type="submit">
+                    Guardar alterações
+                    </button>
+                </form>
 
-                    <input
-                        type="text"
-                        value="{{ pedido.num_cliente }}"
-                        disabled
-                    >
-
-                </div>
-
-
-                <div class="campo">
-
-                    <label>
-                        Estado
-                    </label>
-
-                    <input
-                        type="text"
-                        value="{{ pedido.estado_pedido }}"
-                        disabled
-                    >
-
-                </div>
-
-
-                <div class="campo">
-
-                    <label>
-                        Data
-                    </label>
-
-                    <input
-                        type="text"
-                        value="{{ pedido.data }}"
-                        disabled
-                    >
-
-                </div>
-        
+                <!-- ESTE DIV SÓ ABRE UMA VEZ POR PEDIDO -->
+                <div class="variantes">
 
         {% endif %}
 
 
-                <!-- PRODUTO -->
-
-                <div class="variantes">
+                    <!-- PRODUTO (uma variante por linha) -->
 
                     <div class="variante">
 
-                        <form
-                            method="POST"
-                            action="{{ url_for('pedidos_admin') }}"
-                        >
+                        <div class="campo">
+                            <label>Referência</label>
+                            <input type="text" value="{{ pedido.referencia }}" disabled>
+                        </div>
 
+                        <div class="campo">
+                            <label>Nome do Produto</label>
+                            <input type="text" value="{{ pedido.nome_produto }}" disabled>
+                        </div>
 
-                            <!-- ID PEDIDO -->
+                        <div class="campo">
+                            <label>ID Modelo</label>
+                            <input type="text" value="{{ pedido.id_modelo }}" disabled>
+                        </div>
 
+                        <div class="campo">
+                            <label>Cor</label>
+                            <input type="text" value="{{ pedido.cor }}" disabled>
+                        </div>
+
+                        <div class="campo">
+                            <label>Preço com IVA</label>
                             <input
-                                type="hidden"
-                                name="id_pedido"
-                                value="{{ pedido.id_pedido }}"
+                                type="number"
+                                name="preco_base"
+                                value="{{ pedido.preco }}"
+                                step="0.01"
+                                min="0"
+                                disabled
                             >
+                        </div>
 
+                        <div class="campo">
+                            <label>Quantidade</label>
+                            <input type="text" value="{{ pedido.quantidade }}" disabled>
+                        </div>
 
-                            <!-- REFERÊNCIA -->
+                        <div class="campo">
+                            <label>Preço da Linha</label>
+                            <input type="text" value="{{ pedido.preco_total }}" disabled>
+                        </div>
 
-                            <div class="campo">
-
-                                <label>
-                                    Referência
-                                </label>
-
-                                <input
-                                    type="text"
-                                    value="{{ pedido.referencia }}"
-                                    disabled
-                                >
-
-                            </div>
-
-
-                            <!-- NOME -->
-
-                            <div class="campo">
-
-                                <label>
-                                    Nome do Produto
-                                </label>
-
-                                <input
-                                    type="text"
-                                    value="{{ pedido.nome_produto }}"
-                                    disabled
-                                >
-
-                            </div>
-
-
-                            <!-- ID MODELO -->
-
-                            <div class="campo">
-
-                                <label>
-                                    ID Modelo
-                                </label>
-
-                                <input
-                                    type="text"
-                                    value="{{ pedido.id_modelo }}"
-                                    disabled
-                                >
-
-                            </div>
-
-
-                            <!-- COR -->
-
-                            <div class="campo">
-
-                                <label>
-                                    Cor
-                                </label>
-
-                                <input
-                                    type="text"
-                                    value="{{ pedido.cor }}"
-                                    disabled
-                                >
-
-                            </div>
-
-
-                            <!-- PREÇO -->
-
-                            <div class="campo">
-
-                                <label>
-                                    Preço com IVA
-                                </label>
-
-                                <input
-                                    type="number"
-                                    name="preco_base"
-                                    value="{{ pedido.preco }}"
-                                    step="0.01"
-                                    min="0"
-                                    required
-                                >
-
-                            </div>
-
-
-                            <!-- QUANTIDADE -->
-
-                            <div class="campo">
-
-                                <label>
-                                    Quantidade
-                                </label>
-
-                                <input
-                                    type="text"
-                                    value="{{ pedido.quantidade }}"
-                                    disabled
-                                >
-
-                            </div>
-
-
-                            <!-- PREÇO DA LINHA -->
-
-                            <div class="campo">
-
-                                <label>
-                                    Preço da Linha
-                                </label>
-
-                                <input
-                                    type="text"
-                                    value="{{ pedido.preco_total }}"
-                                    disabled
-                                >
-
-                            </div>
-
-
-                            <!-- CÓDIGO DE BARRAS -->
-
-                            <div class="campo">
-
-                                <label>
-                                    Código de Barras
-                                </label>
-
-                                <input
-                                    type="text"
-                                    value="{{ pedido.codigo }}"
-                                    disabled
-                                >
-
-                            </div>
-
-
-                            <button type="submit">
-                                Guardar alterações
-                            </button>
-
-
-                        </form>
+                        <div class="campo">
+                            <label>Código de Barras</label>
+                            <input type="text" value="{{ pedido.codigo }}" disabled>
+                        </div>
 
                     </div>
 
+
+        {% set fim_grupo = (loop.nextitem is not defined) or (loop.nextitem.id_pedido != pedido.id_pedido) %}
+
+        {% if fim_grupo %}
+
+                </div> <!-- fecha .variantes -->
+
+                <!-- OBSERVAÇÕES -->
+
+                <div class="campo">
+                    <label>Observações</label>
+                    <p>{{ pedido.observacoes }}</p>
                 </div>
-            {% if pedido_anterior.valor != pedido.id_pedido %}
-            <!-- OBSERVAÇÕES -->
 
-            <div class="campo">
+                <!-- VALOR TOTAL -->
 
-                <label>
-                    Observações
-                </label>
+                <div class="campo">
+                    <label>Valor Total</label>
+                    <p>{{ pedido.valor_total }}</p>
+                </div>
 
-                <p>
-                    {{ pedido.observacoes }}
-                </p>
-
-            </div>
-
-
-            <!-- VALOR TOTAL -->
-
-            <div class="campo">
-
-                <label>
-                    Valor Total
-                </label>
-
-                <p>
-                    {{ pedido.valor_total }}
-                </p>
-
-            </div>
-            {% set pedido_anterior.valor = pedido.id_pedido %}
+            </div> <!-- fecha .card.produto-modelo -->
 
         {% endif %}
 
 
-        </div>
+        {% set pedido_anterior.valor = pedido.id_pedido %}
 
 
     {% endfor %}

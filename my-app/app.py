@@ -56,7 +56,8 @@ from services.admin_service import (
     atualizar_cliente_admin,
     obter_produtos_admin,
     atualizar_produto_admin,
-    obter_info
+    obter_info,
+    atualizar_estado_pedido_admin
 )
 
 
@@ -1264,10 +1265,20 @@ def pedidos_admin():
         return redirect(
             url_for("login")
         )
-  
+
+    if request.method == "POST":
+    
+        estado = request.form["estado"]
+        id = request.form["id_pedido"]
+
+        resposta = atualizar_estado_pedido_admin(
+            id_pedido=id,
+            estado=estado
+        )
+
+
     info = obter_info()
 
-    print(info)
     return render_template(
         "pedidos_admin.html",
         info=info
