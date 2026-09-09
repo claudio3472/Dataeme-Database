@@ -4,14 +4,6 @@ from barcode.writer import SVGWriter
 
 from config import supabase, ph
 
-#
-#produtos = (
-#    supabase
-#    .table("produtos")
-#    .select("referencia")
-#    .execute()
-#)
-
 def gerar_conteudo_svg_barcode(referencia, quantidade):
     fp = io.BytesIO()
 

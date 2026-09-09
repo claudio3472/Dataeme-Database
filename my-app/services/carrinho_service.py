@@ -226,7 +226,8 @@ def get_linhas(pedido):
         valor_linha,
 
         pedido (
-            valor_total
+            valor_total,
+            observacoes
         )
         
         
@@ -240,6 +241,7 @@ def get_linhas(pedido):
 
     valor = response_linha.data[0].get("pedido") or {}
     valor_total = f"{valor['valor_total']:.2f}"
+    observacoes = valor['observacoes']
     lista = [] 
 
     for prod in response_linha.data:
@@ -279,7 +281,7 @@ def get_linhas(pedido):
         })
 
     print(lista)
-    return lista, valor_total
+    return lista, valor_total, observacoes
 
 def apagar_linha(id_linha):
     response = (

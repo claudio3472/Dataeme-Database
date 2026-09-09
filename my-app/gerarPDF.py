@@ -13,11 +13,11 @@ from gerar_barcode import gerar_conteudo_svg_barcode
 
 
 def gerar_fatura_pdf(dados_compra, nome_arquivo):
-
+    caminho_completo = os.path.join("generated", nome_arquivo)
     # Criar pasta se não existir
-    os.makedirs(os.path.dirname(nome_arquivo), exist_ok=True)
-
-    doc = SimpleDocTemplate(nome_arquivo, pagesize=letter, title=f"Fatura {dados_compra['id']}")
+    os.makedirs(os.path.dirname(caminho_completo), exist_ok=True)
+    print("Salvando PDF em:", os.path.abspath(caminho_completo))
+    doc = SimpleDocTemplate(caminho_completo, pagesize=letter, title=f"Fatura {dados_compra['id']}")
     story = []
     styles = getSampleStyleSheet()
     
@@ -135,7 +135,9 @@ def gerar_fatura_pdf(dados_compra, nome_arquivo):
     story.append(tabela_itens)
     doc.build(story)
 
-def obter_info(id):
+    return caminho_completo
+
+def obter_info_pdf(id):
 
     response = (
         supabase
@@ -179,7 +181,7 @@ def obter_info(id):
 
     info.update({
         "empresa": "Dataeme",
-        "id": "2026-9482",
+        "id": f"{id}",
         "data": date.today(),
         "nome_cliente": cli["nome"],
         "email": cli["email"],
@@ -200,6 +202,6 @@ def obter_info(id):
         })
 
     info.update({"itens": itens})
-    gerar_fatura_pdf(info, "generated/fatura_b.pdf")
-
-obter_info(1)
+    nome_arquivo = f"Encomenda_{id}.pdf"
+    
+    return gerar_fatura_pdf(info, nome_arquivo)

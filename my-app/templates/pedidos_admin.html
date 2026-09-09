@@ -76,21 +76,22 @@
 <div class="container">
 
     {% set pedido_anterior = namespace(valor='') %}
-
+    {% set cliente_anterior = namespace(valor='') %}
 
     {% for pedido in info %}
 
 
         {% set inicio_grupo = (pedido_anterior.valor != pedido.id_pedido) %}
-
-
+        {% if pedido.nome_cliente != cliente_anterior.valor %}
+            <div class="familia">
+                {{ pedido.nome_cliente }}
+            </div>
+            {% set cliente_anterior.valor = pedido.nome_cliente %}
+        {% endif %}
         <!-- INÍCIO DE UM NOVO PEDIDO -->
 
         {% if inicio_grupo %}
 
-            <div class="familia">
-                {{ pedido.nome_cliente }}
-            </div>
 
             <div class="card produto-modelo">
 
@@ -106,8 +107,7 @@
                     method="POST"
                     action="{{ url_for('pedidos_admin') }}"
                 >
-
-                    
+                      
                     <input
                         type="hidden"
                         name="id_pedido"

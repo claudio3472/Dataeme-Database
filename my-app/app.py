@@ -10,6 +10,8 @@ from flask import (
 import time
 import secrets
 
+from datetime import date
+
 from config import supabase, ph
 
 from services.auth_service import autenticar
@@ -35,7 +37,8 @@ from services.produto_service import (
 )
 
 from services.email_service import (
-    enviar_codigo_recuperacao
+    enviar_codigo_recuperacao,
+    enviar_nota_encomenda
 )
 
 from services.carrinho_service import (
@@ -60,6 +63,9 @@ from services.admin_service import (
     atualizar_estado_pedido_admin
 )
 
+from gerarPDF import(
+    obter_info_pdf
+)
 
 app = Flask(__name__)
 
@@ -701,7 +707,7 @@ def carrinho():
                 valor_total=0
             )
 
-        linha, valor_total = get_linhas(
+        linha, valor_total, observacoes = get_linhas(
             pedido
         )
 
@@ -716,7 +722,8 @@ def carrinho():
         return render_template(
             "carrinho.html",
             linha=linha,
-            valor_total=valor_total
+            valor_total=valor_total,
+            observacoes=observacoes
         )
 
     # ========================================================
@@ -754,7 +761,7 @@ def carrinho():
 
 @app.route(
     "/carrinhofinalizar",
-    methods=["POST"]
+    methods=["POST", "GET"]
 )
 def finalizar_compra():
 
@@ -795,11 +802,15 @@ def finalizar_compra():
             url_for("carrinho")
         )
 
+    observacoes = request.form["observacoes"]
+
     response = (
         supabase
         .table("pedido")
         .update({
-            "estado": "finalizado"
+            "estado": "finalizado",
+            "observacoes": observacoes,
+            "data_pedido": date.today().isoformat()
         })
         .eq(
             "id_pedido",
@@ -817,6 +828,10 @@ def finalizar_compra():
         return redirect(
             url_for("carrinho")
         )
+    
+    pdf = obter_info_pdf(pedido)
+    enviar_nota_encomenda(cliente["email"], pdf)
+
 
     return redirect(
         url_for("carrinho")
