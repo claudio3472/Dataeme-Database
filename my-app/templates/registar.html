@@ -21,7 +21,7 @@
         }
 
         .campo {
-            margin-bottom: 15px;
+            margin-bottom: 10px;
         }
 
         .campo label {
@@ -100,15 +100,6 @@
     </div>
 
     <div class="campo">
-        <label>Morada</label>
-        <input
-            type="text"
-            name="morada"
-            required
-        >
-    </div>
-
-    <div class="campo">
         <label>Email</label>
         <input
             type="email"
@@ -146,6 +137,15 @@
             >
         </div>
 
+    </div>
+    
+    <div class="campo">
+        <label>Morada</label>
+        <input
+            type="text"
+            name="morada"
+            required
+        >
     </div>
 
     <div class="linha">
@@ -188,6 +188,17 @@
         >
     </div>
 
+        <div class="campo">
+        <label>Confirmar Password</label>
+        <input
+            type="password"
+            name="confirmar_password"
+            required
+            minlength="8"
+        >
+    </div>
+
+
     <button type="submit">
         Criar Conta
     </button>
@@ -196,7 +207,9 @@
 
 <p>
     Já tem conta?
-    login">Entrar</a>
+    <a href="/login">
+        Login
+    </a>
 </p>
 
 </body>

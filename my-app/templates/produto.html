@@ -319,6 +319,12 @@
 
             </div>
 
+            <div class="avaliacao">
+
+                ⭐ {{ produto.avaliacao }} | {{ produto.num_avaliacao }} avaliações
+
+            </div>
+
 
             <h1 class="nome">
                 {{ produto.nome }}
@@ -329,24 +335,57 @@
                 Referência: {{ produto.referencia }}
             </div>
 
+            <!-- =========================
+                    CORES DISPONÍVEIS
+                    ========================= -->
 
-            <!-- DESCRIÇÃO CURTA -->
+            {% if produto.variantes %}
 
-            {% if produto.descricao %}
+                <div class="cores-modelo">
 
-                <div class="secao">
 
-                    <h2>
-                        Descrição
-                    </h2>
+                    {% for cor in produto.variantes %}
 
-                    <p class="descricao">
-                        {{ produto.descricao }}
-                    </p>
+
+                        <a
+                            href="/produto/{{ cor.referencia }}"
+                            class="cor-link"
+                            title="{{ cor.nome }}"
+                        >
+
+                            <span
+                                class="cor-bola"
+                                style="background-color: {{ cor.codigo_cor }}"
+                            ></span>
+
+                        </a>
+
+
+                    {% endfor %}
+
 
                 </div>
 
+
             {% endif %}
+
+        <!-- DESCRIÇÃO CURTA -->
+
+        {% if produto.descricao %}
+
+            <div class="secao">
+
+                <h2>
+                    Descrição
+                </h2>
+
+                <p class="descricao">
+                    {{ produto.descricao }}
+                </p>
+
+            </div>
+
+        {% endif %}
 
 
             <!-- DESCRIÇÃO DETALHADA -->
@@ -474,6 +513,30 @@
 
             </div>
 
+            <!-- AVALIAÇÃO -->
+
+            <form
+                method="POST"
+                action="{{ url_for('avaliacoes', referencia=produto.referencia) }}"
+                class="carrinho"
+            >
+                <label>Classificação</label>
+                <select name="classificacao">
+                        <option value = "1"> 1 estrela</option>
+                        <option value = "2"> 2 estrelas </option>
+                        <option value = "3"> 3 estrelas </option>
+                        <option value = "4"> 4 estrelas </option>
+                        <option value = "5"> 5 estrelas </option>
+                </select>
+
+                <label>Comentário</label>
+                <textarea name="comentario" rows="6" cols="70" placeholder="Avaliação do produto"></textarea>
+                
+                <button type="submit">
+                    Adicionar avaliação
+                </button>
+
+            </form>
 
             <!-- VOLTAR / ADICIONAR CARRINHO -->
 

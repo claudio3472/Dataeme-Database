@@ -67,6 +67,10 @@ from gerarPDF import(
     obter_info_pdf
 )
 
+from services.avaliacao_service import (
+    comparar_avaliacao
+)
+
 app = Flask(__name__)
 
 app.secret_key = "ALTERAR_PARA_UMA_CHAVE_SECRETA"
@@ -272,6 +276,8 @@ def catalogo():
     produtos, total_paginas = obter_produtos(
         pagina
     )
+
+
 
     return render_template(
         "catalogo.html",
@@ -1054,6 +1060,47 @@ def adicionar_carrinho(referencia):
         )
     )
 
+# ============================================================
+# AVALIAÇÕES 
+# ============================================================
+
+@app.route("/produto/<int:referencia>/avaliar", methods=["POST"])
+def avaliacoes(referencia):
+
+    # ========================================================
+    # VERIFICAR LOGIN
+    # ========================================================
+
+    if "id_utilizador" not in session:
+
+        return redirect(
+            url_for("login")
+        )
+
+    # Admin não adiciona produtos ao carrinho normal
+    if session.get("is_admin", False):
+
+        return redirect(
+            url_for("confirm_admin")
+        )
+
+    classificacao = request.form["classificacao"]
+    comentario = request.form["comentario"]
+    id_utilizador = session[
+        "id_utilizador"
+    ]
+    cliente = obter_cliente(
+        id_utilizador
+    )
+    id_cliente = cliente["id_cliente"]
+
+    id_avaliacao = comparar_avaliacao(id_cliente, referencia, classificacao, comentario)
+
+    return redirect(
+        url_for(
+            "produto", referencia = referencia
+        )
+    )
 
 # ============================================================
 # ADMIN - PRODUTOS

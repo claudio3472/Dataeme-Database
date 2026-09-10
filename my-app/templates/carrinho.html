@@ -39,6 +39,11 @@
 
         }
 
+        h2 {
+            font-size: 20px;
+            color:brown
+        }
+
     </style>
 </head>
 
@@ -106,11 +111,7 @@
                 <form class="form-horizontal" method="POST" action="/carrinhofinalizar">
                     
                     <p><label>Observações:</label></p>
-                    <textarea type="text" name="observacoes" rows="6" cols="70" placeholder="Notas acerca do pedido">
-                        {% if observacoes %}
-                            {{ observacoes }}
-                        {% endif %}
-                    </textarea>
+                    <textarea name="observacoes" rows="6" cols="70" placeholder="Notas acerca do pedido">{% if observacoes %}{{ observacoes }}{% endif %}</textarea>
                     <div class="botao_preco">
                         <strong>Valor Total: {{ valor_total }}€</strong>
 
@@ -119,6 +120,8 @@
                         </button>
                         
                     </div>
+
+                    <h2>O pagamento será efetuado na loja</h2>
 
                 </form>
 

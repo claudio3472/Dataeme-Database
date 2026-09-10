@@ -90,40 +90,27 @@ def enviar_nota_encomenda(email, PDF):
             "PDF não existe"
         )
 
-
     mensagem = EmailMessage()
 
-    message = f'Nota de Encomenda '
     mensagem["Subject"] = "Nota de encomenda"
     mensagem["From"] = EMAIL_REMETENTE
     mensagem["To"] = email
 
-    mensagem.attach(MIMEText(message, "plain"))
+    mensagem.set_content("Nota de Encomenda em anexo.")
 
     with open(PDF, "rb") as f:
-       attach = MIMEApplication(f.read(),_subtype="pdf")
+        dados_pdf = f.read()
 
-    attach.add_header('Content-Disposition','attachment',filename=str(PDF))
-    mensagem.attach(attach)
-   
+    mensagem.add_attachment(
+        dados_pdf,
+        maintype="application",
+        subtype="pdf",
+        filename=os.path.basename(PDF)
+    )
 
-
-    with smtplib.SMTP(
-        SMTP_HOST,
-        SMTP_PORT
-    ) as smtp:
-
-
-    ##TODO
+    with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as smtp:
         smtp.ehlo()
-
         smtp.starttls()
-
         smtp.ehlo()
-
-        smtp.login(
-            EMAIL_REMETENTE,
-            PASSWORD_EMAIL
-        )
-
+        smtp.login(EMAIL_REMETENTE, PASSWORD_EMAIL)
         smtp.send_message(mensagem)

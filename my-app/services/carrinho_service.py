@@ -21,7 +21,7 @@ def obter_pedido(cliente):
         )
 
     if response.data:
-            return response.data[0]["id_pedido"]
+        return response.data[0]["id_pedido"]
         
     return None
 
@@ -237,7 +237,7 @@ def get_linhas(pedido):
     )
 
     if not response_linha.data:
-        return [], "0.00"
+        return [], "0.00",""
 
     valor = response_linha.data[0].get("pedido") or {}
     valor_total = f"{valor['valor_total']:.2f}"
