@@ -10,6 +10,8 @@ from flask import (
 import time
 import secrets
 
+from datetime import date
+
 from config import supabase, ph
 
 from services.auth_service import autenticar
@@ -35,7 +37,8 @@ from services.produto_service import (
 )
 
 from services.email_service import (
-    enviar_codigo_recuperacao
+    enviar_codigo_recuperacao,
+    enviar_nota_encomenda
 )
 
 from services.carrinho_service import (
@@ -55,9 +58,18 @@ from services.admin_service import (
     obter_cliente_admin,
     atualizar_cliente_admin,
     obter_produtos_admin,
-    atualizar_produto_admin
+    atualizar_produto_admin,
+    obter_info,
+    atualizar_estado_pedido_admin
 )
 
+from gerarPDF import(
+    obter_info_pdf
+)
+
+from services.avaliacao_service import (
+    comparar_avaliacao
+)
 
 app = Flask(__name__)
 
@@ -264,6 +276,8 @@ def catalogo():
     produtos, total_paginas = obter_produtos(
         pagina
     )
+
+
 
     return render_template(
         "catalogo.html",
@@ -699,7 +713,7 @@ def carrinho():
                 valor_total=0
             )
 
-        linha, valor_total = get_linhas(
+        linha, valor_total, observacoes = get_linhas(
             pedido
         )
 
@@ -714,7 +728,8 @@ def carrinho():
         return render_template(
             "carrinho.html",
             linha=linha,
-            valor_total=valor_total
+            valor_total=valor_total,
+            observacoes=observacoes
         )
 
     # ========================================================
@@ -752,7 +767,7 @@ def carrinho():
 
 @app.route(
     "/carrinhofinalizar",
-    methods=["POST"]
+    methods=["POST", "GET"]
 )
 def finalizar_compra():
 
@@ -793,11 +808,15 @@ def finalizar_compra():
             url_for("carrinho")
         )
 
+    observacoes = request.form["observacoes"]
+
     response = (
         supabase
         .table("pedido")
         .update({
-            "estado": "finalizado"
+            "estado": "finalizado",
+            "observacoes": observacoes,
+            "data_pedido": date.today().isoformat()
         })
         .eq(
             "id_pedido",
@@ -815,6 +834,10 @@ def finalizar_compra():
         return redirect(
             url_for("carrinho")
         )
+    
+    pdf = obter_info_pdf(pedido)
+    enviar_nota_encomenda(cliente["email"], pdf)
+
 
     return redirect(
         url_for("carrinho")
@@ -1037,6 +1060,47 @@ def adicionar_carrinho(referencia):
         )
     )
 
+# ============================================================
+# AVALIAÇÕES 
+# ============================================================
+
+@app.route("/produto/<int:referencia>/avaliar", methods=["POST"])
+def avaliacoes(referencia):
+
+    # ========================================================
+    # VERIFICAR LOGIN
+    # ========================================================
+
+    if "id_utilizador" not in session:
+
+        return redirect(
+            url_for("login")
+        )
+
+    # Admin não adiciona produtos ao carrinho normal
+    if session.get("is_admin", False):
+
+        return redirect(
+            url_for("confirm_admin")
+        )
+
+    classificacao = request.form["classificacao"]
+    comentario = request.form["comentario"]
+    id_utilizador = session[
+        "id_utilizador"
+    ]
+    cliente = obter_cliente(
+        id_utilizador
+    )
+    id_cliente = cliente["id_cliente"]
+
+    id_avaliacao = comparar_avaliacao(id_cliente, referencia, classificacao, comentario)
+
+    return redirect(
+        url_for(
+            "produto", referencia = referencia
+        )
+    )
 
 # ============================================================
 # ADMIN - PRODUTOS
@@ -1237,6 +1301,52 @@ def clientes_admin():
         sucesso=sucesso,
         erro=erro
     )
+
+# ============================================================
+# ADMIN - PEDIDOS
+# ============================================================
+@app.route("/pedidos_admin", methods=["GET", "POST"])
+
+def pedidos_admin():
+    # ========================================================
+    # VERIFICAR LOGIN
+    # ========================================================
+
+    if "id_utilizador" not in session:
+
+        return redirect(
+            url_for("login")
+        )
+
+    # ========================================================
+    # VERIFICAR ADMIN
+    # ========================================================
+
+    if not session.get("is_admin", False):
+
+        return redirect(
+            url_for("login")
+        )
+
+    if request.method == "POST":
+    
+        estado = request.form["estado"]
+        id = request.form["id_pedido"]
+
+        resposta = atualizar_estado_pedido_admin(
+            id_pedido=id,
+            estado=estado
+        )
+
+
+    info = obter_info()
+
+    return render_template(
+        "pedidos_admin.html",
+        info=info
+    )
+    
+
 
 
 # ============================================================

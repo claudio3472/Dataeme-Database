@@ -12,6 +12,27 @@
         href="{{ url_for('static', filename='css/style.css') }}"
     >
 
+    <style>
+        .cliente{
+            display: grid;
+            grid: 5px / auto auto auto;
+            padding:10px;
+            margin-top: 8px;
+            
+        }
+
+        .cliente_element{
+            text-align: center;
+        }
+
+        .info p{
+            margin-top: 8px;
+        }
+
+        .info button{
+            margin-top: 10px;
+        }
+    </style>
 </head>
 
 <body>
@@ -24,10 +45,6 @@
 
         <a href="/admin">
             Dashboard
-        </a>
-
-        <a href="/produtos_admin">
-            Produtos
         </a>
 
         <a href="/logout">
@@ -82,11 +99,11 @@
 
                 <div class="cliente">
 
-                    <strong>
+                    <strong class="cliente_element">
                         {{ c.nome }}
                     </strong>
 
-                    <span>
+                    <span class="cliente_element">
                         NIF: {{ c.nif }}
                     </span>
 
@@ -95,7 +112,7 @@
                             'clientes_admin',
                             cliente=c.id_cliente,
                             filtro=filtro
-                        ) }}"
+                        ) }}" class="cliente_element"
                     >
                         Ver / Editar
                     </a>
@@ -146,7 +163,7 @@
             {% endif %}
 
 
-            <form method="POST">
+            <form method="POST" class="info">
 
                 <input
                     type="hidden"

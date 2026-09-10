@@ -30,12 +30,18 @@
             display: flex;
             flex-direction: row;
             align-items: center;
+            gap: 40px;
         }
         
         form {
             display: inline;
             margin-left: 20px;
 
+        }
+
+        h2 {
+            font-size: 20px;
+            color:brown
         }
 
     </style>
@@ -100,17 +106,24 @@
                         
                 {% endfor %}
                 
-                <div class="botao_preco">
-                    <strong>Valor Total: {{ valor_total }}€</strong>
+                
 
-                    <form class="form-horizontal" method="POST" action="/carrinhofinalizar">
+                <form class="form-horizontal" method="POST" action="/carrinhofinalizar">
+                    
+                    <p><label>Observações:</label></p>
+                    <textarea name="observacoes" rows="6" cols="70" placeholder="Notas acerca do pedido">{% if observacoes %}{{ observacoes }}{% endif %}</textarea>
+                    <div class="botao_preco">
+                        <strong>Valor Total: {{ valor_total }}€</strong>
 
                         <button type="submit">
                             Finalizar Pedido
                         </button>
-                    
-                    </form>
-                </div>
+                        
+                    </div>
+
+                    <h2>O pagamento será efetuado na loja</h2>
+
+                </form>
 
             </div>
 

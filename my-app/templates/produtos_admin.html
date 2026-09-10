@@ -15,6 +15,31 @@
         rel="stylesheet"
         href="{{ url_for('static', filename='css/style.css') }}"
     >
+
+    <style>
+        .variantes {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .variante {
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 15px;
+            height: 100%;
+            width: min-content;
+            background-color: white;
+            border-radius: 12px;
+            padding: 30px;
+            row-gap: 25px;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+        }
+
+        .campo {
+            margin-bottom: 10px;
+        }
+    </style>
 </head>
 
 <body>

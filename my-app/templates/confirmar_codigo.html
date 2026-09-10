@@ -1,75 +1,127 @@
-{% extends "layout.html" %}
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
 
-{% block content %}
-
-<h2>Redefinir password</h2>
-
-<p>
-    Introduza o código que recebeu por email
-    e escolha uma nova password.
-</p>
-
-{% if erro %}
-<p style="color:red;">
-    {{ erro }}
-</p>
-{% endif %}
-
-<form method="POST">
-
-    <label for="codigo">
-        Código de recuperação
-    </label>
-
-    <br>
-
-    <input
-        type="text"
-        id="codigo"
-        name="codigo"
-        placeholder="123456"
-        maxlength="6"
-        required
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
     >
 
-    <br><br>
+    <title>Recuperar Password</title>
 
-    <label for="password">
-        Nova password
-    </label>
+    <style>
 
-    <br>
+        .card{
+            display: flex;
+            flex-direction: column;
+            padding: 50px;
+            width: 530px;
+            justify-content: center;
+            align-items: center;
+            margin: 0 auto;
+            row-gap: 10px;
+        }
 
-    <input
-        type="password"
-        id="password"
-        name="password"
-        placeholder="Nova password"
-        required
-    >
+    </style>
 
-    <br><br>
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <!-- =========================
+         HEADER
+         ========================= -->
 
-    <label for="password_confirmacao">
-        Confirmar password
-    </label>
+    <header>
 
-    <br>
+        <h1>
+            Recuperar Password
+        </h1>
 
-    <input
-        type="password"
-        id="password_confirmacao"
-        name="password_confirmacao"
-        placeholder="Confirmar password"
-        required
-    >
+    </header>
 
-    <br><br>
+    <div class="container">
 
-    <button type="submit">
-        Alterar password
-    </button>
+        <div class="card">
 
-</form>
+            <h2>
+                Introduza o código que recebeu por Email
+                e escolha uma nova password.
+            </h2>
 
-{% endblock %}
+            {% if erro %}
+            <p style="color:red;">
+                {{ erro }}
+            </p>
+            {% endif %}
+
+            <form method="POST">
+
+                <label for="codigo">
+                    Código de recuperação
+                </label>
+
+                <br>
+
+                <input
+                    type="text"
+                    id="codigo"
+                    name="codigo"
+                    placeholder="123456"
+                    maxlength="6"
+                    required
+                >
+
+                <br><br>
+
+                <label for="password">
+                    Nova password
+                </label>
+
+                <br>
+
+                <input
+                    type="password"
+                    id="password"
+                    name="password"
+                    placeholder="Nova password"
+                    required
+                >
+
+                <br><br>
+
+                <label for="password_confirmacao">
+                    Confirmar password
+                </label>
+
+                <br>
+
+                <input
+                    type="password"
+                    id="password_confirmacao"
+                    name="password_confirmacao"
+                    placeholder="Confirmar password"
+                    required
+                >
+
+                <br><br>
+
+                <button type="submit">
+                    Alterar password
+                </button>
+
+            </form>
+
+            <a href="/login">
+                Voltar ao login
+            </a>
+
+        </div>
+
+    </div>
+
+</body>
+
+</html>

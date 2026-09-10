@@ -21,7 +21,7 @@ def obter_pedido(cliente):
         )
 
     if response.data:
-            return response.data[0]["id_pedido"]
+        return response.data[0]["id_pedido"]
         
     return None
 
@@ -226,7 +226,8 @@ def get_linhas(pedido):
         valor_linha,
 
         pedido (
-            valor_total
+            valor_total,
+            observacoes
         )
         
         
@@ -236,10 +237,11 @@ def get_linhas(pedido):
     )
 
     if not response_linha.data:
-        return [], "0.00"
+        return [], "0.00",""
 
     valor = response_linha.data[0].get("pedido") or {}
     valor_total = f"{valor['valor_total']:.2f}"
+    observacoes = valor['observacoes']
     lista = [] 
 
     for prod in response_linha.data:
@@ -279,7 +281,7 @@ def get_linhas(pedido):
         })
 
     print(lista)
-    return lista, valor_total
+    return lista, valor_total, observacoes
 
 def apagar_linha(id_linha):
     response = (

@@ -245,6 +245,7 @@ def registar_cliente_web(form):
     codigo_postal = form["codigo_postal"].strip()
     localizacao = form["localizacao"].strip()
     password = form["password"]
+    confirmar_password = form["confirmar_password"]
 
     validar_nome(nome)
     validar_nif(nif)
@@ -259,10 +260,17 @@ def registar_cliente_web(form):
     validar_morada(morada)
     validar_password(password)
 
+    if password != confirmar_password:
+    
+        raise ValueError(
+            "A nova password não corresponde com a confirmação da password."
+        )
+
     verificar_duplicados(
         nif,
         email
     )
+
 
     password_hash = ph.hash(password)
 

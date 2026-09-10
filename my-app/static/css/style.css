@@ -227,6 +227,15 @@ header a:hover {
     color: #555;
 }
 
+/* =========================
+   AVALIAÇÃO
+   ========================= */
+
+.avaliacao {
+    margin-top: 8px;
+
+    color: #ed9a5b;
+}
 
 /* =========================
    CORES
@@ -382,3 +391,4 @@ header a:hover {
     }
 
 }
+

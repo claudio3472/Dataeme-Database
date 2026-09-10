@@ -319,3 +319,107 @@ def atualizar_cliente_admin(
     )
 
     return response.data
+
+
+def obter_info():
+
+    response = (
+        supabase
+        .table("linhas_pedido")
+        .select("""
+            produto_referencia,
+            quantidade,
+            valor_linha,
+
+            produtos(
+                id_modelo,
+                preco_base,
+                codigo_barras_produto,
+                cores_produto(
+                    nome_cor
+                ),
+                iva(
+                    percentagem
+                ),
+                produtos_modelo(
+                    nome_catalogo
+                )
+            ),
+
+            pedido(
+                id_pedido,
+                valor_total,
+                estado,
+                observacoes,
+                data_pedido,
+                id_cliente,
+                cliente(
+                    nome
+                )
+            )
+        """)
+        .execute()
+    )
+
+    if not response.data:
+        return []
+
+    info = []
+
+    for r in response.data:
+
+        ped = r.get("pedido")
+        prod = r.get("produtos")
+
+        if not ped or not prod:
+            continue
+
+        cli = ped.get("cliente") or {}
+        cor = prod.get("cores_produto") or {}
+        iva = prod.get("iva") or {}
+        model = prod.get("produtos_modelo") or {}
+
+        info.append({
+            "data": ped["data_pedido"],
+            "id_pedido": ped["id_pedido"],
+            "valor_total": ped["valor_total"],
+            "estado_pedido": ped["estado"],
+            "observacoes": ped["observacoes"],
+            "nome_cliente": cli.get("nome"),
+            "num_cliente": ped["id_cliente"],
+
+            "id_modelo": prod["id_modelo"],
+            "referencia": r["produto_referencia"],
+            "preco": round(
+                prod["preco_base"] * (
+                    1 + iva.get("percentagem", 0) / 100
+                ),
+                2
+            ),
+            "nome_produto": model.get("nome_catalogo"),
+            "quantidade": r["quantidade"],
+            "codigo": prod["codigo_barras_produto"],
+            "preco_total": r["valor_linha"],
+            "cor": cor.get("nome_cor")
+        })
+
+    return sorted(
+        info,
+        key=lambda p: p["num_cliente"]
+    )
+
+def atualizar_estado_pedido_admin(id_pedido, estado):
+
+    response = (
+        supabase
+        .table("pedido")
+        .update({"estado": estado})
+        .eq("id_pedido", id_pedido)
+        .execute()
+    )
+
+    if not response.data:
+        return None
+
+    return response.data[0]
+

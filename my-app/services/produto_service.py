@@ -111,7 +111,12 @@ def obter_produtos(pagina=1):
                     id_cor,
                     nome_cor,
                     codigo_cor
+                ),
+
+                avaliacoes(
+                    classificacao
                 )
+
             """)
             .eq(
                 "id_modelo",
@@ -140,9 +145,13 @@ def obter_produtos(pagina=1):
             iva.get("percentagem")
         )
 
+
+
         # ----------------------------------------------------
         # CORES DO MODELO
         # ----------------------------------------------------
+        avaliacao = 0
+        num_av = 0
 
         cores = []
         ids_cores_adicionados = set()
@@ -168,9 +177,20 @@ def obter_produtos(pagina=1):
                 "codigo": cor.get("codigo_cor")
             })
 
+            av = produto.get("avaliacoes") or []
+
+            for item in av:
+                classificacao = item.get("classificacao")
+                if classificacao is not None:
+                    avaliacao += classificacao
+                    num_av += 1
+                            
+
         # ----------------------------------------------------
         # ADICIONAR MODELO À LISTA
         # ----------------------------------------------------
+        if num_av != 0:
+            avaliacao /= num_av
 
         lista.append({
 
@@ -217,7 +237,13 @@ def obter_produtos(pagina=1):
                 familia.get("cor"),
 
             "cores":
-                cores
+                cores,
+
+            "avaliacao":
+                f"{avaliacao:.2f}",
+
+            "num_avaliacao":
+                num_av
         })
 
     # ========================================================
@@ -300,6 +326,8 @@ def obter_produto_por_referencia(referencia):
                 codigo_cor,
                 imagem_url
             )
+
+            
         """)
         .eq(
             "referencia",
@@ -391,6 +419,10 @@ def obter_produto_por_referencia(referencia):
                 id_cor,
                 nome_cor,
                 codigo_cor
+            ),
+
+            avaliacoes(
+                classificacao
             )
         """)
         .eq(
@@ -402,6 +434,9 @@ def obter_produto_por_referencia(referencia):
     )
 
     variantes = []
+
+    avaliacao = 0
+    num_av = 0
 
     for variante in variantes_response.data or []:
 
@@ -422,9 +457,19 @@ def obter_produto_por_referencia(referencia):
                 cor_info.get("codigo_cor")
         })
 
+        av = variante.get("avaliacoes") or []
+        
+        for item in av:
+            classificacao = item.get("classificacao")
+            if classificacao is not None:
+                avaliacao += classificacao
+                num_av += 1
+
     # --------------------------------------------------------
     # IVA E PREÇO
     # --------------------------------------------------------
+    if num_av != 0:
+        avaliacao /= num_av
 
     iva = produto.get("iva") or {}
     cor = produto.get("cores_produto") or {}
@@ -500,7 +545,13 @@ def obter_produto_por_referencia(referencia):
             familia.get("cor"),
 
         "variantes":
-            variantes
+            variantes,
+
+        "avaliacao":
+            avaliacao,
+
+        "num_avaliacao":
+            num_av
     }
 
 
