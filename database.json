@@ -1,0 +1,129 @@
+CREATE TABLE public.utilizador (
+  id_utilizador bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  username character varying NOT NULL UNIQUE,
+  password character varying NOT NULL,
+  is_admin boolean NOT NULL DEFAULT false,
+  CONSTRAINT utilizador_pkey PRIMARY KEY (id_utilizador)
+);
+CREATE TABLE public.cliente (
+  id_cliente bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  nif character varying NOT NULL UNIQUE,
+  nome text NOT NULL,
+  morada character varying NOT NULL,
+  email character varying NOT NULL UNIQUE,
+  telefone bigint NOT NULL,
+  codigo_postal text NOT NULL,
+  id_utilizador bigint NOT NULL UNIQUE,
+  localizacao text NOT NULL,
+  indicativo text NOT NULL,
+  CONSTRAINT cliente_pkey PRIMARY KEY (id_cliente),
+  CONSTRAINT cliente_fk1 FOREIGN KEY (id_utilizador) REFERENCES public.utilizador(id_utilizador)
+);
+CREATE TABLE public.iva (
+  id_iva bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  percentagem numeric NOT NULL UNIQUE CHECK (percentagem >= 0::numeric AND percentagem <= 100::numeric),
+  descricao text,
+  CONSTRAINT iva_pkey PRIMARY KEY (id_iva)
+);
+CREATE TABLE public.familia (
+  id_familia bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  nome text NOT NULL,
+  descricao text,
+  ordem smallint NOT NULL,
+  pagina_inicial smallint NOT NULL,
+  pagina_final smallint NOT NULL,
+  cor text NOT NULL,
+  CONSTRAINT familia_pkey PRIMARY KEY (id_familia)
+);
+CREATE TABLE public.subfamilia (
+  id_subfamilia bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  nome text NOT NULL,
+  descricao text,
+  ordem smallint NOT NULL,
+  pagina smallint NOT NULL,
+  familia_id_familia bigint NOT NULL,
+  CONSTRAINT subfamilia_pkey PRIMARY KEY (id_subfamilia),
+  CONSTRAINT subfamilia_fk1 FOREIGN KEY (familia_id_familia) REFERENCES public.familia(id_familia)
+);
+CREATE TABLE public.taxas (
+  id_taxa bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  percentagem_taxa numeric CHECK (percentagem_taxa >= 0::numeric AND percentagem_taxa <= 100::numeric),
+  familia_id_familia bigint NOT NULL,
+  cliente_id_cliente bigint NOT NULL,
+  CONSTRAINT taxas_pkey PRIMARY KEY (id_taxa),
+  CONSTRAINT taxas_fk1 FOREIGN KEY (familia_id_familia) REFERENCES public.familia(id_familia),
+  CONSTRAINT taxas_fk2 FOREIGN KEY (cliente_id_cliente) REFERENCES public.cliente(id_cliente)
+);
+CREATE TABLE public.produtos_modelo (
+  id_modelo bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  nome_catalogo text NOT NULL,
+  descricao_catalogo text,
+  descricao_detalhada text,
+  id_subfamilia bigint NOT NULL,
+  CONSTRAINT produtos_modelo_pkey PRIMARY KEY (id_modelo),
+  CONSTRAINT produtos_modelo_id_subfamilia_fkey FOREIGN KEY (id_subfamilia) REFERENCES public.subfamilia(id_subfamilia)
+);
+CREATE TABLE public.cores_produto (
+  id_cor bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  nome_cor character varying NOT NULL UNIQUE,
+  codigo_cor character varying,
+  imagem_url text,
+  CONSTRAINT cores_produto_pkey PRIMARY KEY (id_cor)
+);
+CREATE TABLE public.produtos (
+  referencia bigint NOT NULL,
+  id_modelo bigint NOT NULL,
+  id_cor bigint NOT NULL,
+  preco_base numeric NOT NULL CHECK (preco_base >= 0::numeric),
+  id_iva bigint NOT NULL,
+  quantidade_stock integer DEFAULT 0 CHECK (quantidade_stock >= 0),
+  codigo_barras_produto text UNIQUE,
+  descontinuado boolean DEFAULT false,
+  CONSTRAINT produtos_pkey PRIMARY KEY (referencia),
+  CONSTRAINT produtos_id_modelo_fkey FOREIGN KEY (id_modelo) REFERENCES public.produtos_modelo(id_modelo),
+  CONSTRAINT produtos_id_cor_fkey FOREIGN KEY (id_cor) REFERENCES public.cores_produto(id_cor),
+  CONSTRAINT produtos_id_iva_fkey FOREIGN KEY (id_iva) REFERENCES public.iva(id_iva)
+);
+CREATE TABLE public.avaliacoes (
+  id_avaliacoes bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  classificacao integer NOT NULL CHECK (classificacao >= 1 AND classificacao <= 5),
+  comentario text,
+  data_avaliacao date NOT NULL,
+  produto_referencia bigint NOT NULL,
+  id_cliente bigint NOT NULL,
+  CONSTRAINT avaliacoes_pkey PRIMARY KEY (id_avaliacoes),
+  CONSTRAINT avaliacoes_fk_produto FOREIGN KEY (produto_referencia) REFERENCES public.produtos(referencia),
+  CONSTRAINT avaliacoes_fk_cliente FOREIGN KEY (id_cliente) REFERENCES public.cliente(id_cliente)
+);
+CREATE TABLE public.pedido (
+  id_pedido bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  portes_envio numeric NOT NULL DEFAULT 0 CHECK (portes_envio >= 0::numeric),
+  valor_total numeric NOT NULL DEFAULT '0'::numeric CHECK (valor_total >= 0::numeric),
+  estado text NOT NULL DEFAULT 'aberto'::text,
+  observacoes text,
+  data_pedido date,
+  documentos_pedido_ficheiro_url character varying,
+  id_cliente bigint NOT NULL,
+  CONSTRAINT pedido_pkey PRIMARY KEY (id_pedido),
+  CONSTRAINT pedidos_cliente_fk FOREIGN KEY (id_cliente) REFERENCES public.cliente(id_cliente)
+);
+CREATE TABLE public.linhas_pedido (
+  id_linha bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  quantidade integer NOT NULL CHECK (quantidade > 0),
+  preco_unitario numeric NOT NULL CHECK (preco_unitario >= 0::numeric),
+  valor_linha numeric NOT NULL CHECK (valor_linha >= 0::numeric),
+  codigo_barras_linha character varying NOT NULL,
+  id_pedido bigint NOT NULL,
+  produto_referencia bigint NOT NULL,
+  CONSTRAINT linhas_pedido_pkey PRIMARY KEY (id_linha),
+  CONSTRAINT linhas_pedido_fk_pedido FOREIGN KEY (id_pedido) REFERENCES public.pedido(id_pedido),
+  CONSTRAINT linhas_pedido_fk_produto FOREIGN KEY (produto_referencia) REFERENCES public.produtos(referencia)
+);
+CREATE TABLE public.media_produto (
+  id_media bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  produto_referencia bigint NOT NULL,
+  url text NOT NULL,
+  ordem smallint DEFAULT 1,
+  CONSTRAINT media_produto_pkey PRIMARY KEY (id_media),
+  CONSTRAINT media_produto_produto_referencia_fkey FOREIGN KEY (produto_referencia) REFERENCES public.produtos(referencia)
+);
