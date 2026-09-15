@@ -10,7 +10,7 @@ from flask import (
 import time
 import secrets
 
-from datetime import date
+from datetime import date, timedelta
 
 from config import supabase, ph
 
@@ -19,7 +19,7 @@ from services.auth_service import autenticar
 from services.clientes_service import (
     registar_cliente_web,
     obter_cliente,
-    obter_cliente_por_email,
+    obter_cliente_por_email,    
     validar_password,
     validar_nome,
     validar_nif,
@@ -33,7 +33,8 @@ from services.clientes_service import (
 
 from services.produto_service import (
     obter_produtos,
-    obter_produto_por_referencia
+    obter_produto_por_referencia,
+    obter_categorias
 )
 
 from services.email_service import (
@@ -60,7 +61,11 @@ from services.admin_service import (
     obter_produtos_admin,
     atualizar_produto_admin,
     obter_info,
-    atualizar_estado_pedido_admin
+    atualizar_estado_pedido_admin,
+    obter_ivas,
+    atualizar_ivas,
+    criar_ivas,
+    agrupar_itens_pedidos
 )
 
 from gerarPDF import(
@@ -260,30 +265,29 @@ def registar():
 @app.route("/catalogo")
 def catalogo():
 
-    # Verificar se está autenticado
     if "id_utilizador" not in session:
+        return redirect(url_for("login"))
 
-        return redirect(
-            url_for("login")
-        )
-
-    pagina = request.args.get(
-        "pagina",
-        1,
-        type=int
-    )
+    pagina = request.args.get("pagina", 1, type=int)
+    id_familia = request.args.get("familia", type=int)
+    id_subfamilia = request.args.get("subfamilia", type=int)
 
     produtos, total_paginas = obter_produtos(
-        pagina
+        pagina,
+        id_familia=id_familia,
+        id_subfamilia=id_subfamilia
     )
 
-
+    categorias = obter_categorias()
 
     return render_template(
         "catalogo.html",
         produtos=produtos,
         pagina=pagina,
-        total_paginas=total_paginas
+        total_paginas=total_paginas,
+        categorias=categorias,
+        id_familia=id_familia,
+        id_subfamilia=id_subfamilia
     )
 
 
@@ -1305,47 +1309,174 @@ def clientes_admin():
 # ============================================================
 # ADMIN - PEDIDOS
 # ============================================================
-@app.route("/pedidos_admin", methods=["GET", "POST"])
 
+@app.route("/pedidos_admin", methods=["GET", "POST"])
 def pedidos_admin():
-    # ========================================================
-    # VERIFICAR LOGIN
-    # ========================================================
 
     if "id_utilizador" not in session:
-
-        return redirect(
-            url_for("login")
-        )
-
-    # ========================================================
-    # VERIFICAR ADMIN
-    # ========================================================
+        return redirect(url_for("login"))
 
     if not session.get("is_admin", False):
-
-        return redirect(
-            url_for("login")
-        )
+        return redirect(url_for("login"))
 
     if request.method == "POST":
-    
-        estado = request.form["estado"]
-        id = request.form["id_pedido"]
 
-        resposta = atualizar_estado_pedido_admin(
-            id_pedido=id,
+        estado = request.form["estado"]
+        id_pedido = request.form["id_pedido"]
+
+        atualizar_estado_pedido_admin(
+            id_pedido=id_pedido,
             estado=estado
         )
 
+        return redirect(
+            url_for(
+                "pedidos_admin",
+                cliente=request.args.get("cliente", ""),
+                periodo=request.args.get("periodo", "sempre"),
+                data_inicio=request.args.get("data_inicio", ""),
+                data_fim=request.args.get("data_fim", ""),
+                agrupar=request.args.get("agrupar", "")
+            )
+        )
 
-    info = obter_info()
+    filtro_cliente = request.args.get("cliente", "").strip()
+    periodo = request.args.get("periodo", "sempre")
+    data_inicio_personalizada = request.args.get("data_inicio", "")
+    data_fim_personalizada = request.args.get("data_fim", "")
+    agrupar = request.args.get("agrupar") == "1"
+
+    data_inicio = None
+    data_fim = None
+
+    hoje = date.today()
+
+    periodos_rapidos = {
+        "7": 7,
+        "30": 30,
+        "90": 90,
+        "180": 180,
+        "365": 365
+    }
+
+    if periodo in periodos_rapidos:
+
+        data_inicio = (
+            hoje - timedelta(days=periodos_rapidos[periodo])
+        ).isoformat()
+
+    elif periodo == "personalizado":
+
+        data_inicio = data_inicio_personalizada or None
+        data_fim = data_fim_personalizada or None
+
+    info = obter_info(
+        filtro_cliente=filtro_cliente or None,
+        data_inicio=data_inicio,
+        data_fim=data_fim
+    )
+
+    itens_agrupados = None
+
+    if agrupar:
+        itens_agrupados = agrupar_itens_pedidos(info)
 
     return render_template(
         "pedidos_admin.html",
-        info=info
+        info=info,
+        itens_agrupados=itens_agrupados,
+        agrupar=agrupar,
+        filtro_cliente=filtro_cliente,
+        periodo=periodo,
+        data_inicio=data_inicio_personalizada,
+        data_fim=data_fim_personalizada
     )
-    
+
+# ============================================================
+# ADMIN - CONFIGURAÇÕES (MENU)
+# ============================================================
+
+@app.route("/configuracoes_admin")
+def configuracoes_admin():
+
+    if "id_utilizador" not in session:
+        return redirect(url_for("login"))
+
+    if not session.get("is_admin", False):
+        return redirect(url_for("login"))
+
+    return render_template(
+        "configuracoes_admin.html"
+    )
+
+
+# ============================================================
+# ADMIN - CONFIGURAÇÕES - IMPOSTOS (IVA)
+# ============================================================
+
+@app.route("/configuracoes_admin/impostos", methods=["GET", "POST"])
+def configuracoes_impostos():
+
+    if "id_utilizador" not in session:
+        return redirect(url_for("login"))
+
+    if not session.get("is_admin", False):
+        return redirect(url_for("login"))
+
+    if request.method == "POST":
+
+        ids = request.form.getlist("id_iva")
+
+        ivas_existentes = []
+        ivas_novos = []
+
+        for id_iva in ids:
+
+            percentagem = request.form.get(f"percentagem_{id_iva}")
+            descricao = request.form.get(f"descricao_{id_iva}")
+
+            # Linhas novas (criadas pelo botão "+") têm um id que
+            # começa por "novo-" em vez de um id_iva real
+            if id_iva.startswith("novo-"):
+
+                if not percentagem:
+                    continue
+
+                ivas_novos.append({
+                    "percentagem": percentagem,
+                    "descricao": descricao
+                })
+
+            else:
+
+                ivas_existentes.append({
+                    "id_iva": id_iva,
+                    "percentagem": percentagem,
+                    "descricao": descricao
+                })
+
+        if ivas_existentes:
+            atualizar_ivas(ivas_existentes)
+
+        if ivas_novos:
+            criar_ivas(ivas_novos)
+
+        return redirect(
+            url_for(
+                "configuracoes_impostos",
+                sucesso="Taxas de IVA atualizadas com sucesso."
+            )
+        )
+
+    ivas = obter_ivas()
+
+    sucesso = request.args.get("sucesso")
+
+    return render_template(
+        "configuracoes_impostos.html",
+        ivas=ivas,
+        sucesso=sucesso
+    )
 
 
 

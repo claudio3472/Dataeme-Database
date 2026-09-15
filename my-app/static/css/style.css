@@ -84,6 +84,136 @@ header a:hover {
 
 
 /* =========================
+   FILTROS DE FAMÍLIA / SUBFAMÍLIA
+   ========================= */
+
+.filtros {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 12px;
+
+    margin-bottom: 35px;
+    padding: 20px;
+
+    background-color: white;
+    border-radius: 12px;
+
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+}
+
+.filtros a {
+    text-decoration: none;
+}
+
+.filtros > a,
+.familia-filtro > a {
+    display: inline-block;
+
+    padding: 10px 20px;
+
+    background-color: #eef1f8;
+    color: #4472C4;
+
+    border-radius: 999px;
+
+    font-size: 14px;
+    font-weight: bold;
+    white-space: nowrap;
+
+    transition:
+        background-color 0.2s ease,
+        color 0.2s ease,
+        transform 0.15s ease;
+}
+
+.filtros > a:hover,
+.familia-filtro > a:hover {
+    background-color: #dfe6f5;
+    transform: translateY(-2px);
+}
+
+.filtros > a.ativo,
+.familia-filtro > a.ativo {
+    background-color: #4472C4;
+    color: white;
+    box-shadow: 0 3px 8px rgba(68, 114, 196, 0.35);
+}
+
+/* Cada família fica numa coluna própria, para a
+   linha de subfamílias aparecer por baixo dela */
+.familia-filtro {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+/* Linha de subfamílias */
+.subfamilia-filtro {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+
+    padding: 12px;
+
+    background-color: #f7f8fb;
+    border: 1px solid #e6e9f0;
+    border-radius: 10px;
+}
+
+.subfamilia-filtro a {
+    padding: 7px 16px;
+
+    background-color: white;
+    color: #555;
+
+    border: 1px solid #dfe3ea;
+    border-radius: 999px;
+
+    font-size: 13px;
+    font-weight: 600;
+
+    transition:
+        border-color 0.2s ease,
+        color 0.2s ease,
+        background-color 0.2s ease;
+}
+
+.subfamilia-filtro a:hover {
+    border-color: #a9c0eb;
+    color: #4472C4;
+}
+
+.subfamilia-filtro a.ativo {
+    background-color: #4472C4;
+    border-color: #4472C4;
+    color: white;
+}
+
+
+/* =========================
+   SEM PRODUTOS
+   ========================= */
+
+.sem-produtos {
+    margin-top: 20px;
+    margin-bottom: 20px;
+
+    padding: 30px;
+
+    background-color: white;
+    border-radius: 12px;
+
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+
+    text-align: center;
+
+    color: #888;
+    font-size: 16px;
+}
+
+
+/* =========================
    FAMÍLIA
    ========================= */
 
@@ -390,5 +520,20 @@ header a:hover {
         font-size: 19px;
     }
 
-}
+    .filtros {
+        gap: 8px;
+        padding: 15px;
+    }
 
+    .filtros > a,
+    .familia-filtro > a {
+        padding: 8px 16px;
+        font-size: 13px;
+    }
+
+    .subfamilia-filtro a {
+        padding: 6px 12px;
+        font-size: 12px;
+    }
+
+}

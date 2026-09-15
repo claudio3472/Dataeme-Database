@@ -49,6 +49,165 @@
         .campo {
             margin-bottom: 10px;
         }
+
+        /* ============================
+           FILTROS
+           ============================ */
+
+        .filtros-pedidos {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: flex-end;
+            gap: 20px;
+
+            margin-bottom: 30px;
+            padding: 25px;
+
+            background-color: white;
+            border-radius: 12px;
+
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+        }
+
+        .filtro-campo {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .filtro-campo label {
+            font-size: 13px;
+            color: #777;
+            font-weight: bold;
+        }
+
+        .filtro-campo input,
+        .filtro-campo select {
+            padding: 10px 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            min-width: 180px;
+        }
+
+        .filtro-datas {
+            display: none;
+            gap: 15px;
+        }
+
+        .filtro-datas.ativo {
+            display: flex;
+        }
+
+        .filtro-agrupar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+
+            padding: 11px 4px;
+        }
+
+        .filtro-agrupar label {
+            font-size: 14px;
+            font-weight: bold;
+            color: #444;
+            cursor: pointer;
+        }
+
+        .filtro-agrupar input {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .botao-filtrar {
+            background-color: #4472C4;
+            color: white;
+            border: none;
+            padding: 11px 22px;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        .botao-filtrar:hover {
+            background-color: #2f5ca8;
+        }
+
+        .botao-limpar {
+            color: #4472C4;
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 14px;
+            padding: 11px 4px;
+        }
+
+        .botao-limpar:hover {
+            text-decoration: underline;
+        }
+
+        .sem-pedidos {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            text-align: center;
+            color: #888;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+        }
+
+        /* ============================
+           TABELA AGRUPADA
+           ============================ */
+
+        .painel-agrupado {
+            background-color: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+            overflow-x: auto;
+        }
+
+        .painel-agrupado h2 {
+            margin-bottom: 20px;
+            font-size: 20px;
+            color: #222;
+        }
+
+        table.tabela-agrupada {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        table.tabela-agrupada th {
+            text-align: left;
+            font-size: 13px;
+            color: #777;
+            padding: 10px 12px;
+            border-bottom: 2px solid #eee;
+            white-space: nowrap;
+        }
+
+        table.tabela-agrupada td {
+            padding: 12px;
+            border-bottom: 1px solid #f2f2f2;
+            font-size: 14px;
+        }
+
+        table.tabela-agrupada tr:last-child td {
+            border-bottom: none;
+        }
+
+        .quantidade-badge {
+            display: inline-block;
+            background-color: #eef1f8;
+            color: #4472C4;
+            font-weight: bold;
+            padding: 4px 12px;
+            border-radius: 999px;
+        }
+
     </style>
 </head>
 
@@ -75,165 +234,336 @@
 
 <div class="container">
 
-    {% set pedido_anterior = namespace(valor='') %}
-    {% set cliente_anterior = namespace(valor='') %}
+    <!-- =========================
+         FILTROS
+         ========================= -->
 
-    {% for pedido in info %}
+    <form method="GET" action="{{ url_for('pedidos_admin') }}" class="filtros-pedidos" id="form-filtros">
 
+        <div class="filtro-campo">
+            <label>Cliente</label>
+            <input
+                type="text"
+                name="cliente"
+                value="{{ filtro_cliente }}"
+                placeholder="Nome ou nº de cliente"
+            >
+        </div>
 
-        {% set inicio_grupo = (pedido_anterior.valor != pedido.id_pedido) %}
-        {% if pedido.nome_cliente != cliente_anterior.valor %}
-            <div class="familia">
-                {{ pedido.nome_cliente }}
-            </div>
-            {% set cliente_anterior.valor = pedido.nome_cliente %}
-        {% endif %}
-        <!-- INÍCIO DE UM NOVO PEDIDO -->
+        <div class="filtro-campo">
+            <label>Período</label>
+            <select name="periodo" id="select-periodo">
+                <option value="sempre" {{ 'selected' if periodo == 'sempre' else '' }}>Sempre</option>
+                <option value="7" {{ 'selected' if periodo == '7' else '' }}>Últimos 7 dias</option>
+                <option value="30" {{ 'selected' if periodo == '30' else '' }}>Últimos 30 dias</option>
+                <option value="90" {{ 'selected' if periodo == '90' else '' }}>Últimos 3 meses</option>
+                <option value="180" {{ 'selected' if periodo == '180' else '' }}>Últimos 6 meses</option>
+                <option value="365" {{ 'selected' if periodo == '365' else '' }}>Último ano</option>
+                <option value="personalizado" {{ 'selected' if periodo == 'personalizado' else '' }}>Personalizado</option>
+            </select>
+        </div>
 
-        {% if inicio_grupo %}
+        <div class="filtro-datas {{ 'ativo' if periodo == 'personalizado' else '' }}" id="filtro-datas">
 
-
-            <div class="card produto-modelo">
-
-                <div class="modelo-header">
-                    <h2>
-                        Pedido #{{ pedido.id_pedido }}
-                    </h2>
-                </div>
-
-                <!-- INFORMAÇÃO DO PEDIDO -->
-
-                <form
-                    method="POST"
-                    action="{{ url_for('pedidos_admin') }}"
+            <div class="filtro-campo">
+                <label>De</label>
+                <input
+                    type="date"
+                    name="data_inicio"
+                    value="{{ data_inicio }}"
                 >
-                      
-                    <input
-                        type="hidden"
-                        name="id_pedido"
-                        value="{{ pedido.id_pedido }}"
+            </div>
+
+            <div class="filtro-campo">
+                <label>Até</label>
+                <input
+                    type="date"
+                    name="data_fim"
+                    value="{{ data_fim }}"
+                >
+            </div>
+
+        </div>
+
+        <div class="filtro-agrupar">
+            <input
+                type="checkbox"
+                name="agrupar"
+                value="1"
+                id="checkbox-agrupar"
+                {{ 'checked' if agrupar else '' }}
+            >
+            <label for="checkbox-agrupar">
+                Agrupar itens comprados
+            </label>
+        </div>
+
+        <button type="submit" class="botao-filtrar">
+            Filtrar
+        </button>
+
+        <a href="{{ url_for('pedidos_admin') }}" class="botao-limpar">
+            Limpar filtros
+        </a>
+
+    </form>
+
+
+    {% if agrupar %}
+
+        <!-- =========================
+             VISTA AGRUPADA
+             ========================= -->
+
+        {% if itens_agrupados %}
+
+            <div class="painel-agrupado">
+
+                <h2>
+                    Itens comprados
+                    {% if filtro_cliente %}
+                        — {{ filtro_cliente }}
+                    {% endif %}
+                </h2>
+
+                <table class="tabela-agrupada">
+
+                    <thead>
+                        <tr>
+                            <th>Referência</th>
+                            <th>Produto</th>
+                            <th>Cor</th>
+                            <th>Código de Barras</th>
+                            <th>Nº de Pedidos</th>
+                            <th>Quantidade Total</th>
+                            <th>Valor Total</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+
+                        {% for item in itens_agrupados %}
+
+                            <tr>
+                                <td>{{ item.referencia }}</td>
+                                <td>{{ item.nome_produto }}</td>
+                                <td>{{ item.cor }}</td>
+                                <td>{{ item.codigo }}</td>
+                                <td>{{ item.num_pedidos }}</td>
+                                <td><span class="quantidade-badge">{{ item.quantidade_total }}</span></td>
+                                <td>{{ "%.2f"|format(item.valor_total) }} €</td>
+                            </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        {% else %}
+
+            <div class="sem-pedidos">
+                Não foram encontrados itens para este filtro.
+            </div>
+
+        {% endif %}
+
+    {% else %}
+
+        <!-- =========================
+             VISTA NORMAL (por pedido)
+             ========================= -->
+
+        {% if not info %}
+
+            <div class="sem-pedidos">
+                Não foram encontrados pedidos para este filtro.
+            </div>
+
+        {% endif %}
+
+
+        {% set pedido_anterior = namespace(valor='') %}
+        {% set cliente_anterior = namespace(valor='') %}
+
+        {% for pedido in info %}
+
+
+            {% set inicio_grupo = (pedido_anterior.valor != pedido.id_pedido) %}
+            {% if pedido.nome_cliente != cliente_anterior.valor %}
+                <div class="familia">
+                    {{ pedido.nome_cliente }}
+                </div>
+                {% set cliente_anterior.valor = pedido.nome_cliente %}
+            {% endif %}
+            <!-- INÍCIO DE UM NOVO PEDIDO -->
+
+            {% if inicio_grupo %}
+
+
+                <div class="card produto-modelo">
+
+                    <div class="modelo-header">
+                        <h2>
+                            Pedido #{{ pedido.id_pedido }}
+                        </h2>
+                    </div>
+
+                    <!-- INFORMAÇÃO DO PEDIDO -->
+
+                    <form
+                        method="POST"
+                        action="{{ url_for('pedidos_admin', cliente=filtro_cliente, periodo=periodo, data_inicio=data_inicio, data_fim=data_fim, agrupar=('1' if agrupar else '')) }}"
                     >
-                    
+                          
+                        <input
+                            type="hidden"
+                            name="id_pedido"
+                            value="{{ pedido.id_pedido }}"
+                        >
+                        
+                        <div class="campo">
+                            <label>Cliente</label>
+                            <input type="text" value="{{ pedido.nome_cliente }}" disabled>
+                        </div>
+
+                        <div class="campo">
+                            <label>Nº Cliente</label>
+                            <input type="text" value="{{ pedido.num_cliente }}" disabled>
+                        </div>
+
+                        <div class="campo">
+                            <label>Estado</label>
+                            <select name="estado">
+                                    <option value = "aberto"{{ 'selected' if pedido.estado_pedido == 'aberto' else '' }}> Aberto</option>
+                                    <option value = "finalizado" {{ 'selected' if pedido.estado_pedido == 'finalizado' else '' }}> Finalizado </option>
+                            </select>
+                        </div>
+
+                        <div class="campo">
+                            <label>Data</label>
+                            <input type="text" value="{{ pedido.data }}" disabled>
+                        </div>
+
+                        <button type="submit">
+                        Guardar alterações
+                        </button>
+                    </form>
+
+                    <!-- ESTE DIV SÓ ABRE UMA VEZ POR PEDIDO -->
+                    <div class="variantes">
+
+            {% endif %}
+
+
+                        <!-- PRODUTO (uma variante por linha) -->
+
+                        <div class="variante">
+
+                            <div class="campo">
+                                <label>Referência</label>
+                                <input type="text" value="{{ pedido.referencia }}" disabled>
+                            </div>
+
+                            <div class="campo">
+                                <label>Nome do Produto</label>
+                                <input type="text" value="{{ pedido.nome_produto }}" disabled>
+                            </div>
+
+                            <div class="campo">
+                                <label>ID Modelo</label>
+                                <input type="text" value="{{ pedido.id_modelo }}" disabled>
+                            </div>
+
+                            <div class="campo">
+                                <label>Cor</label>
+                                <input type="text" value="{{ pedido.cor }}" disabled>
+                            </div>
+
+                            <div class="campo">
+                                <label>Preço com IVA</label>
+                                <input
+                                    type="number"
+                                    name="preco_base"
+                                    value="{{ pedido.preco }}"
+                                    step="0.01"
+                                    min="0"
+                                    disabled
+                                >
+                            </div>
+
+                            <div class="campo">
+                                <label>Quantidade</label>
+                                <input type="text" value="{{ pedido.quantidade }}" disabled>
+                            </div>
+
+                            <div class="campo">
+                                <label>Preço da Linha</label>
+                                <input type="text" value="{{ pedido.preco_total }}" disabled>
+                            </div>
+
+                            <div class="campo">
+                                <label>Código de Barras</label>
+                                <input type="text" value="{{ pedido.codigo }}" disabled>
+                            </div>
+
+                        </div>
+
+
+            {% set fim_grupo = (loop.nextitem is not defined) or (loop.nextitem.id_pedido != pedido.id_pedido) %}
+
+            {% if fim_grupo %}
+
+                    </div> <!-- fecha .variantes -->
+
+                    <!-- OBSERVAÇÕES -->
+
                     <div class="campo">
-                        <label>Cliente</label>
-                        <input type="text" value="{{ pedido.nome_cliente }}" disabled>
+                        <label>Observações</label>
+                        <p>{{ pedido.observacoes }}</p>
                     </div>
+
+                    <!-- VALOR TOTAL -->
 
                     <div class="campo">
-                        <label>Nº Cliente</label>
-                        <input type="text" value="{{ pedido.num_cliente }}" disabled>
+                        <label>Valor Total</label>
+                        <p>{{ pedido.valor_total }}</p>
                     </div>
 
-                    <div class="campo">
-                        <label>Estado</label>
-                        <select name="estado">
-                                <option value = "aberto"{{ 'selected' if pedido.estado_pedido == 'aberto' else '' }}> Aberto</option>
-                                <option value = "finalizado" {{ 'selected' if pedido.estado_pedido == 'finalizado' else '' }}> Finalizado </option>
-                        </select>
-                    </div>
+                </div> <!-- fecha .card.produto-modelo -->
 
-                    <div class="campo">
-                        <label>Data</label>
-                        <input type="text" value="{{ pedido.data }}" disabled>
-                    </div>
-
-                    <button type="submit">
-                    Guardar alterações
-                    </button>
-                </form>
-
-                <!-- ESTE DIV SÓ ABRE UMA VEZ POR PEDIDO -->
-                <div class="variantes">
-
-        {% endif %}
+            {% endif %}
 
 
-                    <!-- PRODUTO (uma variante por linha) -->
-
-                    <div class="variante">
-
-                        <div class="campo">
-                            <label>Referência</label>
-                            <input type="text" value="{{ pedido.referencia }}" disabled>
-                        </div>
-
-                        <div class="campo">
-                            <label>Nome do Produto</label>
-                            <input type="text" value="{{ pedido.nome_produto }}" disabled>
-                        </div>
-
-                        <div class="campo">
-                            <label>ID Modelo</label>
-                            <input type="text" value="{{ pedido.id_modelo }}" disabled>
-                        </div>
-
-                        <div class="campo">
-                            <label>Cor</label>
-                            <input type="text" value="{{ pedido.cor }}" disabled>
-                        </div>
-
-                        <div class="campo">
-                            <label>Preço com IVA</label>
-                            <input
-                                type="number"
-                                name="preco_base"
-                                value="{{ pedido.preco }}"
-                                step="0.01"
-                                min="0"
-                                disabled
-                            >
-                        </div>
-
-                        <div class="campo">
-                            <label>Quantidade</label>
-                            <input type="text" value="{{ pedido.quantidade }}" disabled>
-                        </div>
-
-                        <div class="campo">
-                            <label>Preço da Linha</label>
-                            <input type="text" value="{{ pedido.preco_total }}" disabled>
-                        </div>
-
-                        <div class="campo">
-                            <label>Código de Barras</label>
-                            <input type="text" value="{{ pedido.codigo }}" disabled>
-                        </div>
-
-                    </div>
+            {% set pedido_anterior.valor = pedido.id_pedido %}
 
 
-        {% set fim_grupo = (loop.nextitem is not defined) or (loop.nextitem.id_pedido != pedido.id_pedido) %}
+        {% endfor %}
 
-        {% if fim_grupo %}
-
-                </div> <!-- fecha .variantes -->
-
-                <!-- OBSERVAÇÕES -->
-
-                <div class="campo">
-                    <label>Observações</label>
-                    <p>{{ pedido.observacoes }}</p>
-                </div>
-
-                <!-- VALOR TOTAL -->
-
-                <div class="campo">
-                    <label>Valor Total</label>
-                    <p>{{ pedido.valor_total }}</p>
-                </div>
-
-            </div> <!-- fecha .card.produto-modelo -->
-
-        {% endif %}
-
-
-        {% set pedido_anterior.valor = pedido.id_pedido %}
-
-
-    {% endfor %}
+    {% endif %}
 
 
 </div>
+
+
+<script>
+
+    const selectPeriodo = document.getElementById("select-periodo");
+    const filtroDatas = document.getElementById("filtro-datas");
+
+    selectPeriodo.addEventListener("change", function () {
+
+        if (selectPeriodo.value === "personalizado") {
+            filtroDatas.classList.add("ativo");
+        } else {
+            filtroDatas.classList.remove("ativo");
+        }
+
+    });
+
+</script>
 
 </body>
 

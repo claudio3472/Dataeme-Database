@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+
+<html lang="pt">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Configurações - DataEme</title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='css/style.css') }}"
+    >
+
+    <style>
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 30px;
+            max-width: 900px;
+            margin: 60px auto;
+            padding: 20px;
+        }
+
+        .dashboard-card {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+
+            min-height: 180px;
+
+            padding: 30px;
+
+            border-radius: 12px;
+
+            background-color: white;
+
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+
+            text-decoration: none;
+            color: inherit;
+
+            transition:
+                transform 0.2s,
+                box-shadow 0.2s;
+        }
+
+        .dashboard-card:hover {
+            transform: translateY(-5px);
+
+            box-shadow:
+                0 8px 20px rgba(0, 0, 0, 0.18);
+        }
+
+        .dashboard-card h2 {
+            margin-bottom: 10px;
+        }
+
+        .dashboard-card p {
+            text-align: center;
+            margin: 0;
+            color: #666;
+        }
+
+        .dashboard-icon {
+            font-size: 45px;
+            margin-bottom: 15px;
+        }
+
+        @media (max-width: 700px) {
+
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+
+        }
+
+    </style>
+
+</head>
+
+<body>
+
+    <header>
+
+        <h1>Configurações</h1>
+
+        <nav>
+
+            <a href="{{ url_for('confirm_admin') }}">Dashboard</a>
+
+            <a href="/logout">Logout</a>
+
+        </nav>
+
+    </header>
+
+
+    <div class="dashboard">
+
+
+        <!-- IMPOSTOS / IVA -->
+
+        <a href="{{ url_for('configuracoes_impostos') }}" class="dashboard-card">
+
+            <div class="dashboard-icon">
+                💶
+            </div>
+
+            <h2>
+                Impostos
+            </h2>
+
+            <p>
+                Gerir as taxas de IVA aplicadas aos produtos.
+            </p>
+
+        </a>
+
+
+    </div>
+
+
+</body>
+
+</html>

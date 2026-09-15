@@ -35,21 +35,13 @@
 
         <nav>
 
-            <a href="/carrinho">
-                Carrinho
-            </a>
+            <a href="/carrinho">Carrinho</a>
 
-            <a href="/perfil">
-                Perfil
-            </a>
+            <a href="/perfil">Perfil</a>
 
-            <a href="/admin">
-                Admin
-            </a>
+            <a href="/admin">Admin</a>
 
-            <a href="/logout">
-                Logout
-            </a>
+            <a href="/logout">Logout</a>
 
         </nav>
 
@@ -61,6 +53,44 @@
          ========================= -->
 
     <div class="container">
+
+
+        <!-- =========================
+             FILTROS DE FAMÍLIA / SUBFAMÍLIA
+             ========================= -->
+
+        <div class="filtros">
+
+            <a href="{{ url_for('catalogo') }}" class="{{ 'ativo' if not id_familia else '' }}">Todas as famílias</a>
+
+            {% for familia in categorias %}
+
+                <div class="familia-filtro">
+
+                    <a href="{{ url_for('catalogo', familia=familia.id_familia) }}" class="{{ 'ativo' if id_familia == familia.id_familia else '' }}">{{ familia.nome }}</a>
+
+
+                    {% if id_familia == familia.id_familia and familia.subfamilias %}
+
+                        <div class="subfamilia-filtro">
+
+                            <a href="{{ url_for('catalogo', familia=familia.id_familia) }}" class="{{ 'ativo' if not id_subfamilia else '' }}">Todas</a>
+
+                            {% for sub in familia.subfamilias %}
+
+                                <a href="{{ url_for('catalogo', familia=familia.id_familia, subfamilia=sub.id_subfamilia) }}" class="{{ 'ativo' if id_subfamilia == sub.id_subfamilia else '' }}">{{ sub.nome }}</a>
+
+                            {% endfor %}
+
+                        </div>
+
+                    {% endif %}
+
+                </div>
+
+            {% endfor %}
+
+        </div>
 
 
         {% set familia_anterior = namespace(valor='') %}
@@ -205,11 +235,7 @@
                         {% for cor in produto.cores %}
 
 
-                            <a
-                                href="/produto/{{ cor.referencia }}"
-                                class="cor-link"
-                                title="{{ cor.nome }}"
-                            >
+                            <a href="/produto/{{ cor.referencia }}" class="cor-link" title="{{ cor.nome }}">
 
                                 <span
                                     class="cor-bola"
@@ -231,14 +257,7 @@
 
                 <!-- VER DETALHES -->
 
-                <a
-                    href="/produto/{{ produto.referencia }}"
-                    class="ver-detalhes"
-                >
-
-                    Ver detalhes →
-
-                </a>
+                <a href="/produto/{{ produto.referencia }}" class="ver-detalhes">Ver detalhes →</a>
 
 
             </div>
@@ -257,6 +276,15 @@
         {% endfor %}
 
 
+        {% if not produtos %}
+
+            <p class="sem-produtos">
+                Não foram encontrados produtos para este filtro.
+            </p>
+
+        {% endif %}
+
+
 
         <!-- =========================
              PAGINAÇÃO
@@ -267,11 +295,7 @@
 
             {% if pagina > 1 %}
 
-                <a href="/catalogo?pagina={{ pagina - 1 }}">
-
-                    ← Anterior
-
-                </a>
+                <a href="{{ url_for('catalogo', pagina=pagina - 1, familia=id_familia, subfamilia=id_subfamilia) }}">← Anterior</a>
 
             {% endif %}
 
@@ -287,11 +311,7 @@
 
             {% if pagina < total_paginas %}
 
-                <a href="/catalogo?pagina={{ pagina + 1 }}">
-
-                    Seguinte →
-
-                </a>
+                <a href="{{ url_for('catalogo', pagina=pagina + 1, familia=id_familia, subfamilia=id_subfamilia) }}">Seguinte →</a>
 
             {% endif %}
 

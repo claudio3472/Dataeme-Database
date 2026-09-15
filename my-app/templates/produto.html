@@ -57,6 +57,15 @@
             margin-bottom: 10px;
         }
 
+        .categoria a {
+            color: inherit;
+            text-decoration: none;
+        }
+
+        .categoria a:hover {
+            text-decoration: underline;
+        }
+
         .nome {
             font-size: 36px;
             margin-bottom: 10px;
@@ -182,7 +191,7 @@
 
         .carrinho-botao {
             background: linear-gradient(
-                90deg,
+                135deg,
                 #1E88E5,
                 #1565C0,
                 #0D3C8C,
@@ -190,7 +199,10 @@
                 #0E7C86,
                 #A4C400,
                 #7FAF00,
-                #1E88E5
+                #1E88E5,
+                #1565C0,
+                #0D3C8C,
+                #1FB5B5
             );
             background-size: 500% 100%;
             color: white;
@@ -201,7 +213,7 @@
         }
 
         .carrinho-botao:hover {
-            animation: gradientMove 2s linear infinite alternate;
+            animation: gradientMove 2s linear infinite;
         }
 
         @keyframes gradientMove {
@@ -222,8 +234,9 @@
         }
 
         .carrinho-num input {
-            padding: 2px;
-            width: 40px;
+            padding: 10px;
+            width: 60px;
+            height: 40px;
             border-radius: 3px;
         }
 
@@ -259,25 +272,15 @@
 
         <nav>
 
-            <a href="/catalogo">
-                Catálogo
-            </a>
+            <a href="/catalogo">Catálogo</a>
 
-            <a href="/carrinho">
-                Carrinho
-            </a>
+            <a href="/carrinho">Carrinho</a>
 
-            <a href="/perfil">
-                Perfil
-            </a>
+            <a href="/perfil">Perfil</a>
 
-            <a href="/admin">
-                Admin
-            </a>
+            <a href="/admin">Admin</a>
 
-            <a href="/logout">
-                Logout
-            </a>
+            <a href="/logout">Logout</a>
 
         </nav>
 
@@ -290,17 +293,15 @@
 
         <div class="breadcrumb">
 
-            <a href="/catalogo">
-                Catálogo
-            </a>
+            <a href="/catalogo">Catálogo</a>
 
             &nbsp; / &nbsp;
 
-            {{ produto.familia }}
+            <a href="{{ url_for('catalogo', familia=produto.id_familia) }}">{{ produto.familia }}</a>
 
             &nbsp; / &nbsp;
 
-            {{ produto.subfamilia }}
+            <a href="{{ url_for('catalogo', familia=produto.id_familia, subfamilia=produto.id_subfamilia) }}">{{ produto.subfamilia }}</a>
 
         </div>
 
@@ -311,10 +312,10 @@
 
             <div class="categoria">
 
-                {{ produto.familia }}
+                <a href="{{ url_for('catalogo', familia=produto.id_familia) }}">{{ produto.familia }}</a>
 
                 {% if produto.subfamilia %}
-                    / {{ produto.subfamilia }}
+                    / <a href="{{ url_for('catalogo', familia=produto.id_familia, subfamilia=produto.id_subfamilia) }}">{{ produto.subfamilia }}</a>
                 {% endif %}
 
             </div>
@@ -343,29 +344,13 @@
 
                 <div class="cores-modelo">
 
-
                     {% for cor in produto.variantes %}
 
-
-                        <a
-                            href="/produto/{{ cor.referencia }}"
-                            class="cor-link"
-                            title="{{ cor.nome }}"
-                        >
-
-                            <span
-                                class="cor-bola"
-                                style="background-color: {{ cor.codigo_cor }}"
-                            ></span>
-
-                        </a>
-
+                        <a href="/produto/{{ cor.referencia }}" class="cor-link" title="{{ cor.nome_cor }}"><span class="cor-bola" style="background-color: {{ cor.codigo_cor }}"></span></a>
 
                     {% endfor %}
 
-
                 </div>
-
 
             {% endif %}
 
@@ -542,13 +527,7 @@
 
             <div class="produto-botao">
 
-                <a
-                    href="/catalogo"
-                    class="voltar"
-                >
-                    ← Voltar ao catálogo
-                </a>
-
+                <a href="/catalogo" class="voltar">← Voltar ao catálogo</a>
 
                 {% if not produto.descontinuado %}
 

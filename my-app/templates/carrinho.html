@@ -108,7 +108,7 @@
                 
                 
 
-                <form class="form-horizontal" method="POST" action="/carrinhofinalizar">
+                <form class="form-horizontal" method="POST" action="/carrinhofinalizar" onsubmit="return confirm ('O pagamento será efetuado na loja, pretende continuar?');">
                     
                     <p><label>Observações:</label></p>
                     <textarea name="observacoes" rows="6" cols="70" placeholder="Notas acerca do pedido">{% if observacoes %}{{ observacoes }}{% endif %}</textarea>
@@ -120,8 +120,6 @@
                         </button>
                         
                     </div>
-
-                    <h2>O pagamento será efetuado na loja</h2>
 
                 </form>
 
