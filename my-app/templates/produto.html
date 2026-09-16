@@ -1,293 +1,7 @@
-<!DOCTYPE html>
-<html lang="pt">
+{% extends "layout.html"%}
+{% block content %}
 
-<head>
-
-    <meta charset="UTF-8">
-
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
-
-    <title>{{ produto.nome }} - DataEme</title>
-    <link
-    rel="stylesheet"
-    href="{{ url_for('static', filename='css/style.css') }}"
-    >
-    <style> 
-        /* CONTAINER */
-
-        .container {
-            max-width: 1000px;
-            margin: auto;
-            padding: 40px 20px;
-        }
-
-        /* CAMINHO */
-
-        .breadcrumb {
-            margin-bottom: 25px;
-            color: #777;
-            font-size: 14px;
-        }
-
-        .breadcrumb a {
-            color: #2f6fed;
-            text-decoration: none;
-        }
-
-        .breadcrumb a:hover {
-            text-decoration: underline;
-        }
-
-        /* PRODUTO */
-
-        .produto {
-            background: white;
-            border-radius: 15px;
-            padding: 40px;
-            box-shadow: 0 3px 15px rgba(0, 0, 0, .08);
-        }
-
-        .categoria {
-            color: #2f6fed;
-            font-size: 15px;
-            font-weight: bold;
-            margin-bottom: 10px;
-        }
-
-        .categoria a {
-            color: inherit;
-            text-decoration: none;
-        }
-
-        .categoria a:hover {
-            text-decoration: underline;
-        }
-
-        .nome {
-            font-size: 36px;
-            margin-bottom: 10px;
-        }
-
-        .referencia {
-            color: #888;
-            font-size: 14px;
-            margin-bottom: 30px;
-        }
-
-        /* DESCRIÇÃO */
-
-        .secao {
-            margin-top: 30px;
-            padding-top: 25px;
-            border-top: 1px solid #eee;
-        }
-
-        .secao h2 {
-            font-size: 22px;
-            margin-bottom: 15px;
-        }
-
-        .descricao {
-            color: #555;
-            line-height: 1.7;
-            font-size: 16px;
-        }
-
-        /* INFORMAÇÕES */
-
-        .informacoes {
-            display: grid;
-            grid-template-columns:
-                repeat(
-                    auto-fit,
-                    minmax(200px, 1fr)
-                );
-
-            gap: 20px;
-            margin-top: 25px;
-        }
-
-        .informacao {
-            background: #f7f8fa;
-            padding: 20px;
-            border-radius: 10px;
-        }
-
-        .informacao-titulo {
-            color: #777;
-            font-size: 13px;
-            margin-bottom: 8px;
-        }
-
-        .informacao-valor {
-            font-size: 18px;
-            font-weight: bold;
-        }
-
-        /* PREÇO */
-
-        .preco {
-            margin-top: 30px;
-            font-size: 32px;
-            color: #159947;
-            font-weight: bold;
-        }
-
-        /* ESTADO */
-
-        .estado {
-            margin-top: 15px;
-            padding: 10px 15px;
-            border-radius: 8px;
-            display: inline-block;
-            font-weight: bold;
-        }
-
-        .disponivel {
-            background: #e7f7ed;
-            color: #159947;
-        }
-
-        .descontinuado {
-            background: #fdeaea;
-            color: #d33;
-        }
-
-
-        .produto-botao {
-            display: flex;
-            width: 100%;
-        }
-        
-        /* BOTÃO VOLTAR */
-
-        .voltar {
-            display: inline-block;
-            margin-top: 30px;
-            background: #2f6fed;
-            color: white;
-            text-decoration: none;
-            padding: 12px 22px;
-            border-radius: 8px;
-            font-weight: bold;
-        }
-
-        .voltar:hover {
-            background: #2458c4;
-        }
-
-        /* BOTÃO CARRINHO */
-
-        .carrinho { 
-            margin-top: 30px;
-            margin-left: auto;
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-
-        .carrinho-botao {
-            background: linear-gradient(
-                135deg,
-                #1E88E5,
-                #1565C0,
-                #0D3C8C,
-                #1FB5B5,
-                #0E7C86,
-                #A4C400,
-                #7FAF00,
-                #1E88E5,
-                #1565C0,
-                #0D3C8C,
-                #1FB5B5
-            );
-            background-size: 500% 100%;
-            color: white;
-            border: none;
-            padding: 12px 22px;
-            border-radius: 8px;
-            font-weight: bold;
-        }
-
-        .carrinho-botao:hover {
-            animation: gradientMove 2s linear infinite;
-        }
-
-        @keyframes gradientMove {
-            from {
-                background-position: 100% 50%;
-            }
-            to {
-                background-position: 0% 50%;
-            }
-        }
-                
-
-        .carrinho-num { 
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            white-space: nowrap;
-        }
-
-        .carrinho-num input {
-            padding: 10px;
-            width: 60px;
-            height: 40px;
-            border-radius: 3px;
-        }
-
-        @media (max-width: 600px) {
-
-            header {
-                padding: 20px;
-            }
-
-            header h1 {
-                font-size: 24px;
-            }
-
-            .produto {
-                padding: 25px;
-            }
-
-            .nome {
-                font-size: 28px;
-            }
-
-        }
-
-    </style>
-
-</head>
-
-<body>
-
-    <header>
-
-        <h1>Catálogo Digital</h1>
-
-        <nav>
-
-            <a href="/catalogo">Catálogo</a>
-
-            <a href="/carrinho">Carrinho</a>
-
-            <a href="/perfil">Perfil</a>
-
-            <a href="/admin">Admin</a>
-
-            <a href="/logout">Logout</a>
-
-        </nav>
-
-    </header>
-
-
-    <div class="container">
+    <div class="containerproduto">
 
         <!-- CAMINHO -->
 
@@ -310,24 +24,7 @@
 
         <div class="produto">
 
-            <div class="categoria">
-
-                <a href="{{ url_for('catalogo', familia=produto.id_familia) }}">{{ produto.familia }}</a>
-
-                {% if produto.subfamilia %}
-                    / <a href="{{ url_for('catalogo', familia=produto.id_familia, subfamilia=produto.id_subfamilia) }}">{{ produto.subfamilia }}</a>
-                {% endif %}
-
-            </div>
-
-            <div class="avaliacao">
-
-                ⭐ {{ produto.avaliacao }} | {{ produto.num_avaliacao }} avaliações
-
-            </div>
-
-
-            <h1 class="nome">
+            <h1 class="nomeproduto">
                 {{ produto.nome }}
             </h1>
 
@@ -353,6 +50,14 @@
                 </div>
 
             {% endif %}
+
+            <!-- AVALIAÇÃO -->
+
+            <div class="avaliacao">
+
+                ⭐ {{ produto.avaliacao }} | {{ produto.num_avaliacao }} avaliações
+
+            </div>
 
         <!-- DESCRIÇÃO CURTA -->
 
@@ -413,37 +118,6 @@
                         </div>
 
                     </div>
-
-
-                    {% if produto.codigo_barras %}
-
-                        <div class="informacao">
-
-                            <div class="informacao-titulo">
-                                Código de barras
-                            </div>
-
-                            <div class="informacao-valor">
-                                {{ produto.codigo_barras }}
-                            </div>
-
-                        </div>
-
-                    {% endif %}
-
-
-                    <div class="informacao">
-
-                        <div class="informacao-titulo">
-                            Stock
-                        </div>
-
-                        <div class="informacao-valor">
-                            {{ produto.stock }}
-                        </div>
-
-                    </div>
-
 
                     <div class="informacao">
 
@@ -517,7 +191,7 @@
                 <label>Comentário</label>
                 <textarea name="comentario" rows="6" cols="70" placeholder="Avaliação do produto"></textarea>
                 
-                <button type="submit">
+                <button class="botao-avaliacao" type="submit">
                     Adicionar avaliação
                 </button>
 
@@ -527,7 +201,7 @@
 
             <div class="produto-botao">
 
-                <a href="/catalogo" class="voltar">← Voltar ao catálogo</a>
+                <a href="/catalogo" class="animacao-botao voltar">← Voltar ao catálogo</a>
 
                 {% if not produto.descontinuado %}
 
@@ -554,7 +228,7 @@
 
                         <button
                             type="submit"
-                            class="carrinho-botao"
+                            class="animacao-botao"
                         >
                             Adicionar ao carrinho
                         </button>
@@ -569,6 +243,4 @@
 
     </div>
 
-</body>
-
-</html>
+{% endblock %}

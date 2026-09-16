@@ -2,39 +2,51 @@
 <html lang="pt">
 <head>
     <meta charset="UTF-8">
-    <title>DataEme</title>
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
 
-    {{ url_for('static', filename='css/style.css') }}
+    <title>Dataeme</title>
+    <link rel="icon" type="image/x-icon" href="/media/logo/Dataeme_logo.ico">
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='css/style.css') }}"
+    >
+
 </head>
 
 <body>
 
-<header>
+    <!-- =========================
+        HEADER
+        ========================= -->
 
-    <h1>DataEme</h1>
+    <header>
 
-    <nav>
-        <a href="/catalogo">
-            Catálogo
-        </a>
 
-        <a href="/carrinho">
-            Carrinho
-        </a>
+        <img src="/media/logo/Dataeme_logo.png" width="130px" height="auto">
 
-        <a href="/logout">
-            Logout
-        </a>
-    </nav>
 
-</header>
+        <nav>
 
-<main>
+            <a href="/catalogo">Catálogo</a>
 
-{% block content %}
-{% endblock %}
+            <a href="/carrinho">Carrinho</a>
 
-</main>
+            <a href="/perfil">Perfil</a>
 
-</body>
+            <a href="/admin">Admin</a>
+
+            <a href="/logout">Logout</a>
+
+        </nav>
+
+    </header>
+
+    {% block content %}
+    {% endblock %}
+
+    </body>
 </html>

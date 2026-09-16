@@ -4,7 +4,8 @@ from flask import (
     request,
     redirect,
     session,
-    url_for
+    url_for,
+    send_from_directory
 )
 
 import time
@@ -330,14 +331,16 @@ def perfil():
 
     if request.method == "POST":
 
-        nome = request.form["nome"]
-        nif = request.form["nif"]
-        email = request.form["email"]
-        ind = request.form["ind"]
-        tel = request.form["tel"]
-        postal = request.form["postal"]
-        local = request.form["local"]
-        morada = request.form["morada"]
+        nome = request.form["nome"].strip()
+        nif = request.form["nif"].strip()
+        email = request.form["email"].strip().lower()
+        ind = request.form["ind"].strip()
+        tel = request.form["tel"].strip()
+        postal = request.form["postal"].strip()
+        local = request.form["local"].strip()
+        morada = request.form["morada"].strip()
+        predio = request.form["predio"]
+        andar = request.form["andar"].strip()
 
         try:
 
@@ -348,6 +351,13 @@ def perfil():
             validar_codigo_postal(postal)
             validar_localizacao(local)
             validar_morada(morada)
+            
+            if not predio:
+                morada_completa = morada
+            elif not andar:
+                morada_completa = f"{morada}, {predio}"
+            else:
+                morada_completa = f"{morada}, {predio}, {andar}"
 
         except Exception as e:
 
@@ -364,7 +374,7 @@ def perfil():
             .update({
                 "nif": nif,
                 "nome": nome,
-                "morada": morada,
+                "morada": morada_completa,
                 "email": email,
                 "telefone": tel,
                 "codigo_postal": postal,
@@ -1153,13 +1163,24 @@ def produtos_admin():
         )
 
     filtro = request.args.get("filtro", "").strip()
+    id_familia = request.args.get("familia", type=int)
+    id_subfamilia = request.args.get("subfamilia", type=int)
 
-    produtos = obter_produtos_admin(filtro)
+    produtos = obter_produtos_admin(
+        filtro,
+        id_familia=id_familia,
+        id_subfamilia=id_subfamilia
+    )
+
+    categorias = obter_categorias()
 
     return render_template(
         "produtos_admin.html",
         produtos=produtos,
-        filtro=filtro
+        filtro=filtro,
+        categorias=categorias,
+        id_familia=id_familia,
+        id_subfamilia=id_subfamilia
     )
 
 # ============================================================
@@ -1200,39 +1221,54 @@ def clientes_admin():
 
         id_cliente = request.form[
             "id_cliente"
-        ]
+        ].strip()
 
         nome = request.form[
             "nome"
-        ]
+        ].strip()
 
         nif = request.form[
             "nif"
-        ]
+        ].strip()
 
         email = request.form[
             "email"
-        ]
+        ].strip().lower()
 
         ind = request.form[
             "ind"
-        ]
+        ].strip()
 
         tel = request.form[
             "tel"
-        ]
+        ].strip()
 
         postal = request.form[
             "postal"
-        ]
+        ].strip()
 
         local = request.form[
             "local"
-        ]
+        ].strip()
 
         morada = request.form[
             "morada"
+        ].strip()
+
+        predio = request.form[
+            "predio"
         ]
+
+        andar = request.form[
+            "andar"
+        ].strip()
+        
+        if not predio:
+            morada_completa = morada
+        elif not andar:
+            morada_completa = f"{morada}, {predio}"
+        else:
+            morada_completa = f"{morada}, {predio}, {andar}"
 
         response = atualizar_cliente_admin(
             id_cliente,
@@ -1243,7 +1279,7 @@ def clientes_admin():
             tel,
             postal,
             local,
-            morada
+            morada_completa
         )
 
         if not response:
@@ -1479,6 +1515,55 @@ def configuracoes_impostos():
     )
 
 
+# ============================================================
+# ADMIN - CONFIGURAÇÕES - CRIAR UTILIZADORES
+# ============================================================
+
+@app.route("/configuracoes_utilizadores", methods=["GET", "POST"])
+def configuracoes_utilizadores():
+
+    if request.method == "GET":
+    
+        return render_template(
+            "configuracoes_utilizadores.html"
+        )
+
+    try:
+        print(dict(request.form))
+        admin = request.form["admin"] == "True"
+
+        registar_cliente_web(
+            request.form,
+            admin
+        )
+
+    except ValueError as e:
+
+        return render_template(
+            "configuracoes_utilizadores.html",
+            erro=str(e)
+        )
+
+    except Exception as e:
+
+        print(
+            "Erro no registo:",
+            e
+        )
+
+        return render_template(
+            "configuracoes_utilizadores.html",
+            erro="Ocorreu um erro ao criar a conta."
+        )
+
+    return render_template(
+        "configuracoes_utilizadores.html"
+    )
+
+
+@app.route('/media/<path:filename>')
+def media(filename):
+    return send_from_directory('media', filename)
 
 # ============================================================
 # START

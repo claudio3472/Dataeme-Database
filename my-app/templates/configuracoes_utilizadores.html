@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>Configurações - DataEme</title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='css/style.css') }}"
+    >
+
+    <style>
+        form p {
+            padding: 20px;
+            box-shadow: 0 3px 10px rgba(68, 67, 67, 0.08);
+        }
+            
+        form button {
+            margin-left: 20px;
+            padding: 10px;
+            font-size: 15px;
+        }
+
+        .submitContainer {
+            display: flex;
+            flex-direction: row;
+            gap: 20px;
+        }
+
+        .submitContainer div{
+            margin-top: 15px;
+        }
+
+                .breadcrumb {
+            margin-bottom: 25px;
+            color: #777;
+            font-size: 14px;
+        }
+
+        .breadcrumb a {
+            color: #4472C4;
+            text-decoration: none;
+        }
+
+        .breadcrumb a:hover {
+            text-decoration: underline;
+        }
+        
+    </style>
+
+</head>
+
+<body>
+
+    <header>
+
+        <h1>Criar Utilizador</h1>
+
+        <nav>
+
+            <a href="{{ url_for('confirm_admin') }}">Dashboard</a>
+
+            <a href="/logout">Logout</a>
+
+        </nav>
+
+    </header>
+
+    <div class="container">
+
+        <!-- CAMINHO -->
+
+        <div class="breadcrumb">
+
+            <a href="{{ url_for('configuracoes_admin') }}">Configurações</a>
+
+            &nbsp; / &nbsp;
+
+            Criar Utilizadores
+
+        </div>
+
+        <div class="card">
+            
+            <form method="POST">
+
+                <p>
+                    <strong>Admin:</strong>
+
+                    <input
+                        type="radio"
+                        name="admin"
+                        id="yes"
+                        value="True"
+                        required
+                    >
+                    <label for="yes">Sim</label>
+
+                    <input
+                        type="radio"
+                        name="admin"
+                        id="no"
+                        value="False"
+                        required
+                    >
+                    <label for="no">Não</label>
+                </p>
+
+                <p>
+                    <strong>Nome:</strong>
+                    <input
+                        type="text"
+                        name="nome"
+                        value=""
+                        placeholder="Primeiro e último nome"
+                        required
+                    >
+                </p>
+
+                <p>
+                    <strong>NIF:</strong>
+                    <input
+                        type="text"
+                        name="nif"
+                        value=""
+                        required
+                    >
+                </p>
+
+                <p>
+                    <strong>Email:</strong>
+                    <input
+                        type="email"
+                        name="email"
+                        value=""
+                        required
+                    >
+                </p>
+
+                <p>
+                    <strong>Telefone:</strong>
+
+                    <input
+                        type="text"
+                        name="ind"
+                        value=""
+                        placeholder="+351"
+                        required
+                        style="width: 60px;"
+                    >
+
+                    <input
+                        type="tel"
+                        name="tel"
+                        value=""
+                        required
+                    >
+                </p>
+
+                <p>
+                    <strong>Código Postal:</strong>
+
+                    <input
+                        type="text"
+                        name="postal"
+                        value=""
+                        placeholder="0000-000"
+                        required
+                        style="width: 90px;"
+                    >
+
+                    <input
+                        type="text"
+                        name="local"
+                        value=""
+                        placeholder="Localidade"
+                        required
+                    >
+                </p>
+
+                <p>
+                    <strong>Morada:</strong>
+
+                    <input
+                        type="text"
+                        name="morada"
+                        value=""
+                        required
+                    >
+                </p>
+
+                <p>
+                    <strong>Password:</strong>
+
+                    <input
+                        type="password"
+                        name="password"
+                        value=""
+                        required
+                    >
+                </p>
+
+                <p>
+                    <strong>Confirmar Password:</strong>
+
+                    <input
+                        type="password"
+                        name="confirmar_password"
+                        value=""
+                        required
+                    >
+                </p>
+
+                <br>
+
+                <div class="submitContainer">
+
+                    <button class="animacao-botao" type="submit">
+                        Criar Utilizador
+                    </button>
+                    
+                    {% if sucesso %}
+                    <div style="color: green; margin-bottom: 15px; font-weight: bold;">
+                        {{ sucesso }}
+                    </div>
+                    {% endif %}
+
+                    {% if erro %}
+                    <div style="color: red; margin-bottom: 15px; font-weight: bold;">
+                        {{ erro }}
+                    </div>
+                    {% endif %}
+
+                </div>
+
+            </form>
+        </div>
+    </div>
+</body>

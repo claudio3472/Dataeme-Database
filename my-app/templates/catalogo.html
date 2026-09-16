@@ -1,52 +1,5 @@
-<!DOCTYPE html>
-<html lang="pt">
-
-<head>
-
-    <meta charset="UTF-8">
-
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
-
-    <title>Catálogo</title>
-
-    <link
-        rel="stylesheet"
-        href="{{ url_for('static', filename='css/style.css') }}"
-    >
-
-</head>
-
-
-<body>
-
-    <!-- =========================
-         HEADER
-         ========================= -->
-
-    <header>
-
-        <h1>
-            Catálogo Digital
-        </h1>
-
-
-        <nav>
-
-            <a href="/carrinho">Carrinho</a>
-
-            <a href="/perfil">Perfil</a>
-
-            <a href="/admin">Admin</a>
-
-            <a href="/logout">Logout</a>
-
-        </nav>
-
-    </header>
-
+{% extends "layout.html"%}
+{% block content %}
 
     <!-- =========================
          CONTEÚDO
@@ -295,7 +248,7 @@
 
             {% if pagina > 1 %}
 
-                <a href="{{ url_for('catalogo', pagina=pagina - 1, familia=id_familia, subfamilia=id_subfamilia) }}">← Anterior</a>
+                <a class="animacao-botao" href="{{ url_for('catalogo', pagina=pagina - 1, familia=id_familia, subfamilia=id_subfamilia) }}">← Anterior</a>
 
             {% endif %}
 
@@ -311,7 +264,7 @@
 
             {% if pagina < total_paginas %}
 
-                <a href="{{ url_for('catalogo', pagina=pagina + 1, familia=id_familia, subfamilia=id_subfamilia) }}">Seguinte →</a>
+                <a class="animacao-botao" href="{{ url_for('catalogo', pagina=pagina + 1, familia=id_familia, subfamilia=id_subfamilia) }}">Seguinte →</a>
 
             {% endif %}
 
@@ -321,7 +274,4 @@
 
     </div>
 
-
-</body>
-
-</html>
+{% endblock %}

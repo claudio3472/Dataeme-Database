@@ -17,6 +17,42 @@
     >
 
     <style>
+        .filtro_pesquisa{
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            background-color: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 5px;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+        }
+
+        .filtro_pesquisa form button {
+            padding: 10px;
+            background-color: #4472C4;
+            border-radius: 15px;
+            color: white;
+            box-shadow: 0 3px 8px rgba(68, 114, 196, 0.35);
+            font-weight: bold;
+        }
+
+        .filtro_pesquisa form a {
+            padding: 10px;
+            background-color: #e0aa59;
+            border-radius: 15px;
+            color: white;
+            box-shadow: 0 3px 8px rgba(68, 114, 196, 0.35);
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        .filtro_pesquisa form input {
+            width: 85%;
+            padding: 10px;
+            border-radius: 5px;
+        }
+
         .variantes {
             display: flex;
             gap: 10px;
@@ -64,45 +100,87 @@
 <div class="container">
 
     <!-- PESQUISA -->
-
-    <form
-        method="GET"
-        action="{{ url_for('produtos_admin') }}"
-        class="filtro-form"
-    >
-
-        <input
-            type="text"
-            name="filtro"
-            placeholder="Pesquisar por nome do modelo..."
-            value="{{ filtro }}"
+    <div class="filtro_pesquisa">
+        <form
+            method="GET"
+            action="{{ url_for('produtos_admin') }}"
+            class="filtro-form"
         >
 
-        <button type="submit">
-            Pesquisar
-        </button>
+            <input
+                type="text"
+                name="filtro"
+                placeholder="Pesquisar por nome do modelo..."
+                value="{{ filtro }}"
+            >
 
-        {% if filtro %}
-            <a href="{{ url_for('produtos_admin') }}">
-                Limpar
-            </a>
+            <input type="hidden" name="familia" value="{{ id_familia or '' }}">
+            <input type="hidden" name="subfamilia" value="{{ id_subfamilia or '' }}">
+
+            <button type="submit">
+                Pesquisar
+            </button>
+
+            {% if filtro %}
+                <a href="{{ url_for('produtos_admin', familia=id_familia, subfamilia=id_subfamilia) }}">
+                    Limpar
+                </a>
+            {% endif %}
+
+        </form>
+
+
+        {% if request.args.get("sucesso") %}
+            <div class="mensagem sucesso">
+                {{ request.args.get("sucesso") }}
+            </div>
         {% endif %}
 
-    </form>
+
+        {% if request.args.get("erro") %}
+            <div class="mensagem erro">
+                {{ request.args.get("erro") }}
+            </div>
+        {% endif %}
+    </div>
 
 
-    {% if request.args.get("sucesso") %}
-        <div class="mensagem sucesso">
-            {{ request.args.get("sucesso") }}
-        </div>
-    {% endif %}
+    <!-- =========================
+         FILTROS DE FAMÍLIA / SUBFAMÍLIA
+         ========================= -->
+
+    <div class="filtros">
+
+        <a href="{{ url_for('produtos_admin', filtro=filtro) }}" class="{{ 'ativo' if not id_familia else '' }}">Todas as famílias</a>
+
+        {% for familia in categorias %}
+
+            <div class="familia-filtro">
+
+                <a href="{{ url_for('produtos_admin', filtro=filtro, familia=familia.id_familia) }}" class="{{ 'ativo' if id_familia == familia.id_familia else '' }}">{{ familia.nome }}</a>
 
 
-    {% if request.args.get("erro") %}
-        <div class="mensagem erro">
-            {{ request.args.get("erro") }}
-        </div>
-    {% endif %}
+                {% if id_familia == familia.id_familia and familia.subfamilias %}
+
+                    <div class="subfamilia-filtro">
+
+                        <a href="{{ url_for('produtos_admin', filtro=filtro, familia=familia.id_familia) }}" class="{{ 'ativo' if not id_subfamilia else '' }}">Todas</a>
+
+                        {% for sub in familia.subfamilias %}
+
+                            <a href="{{ url_for('produtos_admin', filtro=filtro, familia=familia.id_familia, subfamilia=sub.id_subfamilia) }}" class="{{ 'ativo' if id_subfamilia == sub.id_subfamilia else '' }}">{{ sub.nome }}</a>
+
+                        {% endfor %}
+
+                    </div>
+
+                {% endif %}
+
+            </div>
+
+        {% endfor %}
+
+    </div>
 
 
     {% if not produtos %}
@@ -227,7 +305,22 @@
                                     >
 
                                 </div>
+                                
+                                <!-- IVA -->
 
+                                <div class="campo">
+
+                                    <label>
+                                        Iva
+                                    </label>
+
+                                    <select name="iva">
+                                        {% for iva in variante.iva_lista %}
+                                            <option value=" {{ iva }}" {{ 'selected' if iva == variante.iva }}> {{ iva }}</option>
+                                        {% endfor %}
+                                    </select>
+
+                                </div>
 
                                 <!-- PREÇO -->
 
