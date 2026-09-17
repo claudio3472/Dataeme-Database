@@ -13,6 +13,32 @@
     >
 
     <style>
+
+        .filtro_pesquisa form button {
+            padding: 10px;
+            background-color: #4472C4;
+            border-radius: 15px;
+            color: white;
+            box-shadow: 0 3px 8px rgba(68, 114, 196, 0.35);
+            font-weight: bold;
+        }
+
+        .filtro_pesquisa form input {
+            width: 85%;
+            padding: 10px;
+            border-radius: 5px;
+        }
+
+        .filtro_pesquisa form a {
+            padding: 10px;
+            background-color: #e0aa59;
+            border-radius: 15px;
+            color: white;
+            box-shadow: 0 3px 8px rgba(68, 114, 196, 0.35);
+            text-decoration: none;
+            font-weight: bold;
+        }
+
         .cliente{
             display: grid;
             grid: 5px / auto auto auto;
@@ -31,6 +57,16 @@
 
         .info button{
             margin-top: 10px;
+        }
+
+        .editar{
+            text-decoration: none;
+            color: white;
+            font-size: 18px;
+            height: 20px;
+            background-color: #2f6fed;
+            width: auto;
+            border-radius: 8px;
         }
     </style>
 </head>
@@ -63,7 +99,7 @@
          FILTRO
          ========================= -->
 
-    <div class="card">
+    <div class="card filtro_pesquisa">
 
         <h2>Pesquisar Cliente</h2>
 
@@ -76,9 +112,15 @@
                 placeholder="Nome ou NIF"
             >
 
-            <button type="submit">
+            <button class="" type="submit">
                 Pesquisar
             </button>
+
+            {% if filtro %}
+                <a href="{{ url_for('clientes_admin') }}">
+                    Limpar
+                </a>
+            {% endif %}
 
         </form>
 
@@ -112,7 +154,7 @@
                             'clientes_admin',
                             cliente=c.id_cliente,
                             filtro=filtro
-                        ) }}" class="cliente_element"
+                        ) }}" class="cliente_element editar"
                     >
                         Ver / Editar
                     </a>
@@ -234,7 +276,7 @@
                     <input
                         type="text"
                         name="tel"
-                        value="{{ cliente.telefone }}"
+                        value="{{ cliente.tel }}"
                     >
 
                 </p>
@@ -247,7 +289,7 @@
                     <input
                         type="text"
                         name="postal"
-                        value="{{ cliente.codigo_postal }}"
+                        value="{{ cliente.postal }}"
                     >
 
                 </p>
@@ -260,7 +302,7 @@
                     <input
                         type="text"
                         name="local"
-                        value="{{ cliente.localizacao }}"
+                        value="{{ cliente.local }}"
                     >
 
                 </p>
@@ -276,6 +318,26 @@
                         value="{{ cliente.morada }}"
                     >
 
+                </p>
+
+                <p>
+                    <strong>Nº Prédio:</strong>
+
+                    <input
+                        type="number"
+                        name="predio"
+                        value="{{ cliente.predio }}"
+                    >   
+                </p>
+
+                <p>
+                    <strong>Andar:</strong>
+
+                    <input
+                        type="text"
+                        name="andar"
+                        value="{{ cliente.andar }}"
+                    >
                 </p>
 
 

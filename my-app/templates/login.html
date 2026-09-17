@@ -9,6 +9,11 @@
 
     <title>Log in</title>
 
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='css/style.css') }}"
+    >
+
     <style>
 
         * {
@@ -78,6 +83,10 @@
             font-size: 12px;
         }
 
+        .recuperar_password {
+            text-decoration: none;
+        }
+
     </style>
 
 </head>
@@ -123,13 +132,13 @@
 
             <br>
 
-                <a href="/recuperar-password">
+                <a class="recuperar_password" href="/recuperar-password">
                     Esqueci-me da password
                 </a>
 
             <br><br>
 
-            <button type="submit">
+            <button class="animacao-botao" type="submit">
                 Entrar
             </button>
 

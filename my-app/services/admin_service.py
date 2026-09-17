@@ -1,10 +1,209 @@
 from config import supabase
 
+def obter_ivas():
+    """
+    Obtém todas as taxas de IVA existentes.
+    """
 
-def obter_produtos_admin(filtro=None):
+    response = (
+        supabase
+        .table("iva")
+        .select("*")
+        .order("percentagem")   
+        .execute()
+    )
+
+    return response.data or []
+
+
+def atualizar_ivas(ivas):
+    """
+    Atualiza taxas de IVA existentes e cria novas taxas.
+
+    'ivas' é uma lista de dicionários:
+    [
+        {"id_iva": 1, "percentagem": 23, "descricao": "Taxa normal"},
+        {"id_iva": "novo-1", "percentagem": 13, "descricao": "Taxa intermédia"}
+    ]
+
+    IDs no formato "novo-X" representam taxas criadas no formulário
+    e ainda sem um ID atribuído pela base de dados.
+    """
+
+    resultado = []
+
+    for iva in ivas:
+        id_iva = iva.get("id_iva")
+        percentagem = iva.get("percentagem")
+        descricao = iva.get("descricao")
+
+        if percentagem is None or percentagem == "":
+            continue
+
+        if isinstance(id_iva, str) and id_iva.startswith("novo-"):
+            response = (
+                supabase
+                .table("iva")
+                .insert({
+                    "percentagem": percentagem,
+                    "descricao": descricao
+                })
+                .execute()
+            )
+        else:
+            try:
+                id_iva = int(id_iva)
+            except (TypeError, ValueError):
+                continue
+
+            response = (
+                supabase
+                .table("iva")
+                .update({
+                    "percentagem": percentagem,
+                    "descricao": descricao
+                })
+                .eq("id_iva", id_iva)
+                .execute()
+            )
+
+        if response.data:
+            resultado.append(response.data[0])
+
+    return resultado
+
+def criar_ivas(ivas):
+    """
+    Cria novas taxas de IVA.
+
+    Cada item de 'ivas' é um dicionário:
+    {"percentagem": ..., "descricao": ...}
+
+    Linhas sem percentagem são ignoradas (linha deixada vazia pelo utilizador).
+    """
+
+    criados = []
+
+    for iva in ivas:
+
+        percentagem = iva.get("percentagem")
+
+        if not percentagem:
+            continue
+
+        response = (
+            supabase
+            .table("iva")
+            .insert({
+                "percentagem": percentagem,
+                "descricao": iva.get("descricao")
+            })
+            .execute()
+        )
+
+        if response.data:
+            criados.append(response.data[0])
+
+    return criados
+
+
+def agrupar_itens_pedidos(info):
+    """
+    Agrupa os itens de vários pedidos por produto,
+    somando a quantidade total comprada e o valor total.
+    """
+
+    grupos = {}
+
+    for item in info:
+
+        chave = item["referencia"]
+
+        if chave not in grupos:
+
+            grupos[chave] = {
+                "referencia": item["referencia"],
+                "nome_produto": item["nome_produto"],
+                "cor": item["cor"],
+                "codigo": item["codigo"],
+                "quantidade_total": 0,
+                "valor_total": 0,
+                "num_pedidos": set()
+            }
+
+        grupos[chave]["quantidade_total"] += item["quantidade"]
+        grupos[chave]["valor_total"] += item["preco_total"]
+        grupos[chave]["num_pedidos"].add(item["id_pedido"])
+
+    resultado = []
+
+    for grupo in grupos.values():
+
+        grupo["num_pedidos"] = len(grupo["num_pedidos"])
+        resultado.append(grupo)
+
+    return sorted(
+        resultado,
+        key=lambda g: g["quantidade_total"],
+        reverse=True
+    )
+
+
+def obter_produtos_admin(filtro=None, id_familia=None, id_subfamilia=None):
     """
     Obtém os modelos de produtos e todas as suas variantes (cores).
     """
+
+    # --------------------------------------------------------
+    # SUBFAMÍLIAS E FAMÍLIAS
+    # --------------------------------------------------------
+
+    subfamilias_response = (
+        supabase
+        .table("subfamilia")
+        .select("id_subfamilia, nome, familia_id_familia")
+        .execute()
+    )
+
+    subfamilias = {
+        s["id_subfamilia"]: s
+        for s in (subfamilias_response.data or [])
+    }
+
+    familias_response = (
+        supabase
+        .table("familia")
+        .select("id_familia, nome")
+        .execute()
+    )
+
+    familias = {
+        f["id_familia"]: f
+        for f in (familias_response.data or [])
+    }
+
+    # --------------------------------------------------------
+    # RESTRINGIR SUBFAMÍLIAS RELEVANTES ANTES DE IR À BASE DE DADOS
+    # --------------------------------------------------------
+
+    ids_subfamilia_validas = None
+
+    if id_subfamilia:
+        ids_subfamilia_validas = [id_subfamilia]
+
+    elif id_familia:
+        ids_subfamilia_validas = [
+            s["id_subfamilia"]
+            for s in subfamilias.values()
+            if s["familia_id_familia"] == id_familia
+        ]
+
+        if not ids_subfamilia_validas:
+            return []
+
+    # --------------------------------------------------------
+    # MODELOS
+    # --------------------------------------------------------
 
     modelos_query = (
         supabase
@@ -25,6 +224,12 @@ def obter_produtos_admin(filtro=None):
             f"%{filtro}%"
         )
 
+    if ids_subfamilia_validas is not None:
+        modelos_query = modelos_query.in_(
+            "id_subfamilia",
+            ids_subfamilia_validas
+        )
+
     modelos_response = modelos_query.execute()
 
     if not modelos_response.data:
@@ -32,31 +237,91 @@ def obter_produtos_admin(filtro=None):
 
     modelos = modelos_response.data
 
-    # Obter subfamílias
-    subfamilias_response = (
+    # --------------------------------------------------------
+    # UMA ÚNICA QUERY PARA TODAS AS VARIANTES DE TODOS OS MODELOS
+    # --------------------------------------------------------
+
+    ids_modelo = [
+        modelo["id_modelo"] for modelo in modelos
+    ]
+
+    produtos_response = (
         supabase
-        .table("subfamilia")
-        .select("id_subfamilia, nome, familia_id_familia")
+        .table("produtos")
+        .select(
+            "referencia",
+            "id_modelo",
+            "id_cor",
+            "preco_base",
+            "descontinuado",
+            "quantidade_stock",
+            "codigo_barras_produto",
+            "id_iva"
+
+        )
+        .in_("id_modelo", ids_modelo)
+        .order("referencia")
         .execute()
     )
 
-    subfamilias = {
-        s["id_subfamilia"]: s
-        for s in (subfamilias_response.data or [])
-    }
-
-    # Obter famílias
-    familias_response = (
+    iva_response = (
         supabase
-        .table("familia")
-        .select("id_familia, nome")
+        .table("iva")
+        .select("percentagem")
+        .order("percentagem")
         .execute()
     )
 
-    familias = {
-        f["id_familia"]: f
-        for f in (familias_response.data or [])
-    }
+    ivas = iva_response.data
+
+    iva_lista = []
+
+    for iva in ivas:
+
+        iva_lista.append(iva["percentagem"])
+
+    produtos_todos = produtos_response.data or []
+
+    # Agrupar variantes por modelo (em memória, O(n))
+    produtos_por_modelo = {}
+
+    for produto in produtos_todos:
+        produtos_por_modelo.setdefault(
+            produto["id_modelo"],
+            []
+        ).append(produto)
+
+    # --------------------------------------------------------
+    # UMA ÚNICA QUERY PARA TODAS AS CORES DE TODOS OS PRODUTOS
+    # --------------------------------------------------------
+
+    cores_ids = list({
+        p["id_cor"]
+        for p in produtos_todos
+        if p.get("id_cor") is not None
+    })
+
+    cores = {}
+
+    if cores_ids:
+        cores_response = (
+            supabase
+            .table("cores_produto")
+            .select(
+                "id_cor, nome_cor, codigo_cor, imagem_url"
+            )
+            .in_("id_cor", cores_ids)
+            .execute()
+        )
+
+        cores = {
+            c["id_cor"]: c
+            for c in (cores_response.data or [])
+        }
+
+    # ========================================================
+    # MONTAR RESULTADO
+    # ========================================================
 
     resultado = []
 
@@ -64,50 +329,7 @@ def obter_produtos_admin(filtro=None):
 
         id_modelo = modelo["id_modelo"]
 
-        # Obter todas as variantes deste modelo
-        produtos_response = (
-            supabase
-            .table("produtos")
-            .select(
-                "referencia",
-                "id_modelo",
-                "id_cor",
-                "preco_base",
-                "descontinuado",
-                "quantidade_stock",
-                "codigo_barras_produto"
-            )
-            .eq("id_modelo", id_modelo)
-            .order("referencia")
-            .execute()
-        )
-
-        produtos = produtos_response.data or []
-
-        # Obter cores
-        cores_ids = [
-            p["id_cor"]
-            for p in produtos
-            if p.get("id_cor") is not None
-        ]
-
-        cores = {}
-
-        if cores_ids:
-            cores_response = (
-                supabase
-                .table("cores_produto")
-                .select(
-                    "id_cor, nome_cor, codigo_cor, imagem_url"
-                )
-                .in_("id_cor", cores_ids)
-                .execute()
-            )
-
-            cores = {
-                c["id_cor"]: c
-                for c in (cores_response.data or [])
-            }
+        produtos = produtos_por_modelo.get(id_modelo, [])
 
         variantes = []
 
@@ -124,6 +346,8 @@ def obter_produtos_admin(filtro=None):
                 "preco_base": produto["preco_base"],
                 "descontinuado": produto["descontinuado"],
                 "stock": produto["quantidade_stock"],
+                "iva": ivas[int(produto["id_iva"])-1]["percentagem"],
+                "iva_lista": iva_lista,
                 "codigo_barras": produto.get("codigo_barras", "")
             })
 
@@ -142,102 +366,36 @@ def obter_produtos_admin(filtro=None):
             "descricao": modelo["descricao_catalogo"],
             "descricao_detalhada": modelo["descricao_detalhada"],
             "familia": familia["nome"] if familia else "",
+            "id_familia": familia["id_familia"] if familia else None,
             "subfamilia": subfamilia["nome"] if subfamilia else "",
+            "id_subfamilia": subfamilia["id_subfamilia"] if subfamilia else None,
             "variantes": variantes
         })
 
     return resultado
 
 
-def obter_produto_admin(referencia):
-    """
-    Obtém uma variante específica pelo número de referência.
-    """
-
-    response = (
-        supabase
-        .table("produtos")
-        .select(
-            "referencia, "
-            "id_modelo, "
-            "id_cor, "
-            "preco_base, "
-            "descontinuado, "
-            "stock, "
-            "codigo_barras"
-        )
-        .eq("referencia", referencia)
-        .limit(1)
-        .execute()
-    )
-
-    if not response.data:
-        return None
-
-    produto = response.data[0]
-
-    # Modelo
-    modelo_response = (
-        supabase
-        .table("produtos_modelo")
-        .select(
-            "id_modelo, "
-            "nome_catalogo"
-        )
-        .eq("id_modelo", produto["id_modelo"])
-        .limit(1)
-        .execute()
-    )
-
-    modelo = (
-        modelo_response.data[0]
-        if modelo_response.data
-        else None
-    )
-
-    # Cor
-    cor_response = (
-        supabase
-        .table("cores_produto")
-        .select(
-            "id_cor, nome_cor, codigo_cor, imagem_url"
-        )
-        .eq("id_cor", produto["id_cor"])
-        .limit(1)
-        .execute()
-    )
-
-    cor = (
-        cor_response.data[0]
-        if cor_response.data
-        else None
-    )
-
-    return {
-        "referencia": produto["referencia"],
-        "id_modelo": produto["id_modelo"],
-        "id_cor": produto["id_cor"],
-        "nome": modelo["nome_catalogo"] if modelo else "",
-        "cor": cor["nome_cor"] if cor else "",
-        "codigo_cor": cor["codigo_cor"] if cor else "",
-        "preco_base": produto["preco_base"],
-        "descontinuado": produto["descontinuado"],
-        "stock": produto.get("stock", 0),
-        "codigo_barras": produto.get("codigo_barras", "")
-    }
-
-
 def atualizar_produto_admin(
     referencia,
     preco_base,
     stock,
-    descontinuado
+    descontinuado,
+    iva
 ):
     """
     Atualiza apenas os dados da variante do produto.
 
     O nome do modelo e a cor não são alterados aqui.
     """
+    response_iva = (
+        supabase
+        .table("iva")
+        .select("id_iva")
+        .eq("percentagem", iva)
+        .limit(1)
+        .execute()
+    )
+    id_iva = response_iva.data[0]["id_iva"]
 
     response = (
         supabase
@@ -245,13 +403,16 @@ def atualizar_produto_admin(
         .update({
             "preco_base": preco_base,
             "quantidade_stock": stock,
-            "descontinuado": descontinuado
+            "descontinuado": descontinuado,
+            "id_iva": id_iva
         })
         .eq("referencia", referencia)
         .execute()
     )
 
     return response.data
+
+
 def obter_clientes(filtro=None):
 
     query = (
@@ -286,7 +447,29 @@ def obter_cliente_admin(id_cliente):
     if not response.data:
         return None
 
-    return response.data[0]
+    cliente = response.data[0]
+
+    morada_completa = cliente["morada"].split(", ")
+
+    tamanho = len(morada_completa)
+
+    morada = morada_completa[0] if tamanho > 0 else ''
+    predio = morada_completa[1] if tamanho > 1 else ''
+    andar = morada_completa[2] if tamanho > 2  else ''
+    print(cliente["codigo_postal"])
+    return {
+        "id_cliente": cliente["id_cliente"],
+        "nif": cliente["nif"],
+        "nome": cliente["nome"],
+        "morada": morada,
+        "predio": predio,
+        "andar": andar,
+        "email": cliente["email"],
+        "tel": cliente["telefone"],
+        "postal": cliente["codigo_postal"],
+        "local": cliente["localizacao"],
+        "indicativo": cliente["indicativo"]
+    }
 
 
 def atualizar_cliente_admin(
@@ -320,8 +503,7 @@ def atualizar_cliente_admin(
 
     return response.data
 
-
-def obter_info():
+def obter_info(filtro_cliente=None, data_inicio=None, data_fim=None):
 
     response = (
         supabase
@@ -403,6 +585,36 @@ def obter_info():
             "cor": cor.get("nome_cor")
         })
 
+    # --------------------------------------------------------
+    # FILTRAR POR CLIENTE (nome ou número)
+    # --------------------------------------------------------
+
+    if filtro_cliente:
+
+        filtro_lower = filtro_cliente.lower()
+
+        info = [
+            i for i in info
+            if filtro_lower in (i["nome_cliente"] or "").lower()
+            or filtro_lower == str(i["num_cliente"])
+        ]
+
+    # --------------------------------------------------------
+    # FILTRAR POR PERÍODO
+    # --------------------------------------------------------
+
+    if data_inicio:
+        info = [
+            i for i in info
+            if i["data"] and i["data"] >= data_inicio
+        ]
+
+    if data_fim:
+        info = [
+            i for i in info
+            if i["data"] and i["data"] <= data_fim
+        ]
+
     return sorted(
         info,
         key=lambda p: p["num_cliente"]
@@ -422,4 +634,3 @@ def atualizar_estado_pedido_admin(id_pedido, estado):
         return None
 
     return response.data[0]
-

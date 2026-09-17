@@ -235,29 +235,38 @@ def verificar_duplicados(nif, email):
         )
 
 
-def registar_cliente_web(form):
+def registar_cliente_web(form, admin=False):
     nome = form["nome"].strip()
-    nif = form["nif"].strip()
-    morada = form["morada"].strip()
-    email = form["email"].strip().lower()
-    indicativo = form["indicativo"].strip()
-    telefone = form["telefone"].strip()
-    codigo_postal = form["codigo_postal"].strip()
-    localizacao = form["localizacao"].strip()
     password = form["password"]
     confirmar_password = form["confirmar_password"]
-
+    if admin == False:
+        nif = form["nif"].strip()
+        morada = form["morada"].strip()
+        email = form["email"].strip().lower()
+        indicativo = form["ind"].strip()
+        telefone = form["tel"].strip()
+        codigo_postal = form["postal"].strip()
+        localizacao = form["local"].strip()
+        predio = form["predio"]
+        andar = form["andar"].strip()
+        
+        
+        validar_nif(nif)
+        validar_indicativo(indicativo)
+        validar_telefone(
+            telefone,
+            indicativo
+        )
+        validar_email(email)
+        validar_codigo_postal(codigo_postal)
+        validar_localizacao(localizacao)
+        validar_morada(morada)
+        verificar_duplicados(
+                nif,
+                email
+            )
     validar_nome(nome)
-    validar_nif(nif)
-    validar_indicativo(indicativo)
-    validar_telefone(
-        telefone,
-        indicativo
-    )
-    validar_email(email)
-    validar_codigo_postal(codigo_postal)
-    validar_localizacao(localizacao)
-    validar_morada(morada)
+
     validar_password(password)
 
     if password != confirmar_password:
@@ -266,19 +275,22 @@ def registar_cliente_web(form):
             "A nova password não corresponde com a confirmação da password."
         )
 
-    verificar_duplicados(
-        nif,
-        email
-    )
-
-
     password_hash = ph.hash(password)
 
-    utilizador = {
-        "username": nif,
-        "password": password_hash,
-        "is_admin": False
-    }
+    if admin == False:
+
+        utilizador = {
+            "username": nif,
+            "password": password_hash,
+            "is_admin": admin
+        }
+
+    else:
+        utilizador = {
+            "username": nome,
+            "password": password_hash,
+            "is_admin": admin
+        }
 
     response = (
         supabase
@@ -286,30 +298,38 @@ def registar_cliente_web(form):
         .insert(utilizador)
         .execute()
     )
+   
 
     id_utilizador = response.data[0]["id_utilizador"]
 
-    cliente = {
-        "nif": nif,
-        "nome": nome,
-        "morada": morada,
-        "email": email,
-        "telefone": int(telefone),
-        "codigo_postal": codigo_postal,
-        "localizacao": localizacao,
-        "indicativo": indicativo,
-        "id_utilizador": id_utilizador
-    }
+    if admin == False:
+        if not predio:
+            morada_completa = morada
+        elif not andar:
+            morada_completa = f"{morada}, {predio}"
+        else:
+            morada_completa = f"{morada}, {predio}, {andar}"
 
-    (
-        supabase
-        .table("cliente")
-        .insert(cliente)
-        .execute()
-    )
+        cliente = {
+            "nif": nif,
+            "nome": nome,
+            "morada": morada_completa,
+            "email": email,
+            "telefone": int(telefone),
+            "codigo_postal": codigo_postal,
+            "localizacao": localizacao,
+            "indicativo": indicativo,
+            "id_utilizador": id_utilizador
+        }
+
+        (
+            supabase
+            .table("cliente")
+            .insert(cliente)
+            .execute()
+        )
 
     return True
-
 
 def obter_cliente(id_utilizador):
     response = (
@@ -328,11 +348,21 @@ def obter_cliente(id_utilizador):
 
     cliente = response.data[0]
 
+    morada_completa = cliente["morada"].split(", ")
+
+    tamanho = len(morada_completa)
+
+    morada = morada_completa[0] if tamanho > 0 else ''
+    predio = morada_completa[1] if tamanho > 1 else ''
+    andar = morada_completa[2] if tamanho > 2  else ''
+
     return {
         "id_cliente": cliente["id_cliente"],
         "nif": cliente["nif"],
         "nome": cliente["nome"],
-        "morada": cliente["morada"],
+        "morada": morada,
+        "predio": predio,
+        "andar": andar,
         "email": cliente["email"],
         "tel": cliente["telefone"],
         "postal": cliente["codigo_postal"],

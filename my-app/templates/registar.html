@@ -51,6 +51,15 @@
             width: 180px;
         }
 
+        .morada {
+            width: 500px;
+            font-weight: bold;
+        }
+
+        .moradacampos {
+            width: 20px;
+        }
+
         .grande {
             flex: 1;
         }
@@ -116,7 +125,7 @@
             </div>
             <input
                 type="text"
-                name="indicativo"
+                name="ind"
                 placeholder="+351"
                 required
                 pattern="\+\d{1,4}"
@@ -130,7 +139,7 @@
             </div>
             <input
                 type="text"
-                name="telefone"
+                name="tel"
                 required
                 pattern="\d{6,15}"
                 title="O telefone deve conter entre 6 e 15 dígitos."
@@ -139,13 +148,35 @@
 
     </div>
     
-    <div class="campo">
-        <label>Morada</label>
-        <input
-            type="text"
-            name="morada"
-            required
-        >
+    <div class="linha"> 
+
+        <div class="morada">
+            <label>Morada</label>
+            <input
+                type="text"
+                name="morada"
+                required
+            >
+        </div>
+
+        <div class="moradacampo">
+            <label class="ajuda">Nº Prédio</label>
+            <input
+                type="number"
+                name="predio"
+                required
+            >
+        </div>
+
+        <div class="moradacampo">
+            <label class="ajuda">Andar</label>
+            <input
+                type="text"
+                name="andar"
+                pattern="[0-9].+"               
+            >
+        </div>
+
     </div>
 
     <div class="linha">
@@ -156,7 +187,7 @@
             </div>
             <input
                 type="text"
-                name="codigo_postal"
+                name="postal"
                 required
                 pattern="\d{4}-\d{3}"
                 placeholder="0000-000"
@@ -170,7 +201,7 @@
             </div>
             <input
                 type="text"
-                name="localizacao"
+                name="local"
                 placeholder="Localidade"
                 required
             >

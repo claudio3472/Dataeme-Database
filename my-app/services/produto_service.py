@@ -3,6 +3,40 @@ from config import supabase
 PRODUTOS_POR_PAGINA = 5
 
 
+# ============================================================
+# OBTER FAMÍLIAS E SUBFAMÍLIAS (PARA FILTROS)
+# ============================================================
+
+def obter_categorias():
+
+    familias_response = (
+        supabase
+        .table("familia")
+        .select("*")
+        .order("ordem")
+        .execute()
+    )
+
+    subfamilias_response = (
+        supabase
+        .table("subfamilia")
+        .select("*")
+        .order("ordem")
+        .execute()
+    )
+
+    familias = familias_response.data or []
+    subfamilias = subfamilias_response.data or []
+
+    for familia in familias:
+        familia["subfamilias"] = [
+            sub for sub in subfamilias
+            if sub["familia_id_familia"] == familia["id_familia"]
+        ]
+
+    return familias
+
+
 def calcular_preco_com_iva(preco_base, percentagem_iva):
 
     preco_base = float(preco_base or 0)
@@ -18,14 +52,11 @@ def calcular_preco_com_iva(preco_base, percentagem_iva):
 # OBTER PRODUTOS PARA O CATÁLOGO
 # ============================================================
 
-def obter_produtos(pagina=1):
+def obter_produtos(pagina=1, id_familia=None, id_subfamilia=None):
 
-    produtos_modelo_response = (
-        supabase
-        .table("produtos_modelo")
-        .select("*")
-        .execute()
-    )
+    # --------------------------------------------------------
+    # FAMÍLIAS E SUBFAMÍLIAS
+    # --------------------------------------------------------
 
     subfamilias_response = (
         supabase
@@ -41,13 +72,8 @@ def obter_produtos(pagina=1):
         .execute()
     )
 
-    produtos_modelo = produtos_modelo_response.data or []
     subfamilias = subfamilias_response.data or []
     familias = familias_response.data or []
-
-    # --------------------------------------------------------
-    # DICIONÁRIOS PARA ACESSO MAIS RÁPIDO
-    # --------------------------------------------------------
 
     subfamilias_dict = {
         subfamilia["id_subfamilia"]: subfamilia
@@ -59,6 +85,98 @@ def obter_produtos(pagina=1):
         for familia in familias
     }
 
+    # --------------------------------------------------------
+    # RESTRINGIR SUBFAMÍLIAS RELEVANTES ANTES DE IR À BASE DE DADOS
+    # --------------------------------------------------------
+
+    ids_subfamilia_validas = None
+
+    if id_subfamilia:
+        ids_subfamilia_validas = [id_subfamilia]
+
+    elif id_familia:
+        ids_subfamilia_validas = [
+            s["id_subfamilia"]
+            for s in subfamilias
+            if s["familia_id_familia"] == id_familia
+        ]
+
+        # Nenhuma subfamília nesta família -> não há produtos
+        if not ids_subfamilia_validas:
+            return [], 1
+
+    # --------------------------------------------------------
+    # OBTER APENAS OS MODELOS QUE INTERESSAM
+    # --------------------------------------------------------
+
+    modelos_query = (
+        supabase
+        .table("produtos_modelo")
+        .select("*")
+    )
+
+    if ids_subfamilia_validas is not None:
+        modelos_query = modelos_query.in_(
+            "id_subfamilia",
+            ids_subfamilia_validas
+        )
+
+    produtos_modelo = modelos_query.execute().data or []
+
+    if not produtos_modelo:
+        return [], 1
+
+    # --------------------------------------------------------
+    # UMA ÚNICA QUERY PARA TODAS AS VARIANTES DE TODOS OS MODELOS
+    # --------------------------------------------------------
+
+    ids_modelo = [
+        modelo["id_modelo"]
+        for modelo in produtos_modelo
+    ]
+
+    produtos_response = (
+        supabase
+        .table("produtos")
+        .select("""
+            referencia,
+            id_modelo,
+            preco_base,
+            quantidade_stock,
+            codigo_barras_produto,
+            descontinuado,
+
+            iva (
+                percentagem
+            ),
+
+            cores_produto (
+                id_cor,
+                nome_cor,
+                codigo_cor
+            ),
+
+            avaliacoes(
+                classificacao
+            )
+
+        """)
+        .in_("id_modelo", ids_modelo)
+        .order("referencia")
+        .execute()
+    )
+
+    produtos_todos = produtos_response.data or []
+
+    # Agrupar variantes por modelo
+    produtos_por_modelo = {}
+
+    for produto in produtos_todos:
+        produtos_por_modelo.setdefault(
+            produto["id_modelo"],
+            []
+        ).append(produto)
+
     lista = []
 
     # ========================================================
@@ -67,20 +185,12 @@ def obter_produtos(pagina=1):
 
     for modelo in produtos_modelo:
 
-        # ----------------------------------------------------
-        # OBTER SUBFAMÍLIA
-        # ----------------------------------------------------
-
         subfamilia = subfamilias_dict.get(
             modelo["id_subfamilia"]
         )
 
         if not subfamilia:
             continue
-
-        # ----------------------------------------------------
-        # OBTER FAMÍLIA
-        # ----------------------------------------------------
 
         familia = familias_dict.get(
             subfamilia["familia_id_familia"]
@@ -89,51 +199,16 @@ def obter_produtos(pagina=1):
         if not familia:
             continue
 
-        # ----------------------------------------------------
-        # OBTER TODOS OS PRODUTOS / VARIANTES DO MODELO
-        # ----------------------------------------------------
-
-        produtos_response = (
-            supabase
-            .table("produtos")
-            .select("""
-                referencia,
-                preco_base,
-                quantidade_stock,
-                codigo_barras_produto,
-                descontinuado,
-
-                iva (
-                    percentagem
-                ),
-
-                cores_produto (
-                    id_cor,
-                    nome_cor,
-                    codigo_cor
-                ),
-
-                avaliacoes(
-                    classificacao
-                )
-
-            """)
-            .eq(
-                "id_modelo",
-                modelo["id_modelo"]
-            )
-            .order("referencia")
-            .execute()
+        produtos_variantes = produtos_por_modelo.get(
+            modelo["id_modelo"],
+            []
         )
-
-        produtos_variantes = produtos_response.data or []
 
         if not produtos_variantes:
             continue
 
         # ----------------------------------------------------
         # PRODUTO BASE
-        # Primeiro produto será mostrado no catálogo
         # ----------------------------------------------------
 
         produto_base = produtos_variantes[0]
@@ -145,11 +220,10 @@ def obter_produtos(pagina=1):
             iva.get("percentagem")
         )
 
-
-
         # ----------------------------------------------------
-        # CORES DO MODELO
+        # CORES DO MODELO + AVALIAÇÕES
         # ----------------------------------------------------
+
         avaliacao = 0
         num_av = 0
 
@@ -165,7 +239,6 @@ def obter_produtos(pagina=1):
 
             id_cor = cor.get("id_cor")
 
-            # Evitar cores repetidas
             if id_cor in ids_cores_adicionados:
                 continue
 
@@ -184,11 +257,7 @@ def obter_produtos(pagina=1):
                 if classificacao is not None:
                     avaliacao += classificacao
                     num_av += 1
-                            
 
-        # ----------------------------------------------------
-        # ADICIONAR MODELO À LISTA
-        # ----------------------------------------------------
         if num_av != 0:
             avaliacao /= num_av
 
@@ -224,11 +293,17 @@ def obter_produtos(pagina=1):
             "familia":
                 familia["nome"],
 
+            "id_familia":
+                familia["id_familia"],
+
             "familia_ordem":
                 familia["ordem"],
 
             "subfamilia":
                 subfamilia["nome"],
+
+            "id_subfamilia":
+                subfamilia["id_subfamilia"],
 
             "subfamilia_ordem":
                 subfamilia["ordem"],
@@ -300,7 +375,7 @@ def obter_produtos(pagina=1):
 def obter_produto_por_referencia(referencia):
 
     # --------------------------------------------------------
-    # PRODUTO + IVA + COR
+    # PRODUTO + IVA + COR + MODELO + SUBFAMÍLIA + FAMÍLIA
     # --------------------------------------------------------
 
     produto_response = (
@@ -325,9 +400,28 @@ def obter_produto_por_referencia(referencia):
                 nome_cor,
                 codigo_cor,
                 imagem_url
-            )
+            ),
 
-            
+            produtos_modelo (
+                id_modelo,
+                nome_catalogo,
+                descricao_catalogo,
+                descricao_detalhada,
+                id_subfamilia,
+
+                subfamilia (
+                    id_subfamilia,
+                    nome,
+                    familia_id_familia,
+
+                    familia (
+                        id_familia,
+                        nome,
+                        ordem,
+                        cor
+                    )
+                )
+            )
         """)
         .eq(
             "referencia",
@@ -342,71 +436,23 @@ def obter_produto_por_referencia(referencia):
 
     produto = produto_response.data[0]
 
-    # --------------------------------------------------------
-    # MODELO
-    # --------------------------------------------------------
+    modelo = produto.get("produtos_modelo")
 
-    modelo_response = (
-        supabase
-        .table("produtos_modelo")
-        .select("*")
-        .eq(
-            "id_modelo",
-            produto["id_modelo"]
-        )
-        .limit(1)
-        .execute()
-    )
-
-    if not modelo_response.data:
+    if not modelo:
         return None
 
-    modelo = modelo_response.data[0]
+    subfamilia = modelo.get("subfamilia")
 
-    # --------------------------------------------------------
-    # SUBFAMÍLIA
-    # --------------------------------------------------------
-
-    subfamilia_response = (
-        supabase
-        .table("subfamilia")
-        .select("*")
-        .eq(
-            "id_subfamilia",
-            modelo["id_subfamilia"]
-        )
-        .limit(1)
-        .execute()
-    )
-
-    if not subfamilia_response.data:
+    if not subfamilia:
         return None
 
-    subfamilia = subfamilia_response.data[0]
+    familia = subfamilia.get("familia")
 
-    # --------------------------------------------------------
-    # FAMÍLIA
-    # --------------------------------------------------------
-
-    familia_response = (
-        supabase
-        .table("familia")
-        .select("*")
-        .eq(
-            "id_familia",
-            subfamilia["familia_id_familia"]
-        )
-        .limit(1)
-        .execute()
-    )
-
-    if not familia_response.data:
+    if not familia:
         return None
 
-    familia = familia_response.data[0]
-
     # --------------------------------------------------------
-    # VARIANTES / CORES
+    # VARIANTES / CORES / AVALIAÇÕES
     # --------------------------------------------------------
 
     variantes_response = (
@@ -458,16 +504,13 @@ def obter_produto_por_referencia(referencia):
         })
 
         av = variante.get("avaliacoes") or []
-        
+
         for item in av:
             classificacao = item.get("classificacao")
             if classificacao is not None:
                 avaliacao += classificacao
                 num_av += 1
 
-    # --------------------------------------------------------
-    # IVA E PREÇO
-    # --------------------------------------------------------
     if num_av != 0:
         avaliacao /= num_av
 
@@ -486,10 +529,6 @@ def obter_produto_por_referencia(referencia):
         preco_base,
         percentagem_iva
     )
-
-    # ========================================================
-    # DEVOLVER PRODUTO
-    # ========================================================
 
     return {
 
@@ -538,8 +577,14 @@ def obter_produto_por_referencia(referencia):
         "familia":
             familia["nome"],
 
+        "id_familia":
+            familia["id_familia"],
+
         "subfamilia":
             subfamilia["nome"],
+
+        "id_subfamilia":
+            subfamilia["id_subfamilia"],
 
         "cor_familia":
             familia.get("cor"),
@@ -553,8 +598,3 @@ def obter_produto_por_referencia(referencia):
         "num_avaliacao":
             num_av
     }
-
-
-
-    
-

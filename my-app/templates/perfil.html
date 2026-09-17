@@ -1,179 +1,137 @@
-<!DOCTYPE html>
-<html lang="pt">
-<head>
+{% extends "layout.html"%}
+{% block content %}
 
-    <meta charset="UTF-8">
-
-    <meta name="viewport"
-          content="width=device-width, initial-scale=1.0">
-
-    <title>Catálogo</title>
-
-    <link
-    rel="stylesheet"
-    href="{{ url_for('static', filename='css/style.css') }}"
-    >
-
-    <style>
-        form p {
-            padding: 20px;
-            box-shadow: 0 3px 10px rgba(68, 67, 67, 0.08);
-        }
-            
-        form button {
-            margin-left: 20px;
-            padding: 10px;
-            font-size: 15px;
-        }
-
-        .submitContainer {
-            display: flex;
-            flex-direction: row;
-            gap: 20px;
-        }
-
-        .submitContainer div{
-            margin-top: 15px;
-        }
+    <div class="container">
         
-    </style>
+        <div class="card">
 
-</head>
+            <form method="POST" class="formperfil">
 
-<body>
+                <p>
+                    <strong>Nome:</strong>
+                    <input
+                        type="text"
+                        name="nome"
+                        value="{{ cliente.nome }}"
+                        required
+                    >
+                </p>
 
-    <header>
+                <p>
+                    <strong>NIF:</strong>
+                    <input
+                        type="text"
+                        name="nif"
+                        value="{{ cliente.nif }}"
+                        required
+                    >
+                </p>
 
-        <h1>Perfil</h1>
+                <p>
+                    <strong>Email:</strong>
+                    <input
+                        type="email"
+                        name="email"
+                        value="{{ cliente.email }}"
+                        required
+                    >
+                </p>
 
-        <nav>
+                <p>
+                    <strong>Telefone:</strong>
 
-            <a href="/catalogo">
-                Catálogo
-            </a>
+                    <input
+                        type="text"
+                        name="ind"
+                        value="{{ cliente.indicativo }}"
+                        required
+                        style="width: 60px;"
+                    >
 
-            <a href="/carrinho">
-                Carrinho
-            </a>
-            
-            <a href="/admin">
-                Admin
-            </a>
-            
-            <a href="/logout">
-                Logout
-            </a>
+                    <input
+                        type="tel"
+                        name="tel"
+                        value="{{ cliente.tel }}"
+                        required
+                    >
+                </p>
 
-        </nav>
+                <p>
+                    <strong>Código Postal:</strong>
 
-    </header>
+                    <input
+                        type="text"
+                        name="postal"
+                        value="{{ cliente.postal }}"
+                        required
+                        style="width: 90px;"
+                    >
 
-    <div>
+                    <input
+                        type="text"
+                        name="local"
+                        value="{{ cliente.local }}"
+                        required
+                    >
+                </p>
 
-        <form method="POST">
+                <p>
+                    <strong>Morada:</strong>
 
-            <p>
-                <strong>Nome:</strong>
-                <input
-                    type="text"
-                    name="nome"
-                    value="{{ cliente.nome }}"
-                    required
-                >
-            </p>
+                    <input
+                        type="text"
+                        name="morada"
+                        value="{{ cliente.morada }}"
+                        required
+                    >
+                </p>
 
-            <p>
-                <strong>NIF:</strong>
-                <input
-                    type="text"
-                    name="nif"
-                    value="{{ cliente.nif }}"
-                    required
-                >
-            </p>
+                <p>
+                    <strong>Nº Prédio:</strong>
 
-            <p>
-                <strong>Email:</strong>
-                <input
-                    type="email"
-                    name="email"
-                    value="{{ cliente.email }}"
-                    required
-                >
-            </p>
+                    <input
+                        type="number"
+                        name="predio"
+                        value="{{ cliente.predio }}"
+                    >   
+                </p>
 
-            <p>
-                <strong>Telefone:</strong>
+                <p>
+                    <strong>Andar:</strong>
 
-                <input
-                    type="text"
-                    name="ind"
-                    value="{{ cliente.indicativo }}"
-                    required
-                    style="width: 60px;"
-                >
+                    <input
+                        type="text"
+                        name="andar"
+                        value="{{ cliente.andar }}"
+                    >
+                </p>
 
-                <input
-                    type="tel"
-                    name="tel"
-                    value="{{ cliente.tel }}"
-                    required
-                >
-            </p>
+                <br>
 
-            <p>
-                <strong>Código Postal:</strong>
+                <div class="submitContainer">
 
-                <input
-                    type="text"
-                    name="postal"
-                    value="{{ cliente.postal }}"
-                    required
-                    style="width: 90px;"
-                >
+                    <button class="animacao-botao" type="submit">
+                        Salvar Alterações
+                    </button>
+                    
+                    {% if sucesso %}
+                    <div style="color: green; margin-bottom: 15px; font-weight: bold;">
+                        {{ sucesso }}
+                    </div>
+                    {% endif %}
 
-                <input
-                    type="text"
-                    name="local"
-                    value="{{ cliente.local }}"
-                    required
-                >
-            </p>
+                    {% if erro %}
+                    <div style="color: red; margin-bottom: 15px; font-weight: bold;">
+                        {{ erro }}
+                    </div>
+                    {% endif %}
 
-            <p>
-                <strong>Morada:</strong>
-
-                <input
-                    type="text"
-                    name="morada"
-                    value="{{ cliente.morada }}"
-                    required
-                >
-            </p>
-
-            <br>
-
-            <div class="submitContainer">
-
-                <button type="submit">
-                    Salvar Alterações
-                </button>
-                
-                {% if sucesso %}
-                <div style="color: green; margin-bottom: 15px; font-weight: bold;">
-                    {{ sucesso }}
                 </div>
-                {% endif %}
 
-                {% if erro %}
-                <div style="color: red; margin-bottom: 15px; font-weight: bold;">
-                    {{ erro }}
-                </div>
-                {% endif %}
+            </form>
 
-            </div>
-
-        </form>
+        </div>
 
     </div>
-</body>
+
+{% endblock %}

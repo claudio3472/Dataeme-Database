@@ -1,127 +1,90 @@
-<!DOCTYPE html>
-<html lang="pt">
-<head>
-    <meta charset="UTF-8">
-    <title>Carrinho</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-
-    <style>
-        .pedido {
-            display: flex;
-            flex-direction: column;
-            margin-top: 40px;
-            margin-bottom: 20px;
-            padding: 15px 20px;
-            border-radius: 10px;
-            font-size: 20px;
-            font-weight: bold;
-            gap: 30px;
-            padding: 10px;
-            
-        }
-
-        .linha {
-            box-shadow: 0 3px 10px rgba(68, 67, 67, 0.08);
-            padding: 5px;
-
-        }
-
-        .botao_preco {
-            display: flex;
-            flex-direction: row;
-            align-items: center;
-            gap: 40px;
-        }
-        
-        form {
-            display: inline;
-            margin-left: 20px;
-
-        }
-
-        h2 {
-            font-size: 20px;
-            color:brown
-        }
-
-    </style>
-</head>
-
-<body>
-
-    <header>
-
-        <h1>Carrinho</h1>
-
-        <nav>
-
-            <a href="/catalogo">
-                Catálogo
-            </a>
-
-            <a href="/perfil">
-                Perfil
-            </a>
-     
-            <a href="/admin">
-                Admin
-            </a>
-
-            <a href="/logout">
-                Logout
-            </a>
-
-        </nav>
-
-    </header>
+{% extends "layout.html"%}
+{% block content %}
 
     <div class="container">
 
         <div class="card">  
 
             <div class="pedido"> 
-                <!-- Nome | Cor | Qnt. | Prc. Uni. | Prc. Total -->
+
+                <div class="linha"><div class="linha_estrutura_esquerda"><div class="linha_nome_container">Nome e Cor</div><div class="linhanum">Qnt.
+                </div><p>Prc. Uni.</p></div><div class="linha_estrutura_direita">Prc. Total</div></div>
+
                 {% for l in linha %}
                     
-                        <div class="linha">
-                            {{ l.nome }}
-                            {{ l.cor }}
-                            {{ l.quantidade }}
-                            {{ l.preco_unitario }}€
-                            {{ l.valor_linha }}€
+                    <div class="linha">
 
-                            <form class="form-horizontal" method="POST">
+                        <div class="linha_estrutura_esquerda">
 
-                                <input
-                                    type="hidden"
-                                    name="id_linha"
-                                    value="{{ l.id }}"
-                                >
-                                <button type="submit">
-                                    Eliminar linha
-                                </button>
-                            </form>
+                            <div class="linha_nome_container">{{ l.nome }} {{ l.cor }}</div>
                             
+                            
+                            <form id="form_atualizar_linha_{{ l.id }}" class="form_horizontal" method="POST"></form>
+
+                            <input 
+                                class="linhanum"
+                                type="number"
+                                name="quantidade"
+                                value="{{ l.quantidade }}"
+                                form="form_atualizar_linha_{{ l.id }}"
+                            >
+
+                            <input
+                                type="hidden"
+                                name="id_linha"
+                                value="{{ l.id }}"
+                                form="form_atualizar_linha_{{ l.id }}"
+                            >
+
+                            <p><strong>x</strong></p>
+                            <p>{{ l.preco_unitario }}€</p>
                         </div>
+
+                        <div class="linha_estrutura_direita">
+
+                            <a>{{ l.valor_linha }}€</a>
+
+                            <div class="linha_botoes">
+
+                                <form class="form_horizontal" method="POST" onsubmit="return confirm ('Tem a certeza que quer apagar esta linha?');">
+
+                                    <input
+                                        type="hidden"
+                                        name="id_linha"
+                                        value="{{ l.id }}"
+                                    >
+                                    <button class="botao_apagar_linha" type="submit" title="Apagar linha">
+                                        🗑️
+                                    </button>
+                                    
+                                </form>
+
+                                <button class="botao_atualizar_linha" formaction="{{ url_for('atualizar_carrinho', quantidade=l.quantidade, preco=l.preco_unitario) }}" type="submit" form="form_atualizar_linha_{{ l.id }}" title="Atualizar linha">
+                                    ⟲
+                                </button>
+
+                            </div>
+
+                        </div>
+                        
+                    </div>
                         
                 {% endfor %}
                 
                 
 
-                <form class="form-horizontal" method="POST" action="/carrinhofinalizar">
+                <form class="form_horizontal" method="POST" action="/carrinhofinalizar" onsubmit="return confirm ('O pagamento será efetuado na loja, pretende continuar?');">
                     
                     <p><label>Observações:</label></p>
                     <textarea name="observacoes" rows="6" cols="70" placeholder="Notas acerca do pedido">{% if observacoes %}{{ observacoes }}{% endif %}</textarea>
                     <div class="botao_preco">
                         <strong>Valor Total: {{ valor_total }}€</strong>
 
-                        <button type="submit">
+                        <button class="animacao-botao" type="submit">
                             Finalizar Pedido
                         </button>
                         
                     </div>
-
-                    <h2>O pagamento será efetuado na loja</h2>
 
                 </form>
 
@@ -132,5 +95,4 @@
     </div>
 
 
-</body>
-</html>
+{% endblock %}

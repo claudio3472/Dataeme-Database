@@ -4,13 +4,15 @@ from flask import (
     request,
     redirect,
     session,
-    url_for
+    url_for,
+    send_from_directory
 )
 
+import postgrest
 import time
 import secrets
 
-from datetime import date
+from datetime import date, timedelta
 
 from config import supabase, ph
 
@@ -19,7 +21,7 @@ from services.auth_service import autenticar
 from services.clientes_service import (
     registar_cliente_web,
     obter_cliente,
-    obter_cliente_por_email,
+    obter_cliente_por_email,    
     validar_password,
     validar_nome,
     validar_nif,
@@ -33,7 +35,8 @@ from services.clientes_service import (
 
 from services.produto_service import (
     obter_produtos,
-    obter_produto_por_referencia
+    obter_produto_por_referencia,
+    obter_categorias
 )
 
 from services.email_service import (
@@ -60,7 +63,11 @@ from services.admin_service import (
     obter_produtos_admin,
     atualizar_produto_admin,
     obter_info,
-    atualizar_estado_pedido_admin
+    atualizar_estado_pedido_admin,
+    obter_ivas,
+    atualizar_ivas,
+    criar_ivas,
+    agrupar_itens_pedidos
 )
 
 from gerarPDF import(
@@ -260,30 +267,29 @@ def registar():
 @app.route("/catalogo")
 def catalogo():
 
-    # Verificar se está autenticado
     if "id_utilizador" not in session:
+        return redirect(url_for("login"))
 
-        return redirect(
-            url_for("login")
-        )
-
-    pagina = request.args.get(
-        "pagina",
-        1,
-        type=int
-    )
+    pagina = request.args.get("pagina", 1, type=int)
+    id_familia = request.args.get("familia", type=int)
+    id_subfamilia = request.args.get("subfamilia", type=int)
 
     produtos, total_paginas = obter_produtos(
-        pagina
+        pagina,
+        id_familia=id_familia,
+        id_subfamilia=id_subfamilia
     )
 
-
+    categorias = obter_categorias()
 
     return render_template(
         "catalogo.html",
         produtos=produtos,
         pagina=pagina,
-        total_paginas=total_paginas
+        total_paginas=total_paginas,
+        categorias=categorias,
+        id_familia=id_familia,
+        id_subfamilia=id_subfamilia
     )
 
 
@@ -326,14 +332,16 @@ def perfil():
 
     if request.method == "POST":
 
-        nome = request.form["nome"]
-        nif = request.form["nif"]
-        email = request.form["email"]
-        ind = request.form["ind"]
-        tel = request.form["tel"]
-        postal = request.form["postal"]
-        local = request.form["local"]
-        morada = request.form["morada"]
+        nome = request.form["nome"].strip()
+        nif = request.form["nif"].strip()
+        email = request.form["email"].strip().lower()
+        ind = request.form["ind"].strip()
+        tel = request.form["tel"].strip()
+        postal = request.form["postal"].strip()
+        local = request.form["local"].strip()
+        morada = request.form["morada"].strip()
+        predio = request.form["predio"]
+        andar = request.form["andar"].strip()
 
         try:
 
@@ -344,6 +352,13 @@ def perfil():
             validar_codigo_postal(postal)
             validar_localizacao(local)
             validar_morada(morada)
+            
+            if not predio:
+                morada_completa = morada
+            elif not andar:
+                morada_completa = f"{morada}, {predio}"
+            else:
+                morada_completa = f"{morada}, {predio}, {andar}"
 
         except Exception as e:
 
@@ -360,7 +375,7 @@ def perfil():
             .update({
                 "nif": nif,
                 "nome": nome,
-                "morada": morada,
+                "morada": morada_completa,
                 "email": email,
                 "telefone": tel,
                 "codigo_postal": postal,
@@ -762,6 +777,67 @@ def carrinho():
 
 
 # ============================================================
+# ATUALIZAR LINHA
+# ============================================================
+@app.route(
+    "/carrinhoatualizar",
+    methods=["POST"]
+)   
+def atualizar_carrinho():
+
+    # ========================================================
+    # VERIFICAR LOGIN
+    # ========================================================
+
+    if "id_utilizador" not in session:
+
+        return redirect(
+            url_for("login")
+        )
+
+    cliente = obter_cliente(session["id_utilizador"])
+
+    pedido = obter_pedido(
+        cliente["id_cliente"]
+    )
+
+    # Admin não finaliza pedidos desta forma
+    if session.get("is_admin", False):
+
+        return redirect(
+            url_for("confirm_admin")
+        )
+
+
+    quantidade = int(request.form["quantidade"])
+    id_linha = request.form["id_linha"]
+
+    linha = supabase.table("linhas_pedido").select("preco_unitario").eq("id_linha", id_linha).single().execute()
+    preco = linha.data["preco_unitario"]
+    preco_total = quantidade*preco
+
+    response = (
+        supabase
+        .table("linhas_pedido")
+        .update({
+            "quantidade": quantidade,
+            "valor_linha": preco_total
+        })
+        .eq("id_linha", id_linha)
+        .execute()
+    )
+
+    somar_preco_linhas(
+        pedido
+    )
+
+    return redirect(
+        url_for("carrinho")
+    )
+
+
+
+# ============================================================
 # FINALIZAR PEDIDO
 # ============================================================
 
@@ -1149,13 +1225,24 @@ def produtos_admin():
         )
 
     filtro = request.args.get("filtro", "").strip()
+    id_familia = request.args.get("familia", type=int)
+    id_subfamilia = request.args.get("subfamilia", type=int)
 
-    produtos = obter_produtos_admin(filtro)
+    produtos = obter_produtos_admin(
+        filtro,
+        id_familia=id_familia,
+        id_subfamilia=id_subfamilia
+    )
+
+    categorias = obter_categorias()
 
     return render_template(
         "produtos_admin.html",
         produtos=produtos,
-        filtro=filtro
+        filtro=filtro,
+        categorias=categorias,
+        id_familia=id_familia,
+        id_subfamilia=id_subfamilia
     )
 
 # ============================================================
@@ -1196,39 +1283,54 @@ def clientes_admin():
 
         id_cliente = request.form[
             "id_cliente"
-        ]
+        ].strip()
 
         nome = request.form[
             "nome"
-        ]
+        ].strip()
 
         nif = request.form[
             "nif"
-        ]
+        ].strip()
 
         email = request.form[
             "email"
-        ]
+        ].strip().lower()
 
         ind = request.form[
             "ind"
-        ]
+        ].strip()
 
         tel = request.form[
             "tel"
-        ]
+        ].strip()
 
         postal = request.form[
             "postal"
-        ]
+        ].strip()
 
         local = request.form[
             "local"
-        ]
+        ].strip()
 
         morada = request.form[
             "morada"
+        ].strip()
+
+        predio = request.form[
+            "predio"
         ]
+
+        andar = request.form[
+            "andar"
+        ].strip()
+        
+        if not predio:
+            morada_completa = morada
+        elif not andar:
+            morada_completa = f"{morada}, {predio}"
+        else:
+            morada_completa = f"{morada}, {predio}, {andar}"
 
         response = atualizar_cliente_admin(
             id_cliente,
@@ -1239,7 +1341,7 @@ def clientes_admin():
             tel,
             postal,
             local,
-            morada
+            morada_completa
         )
 
         if not response:
@@ -1305,49 +1407,283 @@ def clientes_admin():
 # ============================================================
 # ADMIN - PEDIDOS
 # ============================================================
-@app.route("/pedidos_admin", methods=["GET", "POST"])
 
+@app.route("/pedidos_admin", methods=["GET", "POST"])
 def pedidos_admin():
-    # ========================================================
-    # VERIFICAR LOGIN
-    # ========================================================
 
     if "id_utilizador" not in session:
-
-        return redirect(
-            url_for("login")
-        )
-
-    # ========================================================
-    # VERIFICAR ADMIN
-    # ========================================================
+        return redirect(url_for("login"))
 
     if not session.get("is_admin", False):
-
-        return redirect(
-            url_for("login")
-        )
+        return redirect(url_for("login"))
 
     if request.method == "POST":
-    
-        estado = request.form["estado"]
-        id = request.form["id_pedido"]
 
-        resposta = atualizar_estado_pedido_admin(
-            id_pedido=id,
+        estado = request.form["estado"]
+        id_pedido = request.form["id_pedido"]
+
+        atualizar_estado_pedido_admin(
+            id_pedido=id_pedido,
             estado=estado
         )
 
+        return redirect(
+            url_for(
+                "pedidos_admin",
+                cliente=request.args.get("cliente", ""),
+                periodo=request.args.get("periodo", "sempre"),
+                data_inicio=request.args.get("data_inicio", ""),
+                data_fim=request.args.get("data_fim", ""),
+                agrupar=request.args.get("agrupar", "")
+            )
+        )
 
-    info = obter_info()
+    filtro_cliente = request.args.get("cliente", "").strip()
+    periodo = request.args.get("periodo", "sempre")
+    data_inicio_personalizada = request.args.get("data_inicio", "")
+    data_fim_personalizada = request.args.get("data_fim", "")
+    agrupar = request.args.get("agrupar") == "1"
+
+    data_inicio = None
+    data_fim = None
+
+    hoje = date.today()
+
+    periodos_rapidos = {
+        "7": 7,
+        "30": 30,
+        "90": 90,
+        "180": 180,
+        "365": 365
+    }
+
+    if periodo in periodos_rapidos:
+
+        data_inicio = (
+            hoje - timedelta(days=periodos_rapidos[periodo])
+        ).isoformat()
+
+    elif periodo == "personalizado":
+
+        data_inicio = data_inicio_personalizada or None
+        data_fim = data_fim_personalizada or None
+
+    info = obter_info(
+        filtro_cliente=filtro_cliente or None,
+        data_inicio=data_inicio,
+        data_fim=data_fim
+    )
+
+    itens_agrupados = None
+
+    if agrupar:
+        itens_agrupados = agrupar_itens_pedidos(info)
 
     return render_template(
         "pedidos_admin.html",
-        info=info
+        info=info,
+        itens_agrupados=itens_agrupados,
+        agrupar=agrupar,
+        filtro_cliente=filtro_cliente,
+        periodo=periodo,
+        data_inicio=data_inicio_personalizada,
+        data_fim=data_fim_personalizada
     )
+
+# ============================================================
+# ADMIN - CONFIGURAÇÕES (MENU)
+# ============================================================
+
+@app.route("/configuracoes_admin")
+def configuracoes_admin():
+
+    if "id_utilizador" not in session:
+        return redirect(url_for("login"))
+
+    if not session.get("is_admin", False):
+        return redirect(url_for("login"))
+
+    return render_template(
+        "configuracoes_admin.html"
+    )
+
+
+
+
+@app.route("/configuracoes_admin/impostos", methods=["GET", "POST"])
+def configuracoes_impostos():
+
+    if "id_utilizador" not in session:
+        return redirect(url_for("login"))
+
+    if not session.get("is_admin", False):
+        return redirect(url_for("login"))
+
+    if request.method == "POST":
+
+        ids = request.form.getlist("id_iva")
+
+        ivas_existentes = []
+        ivas_novos = []
+
+        for id_iva in ids:
+
+            percentagem = request.form.get(f"percentagem_{id_iva}")
+            descricao = request.form.get(f"descricao_{id_iva}")
+
+            if id_iva.startswith("novo-"):
+
+                if not percentagem:
+                    continue
+
+                ivas_novos.append({
+                    "percentagem": percentagem,
+                    "descricao": descricao
+                })
+
+            else:
+
+                ivas_existentes.append({
+                    "id_iva": id_iva,
+                    "percentagem": percentagem,
+                    "descricao": descricao
+                })
+
+        try:
+
+            if ivas_existentes:
+                atualizar_ivas(ivas_existentes)
+
+            if ivas_novos:
+                criar_ivas(ivas_novos)
+
+        except postgrest.exceptions.APIError as e:
+
+            erro = traduzir_erro_iva(e)
+
+            # Volta a mostrar a página com os dados que a pessoa
+            # tinha preenchido, sem perder o que não deu para guardar
+            ivas_atuais = obter_ivas()
+
+            return render_template(
+                "configuracoes_impostos.html",
+                ivas=ivas_atuais,
+                erro=erro
+            )
+
+        return redirect(
+            url_for(
+                "configuracoes_impostos",
+                sucesso="Taxas de IVA atualizadas com sucesso."
+            )
+        )
+
+    ivas = obter_ivas()
+
+    sucesso = request.args.get("sucesso")
+
+    return render_template(
+        "configuracoes_impostos.html",
+        ivas=ivas,
+        sucesso=sucesso
+    )
+
+
+@app.route("/configuracoes_admin/impostos/apagar_iva", methods=["POST"])
+def apagar_iva():
+
+    id_iva = request.form["id_iva_apagar"]
+
+    try:
+
+        supabase.table("iva").delete().eq("id_iva", id_iva).execute()
+
+    except postgrest.exceptions.APIError as e:
+
+        erro = traduzir_erro_iva(e)
+
+        ivas_atuais = obter_ivas()
+
+        return render_template(
+            "configuracoes_impostos.html",
+            ivas=ivas_atuais,
+            erro=erro
+        )
+
+    return redirect(
+        url_for(
+            "configuracoes_impostos"
+        )
+    )
+
+
+def traduzir_erro_iva(e):
+    """
+    Converte erros conhecidos do Postgres/Supabase em mensagens
+    percetíveis para o utilizador.
+    """
+
+    mensagem = str(e)
+
+    if "iva_percentagem_unique" in mensagem:
+        return "Já existe uma taxa de IVA com essa percentagem. Escolhe um valor diferente."
+
+    if "iva_descricao_unique" in mensagem:
+        return "Já existe uma taxa de IVA com essa descrição."
+
+    # Fallback genérico para qualquer outro erro de BD não previsto
+    return "Não foi possível guardar as alterações. Verifica os valores e tenta novamente."
+
+
+# ============================================================
+# ADMIN - CONFIGURAÇÕES - CRIAR UTILIZADORES
+# ============================================================
+
+@app.route("/configuracoes_utilizadores", methods=["GET", "POST"])
+def configuracoes_utilizadores():
+
+    if request.method == "GET":
     
+        return render_template(
+            "configuracoes_utilizadores.html"
+        )
+
+    try:
+        print(dict(request.form))
+        admin = request.form["admin"] == "True"
+
+        registar_cliente_web(
+            request.form,
+            admin
+        )
+
+    except ValueError as e:
+
+        return render_template(
+            "configuracoes_utilizadores.html",
+            erro=str(e)
+        )
+
+    except Exception as e:
+
+        print(
+            "Erro no registo:",
+            e
+        )
+
+        return render_template(
+            "configuracoes_utilizadores.html",
+            erro="Ocorreu um erro ao criar a conta."
+        )
+
+    return render_template(
+        "configuracoes_utilizadores.html"
+    )
 
 
+@app.route('/media/<path:filename>')
+def media(filename):
+    return send_from_directory('media', filename)
 
 # ============================================================
 # START

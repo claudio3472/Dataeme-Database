@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="pt">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Impostos - DataEme</title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='css/style.css') }}"
+    >
+
+    <style>
+
+        .container {
+            max-width: 900px;
+            margin: auto;
+            padding: 40px 20px;
+        }
+
+        .breadcrumb {
+            margin-bottom: 25px;
+            color: #777;
+            font-size: 14px;
+        }
+
+        .breadcrumb a {
+            color: #4472C4;
+            text-decoration: none;
+        }
+
+        .breadcrumb a:hover {
+            text-decoration: underline;
+        }
+
+        .pagina-titulo {
+            font-size: 30px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #222;
+        }
+
+        .pagina-subtitulo {
+            color: #777;
+            margin-bottom: 30px;
+        }
+
+        .mensagem-sucesso {
+            background: #e7f7ed;
+            color: #159947;
+            padding: 14px 18px;
+            border-radius: 10px;
+            margin-bottom: 25px;
+            font-weight: bold;
+        }
+
+        .mensagem-erro {
+            background: #fdecea;
+            color: #c0392b;
+            padding: 14px 18px;
+            border-radius: 10px;
+            margin-bottom: 25px;
+            font-weight: bold;
+        }
+
+        .painel {
+            background: white;
+            border-radius: 15px;
+            padding: 35px;
+            box-shadow: 0 3px 15px rgba(0, 0, 0, .08);
+        }
+
+        .painel-cabecalho {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .painel h2 {
+            font-size: 20px;
+            color: #222;
+        }
+
+        .botao-adicionar {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+
+            background: #eef1f8;
+            color: #4472C4;
+
+            border: none;
+            padding: 10px 18px;
+
+            border-radius: 8px;
+
+            font-weight: bold;
+            font-size: 14px;
+
+            cursor: pointer;
+
+            transition: background-color 0.2s ease;
+        }
+
+        .botao-adicionar:hover {
+            background-color: #dfe6f5;
+        }
+
+        .iva-linha {
+            display: grid;
+            grid-template-columns: 1fr 140px 40px;
+            gap: 20px;
+            align-items: center;
+
+            padding: 18px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .iva-linha:last-of-type {
+            border-bottom: none;
+        }
+
+        .iva-descricao label,
+        .iva-percentagem label {
+            display: block;
+            color: #777;
+            font-size: 13px;
+            margin-bottom: 6px;
+        }
+
+        .iva-descricao input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 15px;
+        }
+
+        .iva-percentagem-campo {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .iva-percentagem-campo input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 15px;
+            text-align: right;
+        }
+
+        .iva-percentagem-campo span {
+            font-weight: bold;
+            color: #555;
+        }
+
+        .botao-remover {
+            background: none;
+            border: none;
+            color: #d33;
+            font-size: 20px;
+            cursor: pointer;
+            line-height: 1;
+            padding: 6px;
+            margin-top: 18px;
+        }
+
+        .iva-linha.iva-nova .botao-remover {
+            visibility: visible;
+        }
+
+        .botao-guardar {
+            display: inline-block;
+            margin-top: 30px;
+            background: #4472C4;
+            color: white;
+            border: none;
+            padding: 14px 28px;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 15px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        .botao-guardar:hover {
+            background-color: #2f5ca8;
+        }
+
+        @media (max-width: 600px) {
+
+            .painel {
+                padding: 20px;
+            }
+
+            .iva-linha {
+                grid-template-columns: 1fr 100px 30px;
+                gap: 10px;
+            }
+
+        }
+
+    </style>
+
+</head>
+
+<body>
+
+    <header>
+
+        <h1>Configurações</h1>
+
+        <nav>
+
+            <a href="{{ url_for('confirm_admin') }}">Dashboard</a>
+
+            <a href="/logout">Logout</a>
+
+        </nav>
+
+    </header>
+
+
+    <div class="container">
+
+        <!-- CAMINHO -->
+
+        <div class="breadcrumb">
+
+            <a href="{{ url_for('configuracoes_admin') }}">Configurações</a>
+
+            &nbsp; / &nbsp;
+
+            Impostos
+
+        </div>
+
+
+        <div class="pagina-titulo">Impostos</div>
+
+        <div class="pagina-subtitulo">
+            Gerir as taxas de IVA usadas no cálculo dos preços.
+        </div>
+
+        {% if sucesso %}
+
+            <div class="mensagem-sucesso">
+                {{ sucesso }}
+            </div>
+
+        {% endif %}
+
+        {% if erro %}
+
+            <div class="mensagem-erro">
+                {{ erro }}
+            </div>
+
+        {% endif %}
+
+
+        <div class="painel">
+
+            <div class="painel-cabecalho">
+
+                <h2>Taxas de IVA</h2>
+
+                <button type="button" class="botao-adicionar" id="botao-adicionar-iva">
+                    + Nova taxa
+                </button>
+
+            </div>
+
+            <form method="POST" id="form-ivas" action="{{ url_for('configuracoes_impostos') }}">
+
+                <div id="ivas-container">
+
+                    {% for iva in ivas %}
+
+                        <div class="iva-linha">
+
+                            <input type="hidden" name="id_iva" value="{{ iva.id_iva }}">
+
+                            <div class="iva-descricao">
+                                <label>Descrição</label>
+                                <input
+                                    type="text"
+                                    name="descricao_{{ iva.id_iva }}"
+                                    value="{{ iva.descricao or '' }}"
+                                    placeholder="Ex: Taxa normal"
+                                >
+                            </div>
+
+                            <div class="iva-percentagem">
+                                <label>Percentagem</label>
+                                <div class="iva-percentagem-campo">
+                                    <input
+                                        type="number"
+                                        name="percentagem_{{ iva.id_iva }}"
+                                        value="{{ iva.percentagem }}"
+                                        min="0"
+                                        max="100"
+                                        step="0.01"
+                                        required
+                                    >
+                                    <span>%</span>
+                                </div>
+                            </div>
+
+                            <button 
+                            type="submit" 
+                            formaction="{{ url_for('apagar_iva') }}" 
+                            name="id_iva_apagar" 
+                            value="{{ iva.id_iva }}" 
+                            class="botao-remover" 
+                            title="Remover"
+                            onclick="return confirm('Tem a certeza que quer apagar esta taxa de IVA?');"
+                            >&times;</button>
+
+                        </div>
+
+                    {% endfor %}
+
+                </div>
+
+                {% if not ivas %}
+
+                    <p id="mensagem-vazio">Não existem taxas de IVA configuradas.</p>
+
+                {% endif %}
+
+                <button type="submit" class="botao-guardar">
+                    Guardar alterações
+                </button>
+
+            </form>
+
+        </div>
+
+    </div>
+
+
+    <script>
+
+        let contadorNovas = 0;
+
+        const container = document.getElementById("ivas-container");
+        const botaoAdicionar = document.getElementById("botao-adicionar-iva");
+        const mensagemVazio = document.getElementById("mensagem-vazio");
+        const formIvas = document.getElementById("form-ivas");
+        const botaoGuardar = document.querySelector(".botao-guardar");
+
+        function criarLinhaVazia() {
+
+            contadorNovas += 1;
+
+            const idTemporario = "novo-" + contadorNovas;
+
+            const linha = document.createElement("div");
+            linha.className = "iva-linha iva-nova";
+
+            linha.innerHTML = `
+                <input type="hidden" name="id_iva" value="${idTemporario}">
+
+                <div class="iva-descricao">
+                    <label>Descrição</label>
+                    <input
+                        type="text"
+                        name="descricao_${idTemporario}"
+                        placeholder="Ex: Taxa reduzida"
+                    >
+                </div>
+
+                <div class="iva-percentagem">
+                    <label>Percentagem</label>
+                    <div class="iva-percentagem-campo">
+                        <input
+                            type="number"
+                            name="percentagem_${idTemporario}"
+                            min="0"
+                            max="100"
+                            step="0.01"
+                            placeholder="0.00"
+                        >
+                        <span>%</span>
+                    </div>
+                </div>
+
+                <button type="button" class="botao-remover" title="Remover">&times;</button>
+            `;
+
+            linha.querySelector(".botao-remover").addEventListener(
+                "click",
+                function () {
+                    linha.remove();
+                }
+            );
+
+            container.appendChild(linha);
+        }
+
+        botaoAdicionar.addEventListener("click", function () {
+
+            if (mensagemVazio) {
+                mensagemVazio.remove();
+            }
+
+            criarLinhaVazia();
+        });
+
+        formIvas.addEventListener("keydown", function (evento) {
+
+            if (evento.key === "Enter" && evento.target.tagName === "INPUT") {
+
+                evento.preventDefault();
+
+                botaoGuardar.click();
+            }
+
+        });
+
+    </script>
+
+</body>
+
+</html>
