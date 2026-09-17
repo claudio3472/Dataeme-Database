@@ -61,6 +61,15 @@
             font-weight: bold;
         }
 
+        .mensagem-erro {
+            background: #fdecea;
+            color: #c0392b;
+            padding: 14px 18px;
+            border-radius: 10px;
+            margin-bottom: 25px;
+            font-weight: bold;
+        }
+
         .painel {
             background: white;
             border-radius: 15px;
@@ -164,7 +173,6 @@
             line-height: 1;
             padding: 6px;
             margin-top: 18px;
-            visibility: hidden;
         }
 
         .iva-linha.iva-nova .botao-remover {
@@ -252,6 +260,14 @@
 
         {% endif %}
 
+        {% if erro %}
+
+            <div class="mensagem-erro">
+                {{ erro }}
+            </div>
+
+        {% endif %}
+
 
         <div class="painel">
 
@@ -265,7 +281,7 @@
 
             </div>
 
-            <form method="POST" action="{{ url_for('configuracoes_impostos') }}" id="form-ivas">
+            <form method="POST" id="form-ivas" action="{{ url_for('configuracoes_impostos') }}">
 
                 <div id="ivas-container">
 
@@ -301,7 +317,15 @@
                                 </div>
                             </div>
 
-                            <button type="button" class="botao-remover" title="Remover">&times;</button>
+                            <button 
+                            type="submit" 
+                            formaction="{{ url_for('apagar_iva') }}" 
+                            name="id_iva_apagar" 
+                            value="{{ iva.id_iva }}" 
+                            class="botao-remover" 
+                            title="Remover"
+                            onclick="return confirm('Tem a certeza que quer apagar esta taxa de IVA?');"
+                            >&times;</button>
 
                         </div>
 
@@ -333,6 +357,8 @@
         const container = document.getElementById("ivas-container");
         const botaoAdicionar = document.getElementById("botao-adicionar-iva");
         const mensagemVazio = document.getElementById("mensagem-vazio");
+        const formIvas = document.getElementById("form-ivas");
+        const botaoGuardar = document.querySelector(".botao-guardar");
 
         function criarLinhaVazia() {
 
@@ -390,6 +416,17 @@
             }
 
             criarLinhaVazia();
+        });
+
+        formIvas.addEventListener("keydown", function (evento) {
+
+            if (evento.key === "Enter" && evento.target.tagName === "INPUT") {
+
+                evento.preventDefault();
+
+                botaoGuardar.click();
+            }
+
         });
 
     </script>

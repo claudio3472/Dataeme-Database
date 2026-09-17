@@ -8,6 +8,7 @@ from flask import (
     send_from_directory
 )
 
+import postgrest
 import time
 import secrets
 
@@ -776,6 +777,67 @@ def carrinho():
 
 
 # ============================================================
+# ATUALIZAR LINHA
+# ============================================================
+@app.route(
+    "/carrinhoatualizar",
+    methods=["POST"]
+)   
+def atualizar_carrinho():
+
+    # ========================================================
+    # VERIFICAR LOGIN
+    # ========================================================
+
+    if "id_utilizador" not in session:
+
+        return redirect(
+            url_for("login")
+        )
+
+    cliente = obter_cliente(session["id_utilizador"])
+
+    pedido = obter_pedido(
+        cliente["id_cliente"]
+    )
+
+    # Admin não finaliza pedidos desta forma
+    if session.get("is_admin", False):
+
+        return redirect(
+            url_for("confirm_admin")
+        )
+
+
+    quantidade = int(request.form["quantidade"])
+    id_linha = request.form["id_linha"]
+
+    linha = supabase.table("linhas_pedido").select("preco_unitario").eq("id_linha", id_linha).single().execute()
+    preco = linha.data["preco_unitario"]
+    preco_total = quantidade*preco
+
+    response = (
+        supabase
+        .table("linhas_pedido")
+        .update({
+            "quantidade": quantidade,
+            "valor_linha": preco_total
+        })
+        .eq("id_linha", id_linha)
+        .execute()
+    )
+
+    somar_preco_linhas(
+        pedido
+    )
+
+    return redirect(
+        url_for("carrinho")
+    )
+
+
+
+# ============================================================
 # FINALIZAR PEDIDO
 # ============================================================
 
@@ -1446,9 +1508,7 @@ def configuracoes_admin():
     )
 
 
-# ============================================================
-# ADMIN - CONFIGURAÇÕES - IMPOSTOS (IVA)
-# ============================================================
+
 
 @app.route("/configuracoes_admin/impostos", methods=["GET", "POST"])
 def configuracoes_impostos():
@@ -1471,8 +1531,6 @@ def configuracoes_impostos():
             percentagem = request.form.get(f"percentagem_{id_iva}")
             descricao = request.form.get(f"descricao_{id_iva}")
 
-            # Linhas novas (criadas pelo botão "+") têm um id que
-            # começa por "novo-" em vez de um id_iva real
             if id_iva.startswith("novo-"):
 
                 if not percentagem:
@@ -1491,11 +1549,27 @@ def configuracoes_impostos():
                     "descricao": descricao
                 })
 
-        if ivas_existentes:
-            atualizar_ivas(ivas_existentes)
+        try:
 
-        if ivas_novos:
-            criar_ivas(ivas_novos)
+            if ivas_existentes:
+                atualizar_ivas(ivas_existentes)
+
+            if ivas_novos:
+                criar_ivas(ivas_novos)
+
+        except postgrest.exceptions.APIError as e:
+
+            erro = traduzir_erro_iva(e)
+
+            # Volta a mostrar a página com os dados que a pessoa
+            # tinha preenchido, sem perder o que não deu para guardar
+            ivas_atuais = obter_ivas()
+
+            return render_template(
+                "configuracoes_impostos.html",
+                ivas=ivas_atuais,
+                erro=erro
+            )
 
         return redirect(
             url_for(
@@ -1513,6 +1587,52 @@ def configuracoes_impostos():
         ivas=ivas,
         sucesso=sucesso
     )
+
+
+@app.route("/configuracoes_admin/impostos/apagar_iva", methods=["POST"])
+def apagar_iva():
+
+    id_iva = request.form["id_iva_apagar"]
+
+    try:
+
+        supabase.table("iva").delete().eq("id_iva", id_iva).execute()
+
+    except postgrest.exceptions.APIError as e:
+
+        erro = traduzir_erro_iva(e)
+
+        ivas_atuais = obter_ivas()
+
+        return render_template(
+            "configuracoes_impostos.html",
+            ivas=ivas_atuais,
+            erro=erro
+        )
+
+    return redirect(
+        url_for(
+            "configuracoes_impostos"
+        )
+    )
+
+
+def traduzir_erro_iva(e):
+    """
+    Converte erros conhecidos do Postgres/Supabase em mensagens
+    percetíveis para o utilizador.
+    """
+
+    mensagem = str(e)
+
+    if "iva_percentagem_unique" in mensagem:
+        return "Já existe uma taxa de IVA com essa percentagem. Escolhe um valor diferente."
+
+    if "iva_descricao_unique" in mensagem:
+        return "Já existe uma taxa de IVA com essa descrição."
+
+    # Fallback genérico para qualquer outro erro de BD não previsto
+    return "Não foi possível guardar as alterações. Verifica os valores e tenta novamente."
 
 
 # ============================================================

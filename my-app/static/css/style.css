@@ -649,15 +649,64 @@ header a:hover {
     border-radius: 10px;
     font-size: 20px;
     font-weight: bold;
-    gap: 30px;
+    gap: 25px;
     padding: 10px;
     
 }
 
 .linha {
+    display: flex;
     box-shadow: 0 3px 10px rgba(68, 67, 67, 0.08);
+    border-radius: 8px;
+    gap: 10px;
     padding: 5px;
+    align-items: center;
+    white-space: nowrap;
+    overflow-x: auto;
+}
 
+.linha_estrutura_esquerda{
+    display: flex;
+    float: left;
+    width: 60%;
+    margin-right: auto;  
+    align-items: center;
+}
+
+.linha_estrutura_esquerda p{
+    font-size: small;
+    margin-left: 3%;
+    color: rgb(81, 81, 81);
+}
+
+.linha_nome_container{
+    width: 50%;
+    white-space: nowrap;
+    overflow-x: auto;
+}
+
+.linhanum {
+    width: 10%;
+    padding: 1% 0% 1% 0%;
+    margin-left: 12%;
+    border-radius: 3px;
+}
+
+.linha_estrutura_direita {
+    display: flex;
+    float: right;
+    width: 40%;
+    margin-left: auto; 
+    align-items: center;
+}
+
+.linha_estrutura_direita a{
+    margin-left: 8%;
+}
+
+.linha_botoes{
+    margin-left: auto;
+    width: 50%;
 }
 
 .botao_preco {
@@ -673,16 +722,29 @@ header a:hover {
 }
 
 .botao_apagar_linha {
-    padding: 3px;
+    padding: 10px;
     background-color: #d03833;
     color: white;
     border: 0px;
-    font-weight: bold;
+    font-size: large;
     border-radius: 10px;
-    padding: 10px;
 }
 
 .botao_apagar_linha:hover {
+    cursor:pointer
+}
+
+.botao_atualizar_linha {
+    padding: 8px 11px 7px 11px;
+    background-color: #d0a933;
+    color: white;
+    border: 0px;
+    font-size: larger;
+    margin-left: 7%;
+    border-radius: 10px;
+}
+
+.botao_atualizar_linha:hover {
     cursor:pointer
 }
 
