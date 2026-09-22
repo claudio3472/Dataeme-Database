@@ -1,4 +1,179 @@
+import difflib
+import re
+import unicodedata
+
+from deep_translator import GoogleTranslator
+import webcolors
+
 from config import supabase
+
+
+# ============================================================
+# TRADUÇÃO DE CORES + CONVERSÃO PARA HEX 
+# ============================================================
+
+CORES_PT_PARA_EN = {
+    "branco": "white",
+    "preto": "black",
+    "cinza": "gray",
+    "cinzento": "gray",
+    "vermelho": "red",
+    "verde": "green",
+    "azul": "blue",
+    "amarelo": "yellow",
+    "laranja": "orange",
+    "roxo": "purple",
+    "violeta": "violet",
+    "rosa": "pink",
+    "rosa choque": "deeppink",
+    "rosa claro": "lightpink",
+    "castanho": "brown",
+    "marrom": "brown",
+    "dourado": "gold",
+    "prateado": "silver",
+    "bege": "beige",
+    "turquesa": "turquoise",
+    "bordô": "maroon",
+    "bordeaux": "maroon",
+    "grená": "maroon",
+    "salmão": "salmon",
+    "coral": "coral",
+    "creme": "cornsilk",
+    "azul claro": "lightblue",
+    "azul escuro": "darkblue",
+    "azul marinho": "navy",
+    "verde claro": "lightgreen",
+    "verde escuro": "darkgreen",
+    "verde água": "aquamarine",
+    "cinza claro": "lightgray",
+    "cinza escuro": "darkgray",
+    "lilás": "plum",
+    "lavanda": "lavender",
+    "vinho": "maroon",
+    "mostarda": "darkkhaki",
+    "caqui": "khaki",
+    "prata": "silver",
+    "ouro": "gold"
+}
+
+
+def traduzir_para_ingles(texto):
+    """
+    Traduz um texto (nome de uma cor) para inglês.
+    Se a tradução falhar por qualquer motivo (ex: sem internet),
+    devolve o texto original para não bloquear a criação da cor.
+    """
+
+    texto = (texto or "").strip()
+
+    if not texto:
+        return texto
+
+    try:
+
+        traduzido = (
+            GoogleTranslator(source="auto", target="en")
+            .translate(texto)
+        )
+
+        return (traduzido or texto).strip()
+
+    except Exception as e:
+
+        print("Aviso: não foi possível traduzir a cor:", e)
+
+        return texto
+
+
+def _nome_cor_para_hex(nome_ingles):
+    """
+    Converte um nome de cor em inglês no código hex mais próximo,
+    usando a lista de cores CSS3 da biblioteca webcolors.
+    """
+
+    nome_normalizado = (
+        unicodedata.normalize("NFKD", nome_ingles)
+        .encode("ascii", "ignore")
+        .decode("ascii")
+        .strip()
+        .lower()
+    )
+
+    nome_sem_espacos = nome_normalizado.replace(" ", "").replace("-", "")
+
+    # --------------------------------------------------------
+    # 1) Correspondência exata (com e sem espaços/hífens)
+    # --------------------------------------------------------
+
+    for tentativa in (nome_normalizado, nome_sem_espacos):
+
+        try:
+            return webcolors.name_to_hex(tentativa, spec="css3")
+
+        except ValueError:
+            continue
+
+    # --------------------------------------------------------
+    # 2) Cor CSS3 mais parecida (ex: "brick red" -> "darkred")
+    # --------------------------------------------------------
+
+    try:
+        nomes_css3 = list(webcolors.names(spec="css3"))
+
+    except AttributeError:
+        # Compatibilidade com versões mais antigas do webcolors
+        nomes_css3 = list(webcolors.CSS3_NAMES_TO_HEX.keys())
+
+    parecidas = difflib.get_close_matches(
+        nome_sem_espacos,
+        nomes_css3,
+        n=1,
+        cutoff=0.6
+    )
+
+    if parecidas:
+        return webcolors.name_to_hex(parecidas[0], spec="css3")
+
+    # --------------------------------------------------------
+    # 3) Sem correspondência - cinzento neutro em vez de falhar
+    # --------------------------------------------------------
+
+    return "#808080"
+
+
+def traduzir_e_converter_cor(nome_cor_original):
+    """
+    Recebe o nome de uma cor em qualquer idioma e devolve o
+    código hex correspondente. Primeiro tenta o dicionário local
+    de cores comuns em português (rápido e funciona sem internet);
+    só recorre à tradução online para nomes que não estejam lá.
+    """
+
+    nome_limpo = (
+        unicodedata.normalize("NFKD", (nome_cor_original or ""))
+        .encode("ascii", "ignore")
+        .decode("ascii")
+        .strip()
+        .lower()
+    )
+
+    # Repetir a normalização sobre as chaves do dicionário para
+    # que "Rosa Claro", "rosa claro", etc. correspondam sempre.
+    for nome_pt, nome_en in CORES_PT_PARA_EN.items():
+
+        nome_pt_normalizado = (
+            unicodedata.normalize("NFKD", nome_pt)
+            .encode("ascii", "ignore")
+            .decode("ascii")
+        )
+
+        if nome_limpo == nome_pt_normalizado:
+            return _nome_cor_para_hex(nome_en)
+
+    nome_ingles = traduzir_para_ingles(nome_cor_original)
+
+    return _nome_cor_para_hex(nome_ingles)
+
 
 def obter_ivas():
     """
@@ -373,6 +548,452 @@ def obter_produtos_admin(filtro=None, id_familia=None, id_subfamilia=None):
         })
 
     return resultado
+
+
+# ============================================================
+# NOVO PRODUTO - LISTAS PARA OS DROPDOWNS DO POP-UP
+# ============================================================
+
+def obter_familias():
+    """
+    Obtém todas as famílias (para o dropdown do pop-up "Novo produto").
+    """
+
+    response = (
+        supabase
+        .table("familia")
+        .select("id_familia, nome")
+        .order("nome")
+        .execute()
+    )
+
+    return response.data or []
+
+
+def obter_subfamilias(id_familia=None):
+    """
+    Obtém as subfamílias. Se 'id_familia' for indicado, devolve
+    apenas as subfamílias dessa família (usado pelo dropdown
+    dependente do pop-up "Novo produto").
+    """
+
+    query = (
+        supabase
+        .table("subfamilia")
+        .select("id_subfamilia, nome, familia_id_familia")
+        .order("nome")
+    )
+
+    if id_familia:
+        query = query.eq("familia_id_familia", id_familia)
+
+    response = query.execute()
+
+    return response.data or []
+
+
+def obter_modelos(id_subfamilia=None):
+    """
+    Obtém os modelos de produto. Se 'id_subfamilia' for indicado,
+    devolve apenas os modelos dessa subfamília (dropdown dependente
+    do pop-up "Novo produto").
+    """
+
+    query = (
+        supabase
+        .table("produtos_modelo")
+        .select("id_modelo, nome_catalogo, id_subfamilia")
+        .order("nome_catalogo")
+    )
+
+    if id_subfamilia:
+        query = query.eq("id_subfamilia", id_subfamilia)
+
+    response = query.execute()
+
+    return response.data or []
+
+
+def obter_cores():
+    """
+    Obtém todas as cores já existentes (para o dropdown do pop-up
+    "Novo produto").
+    """
+
+    response = (
+        supabase
+        .table("cores_produto")
+        .select("id_cor, nome_cor, codigo_cor")
+        .order("nome_cor")
+        .execute()
+    )
+
+    return response.data or []
+
+
+# ============================================================
+# NOVO PRODUTO - CRIAÇÃO DE FAMÍLIA / SUBFAMÍLIA / MODELO / COR
+# ============================================================
+
+def criar_familia(nome, cor, ordem, pagina_inicial, pagina_final, descricao=None):
+    """
+    Cria uma nova família. 'cor' é o código/etiqueta de cor da
+    própria família (usado no catálogo), não a cor de uma variante.
+    """
+
+    response = (
+        supabase
+        .table("familia")
+        .insert({
+            "nome": nome,
+            "descricao": descricao,
+            "ordem": ordem,
+            "pagina_inicial": pagina_inicial,
+            "pagina_final": pagina_final,
+            "cor": cor
+        })
+        .execute()
+    )
+
+    return response.data[0] if response.data else None
+
+
+def criar_subfamilia(nome, id_familia, ordem, pagina, descricao=None):
+    """
+    Cria uma nova subfamília dentro de uma família existente.
+    """
+
+    response = (
+        supabase
+        .table("subfamilia")
+        .insert({
+            "nome": nome,
+            "descricao": descricao,
+            "ordem": ordem,
+            "pagina": pagina,
+            "familia_id_familia": id_familia
+        })
+        .execute()
+    )
+
+    return response.data[0] if response.data else None
+
+
+def criar_modelo(nome_catalogo, id_subfamilia, descricao_catalogo=None, descricao_detalhada=None):
+    """
+    Cria um novo modelo de produto dentro de uma subfamília existente.
+    """
+
+    response = (
+        supabase
+        .table("produtos_modelo")
+        .insert({
+            "nome_catalogo": nome_catalogo,
+            "descricao_catalogo": descricao_catalogo,
+            "descricao_detalhada": descricao_detalhada,
+            "id_subfamilia": id_subfamilia
+        })
+        .execute()
+    )
+
+    return response.data[0] if response.data else None
+
+
+def criar_cor(nome_cor, codigo_cor=None, imagem_url=None):
+    """
+    Cria uma nova cor. Se não vier um código hex explícito, o nome
+    da cor é traduzido para inglês e convertido em hex automaticamente
+    (tudo através de bibliotecas gratuitas).
+    """
+
+    if not codigo_cor:
+        codigo_cor = traduzir_e_converter_cor(nome_cor)
+
+    response = (
+        supabase
+        .table("cores_produto")
+        .insert({
+            "nome_cor": nome_cor,
+            "codigo_cor": codigo_cor,
+            "imagem_url": imagem_url
+        })
+        .execute()
+    )
+
+    return response.data[0] if response.data else None
+
+
+# ============================================================
+# NOVO PRODUTO - CRIAÇÃO COMPLETA (usado pelo pop-up)
+# ============================================================
+
+def criar_produto_admin(dados):
+    """
+    Cria um novo produto (variante) a partir dos dados do pop-up
+    "Novo produto". 'dados' é um dicionário tipo request.form.
+
+    Para cada nível (família, subfamília, modelo, cor), o campo
+    "<nivel>_id" vale "novo" quando o admin optou por criar um
+    novo registo em vez de escolher um já existente; nesse caso,
+    os campos "<nivel>_..._novo" são usados para o criar.
+
+    Lança ValueError com uma mensagem percetível quando faltam
+    dados obrigatórios ou a referência já existe.
+
+    IMPORTANTE: a referência, o preço base e o IVA são validados
+    logo no início, ANTES de criar qualquer família/subfamília/
+    modelo/cor nova. Assim, se a referência já existir (ou faltar
+    algum dado obrigatório), nada fica criado "a meio" na base
+    de dados.
+    """
+
+    # --------------------------------------------------------
+    # REFERÊNCIA / PREÇO / IVA - validados primeiro
+    # --------------------------------------------------------
+
+    referencia = (dados.get("referencia") or "").strip()
+
+    if not referencia:
+        raise ValueError("É necessário indicar a referência do produto.")
+
+    try:
+        referencia = int(referencia)
+    except ValueError:
+        raise ValueError("A referência do produto deve ser numérica.")
+
+    existente = (
+        supabase
+        .table("produtos")
+        .select("referencia")
+        .eq("referencia", referencia)
+        .limit(1)
+        .execute()
+    )
+
+    if existente.data:
+        raise ValueError(f"Já existe um produto com a referência {referencia}.")
+
+    preco_base = dados.get("preco_base")
+
+    if not preco_base:
+        raise ValueError("É necessário indicar o preço base.")
+
+    try:
+        if float(preco_base) < 0:
+            raise ValueError("O preço base não pode ser negativo.")
+    except (TypeError, ValueError):
+        raise ValueError("O preço base indicado não é válido.")
+
+    id_iva = dados.get("id_iva")
+
+    if not id_iva:
+        raise ValueError("É necessário escolher o IVA.")
+
+    try:
+        id_iva = int(id_iva)
+    except ValueError:
+        raise ValueError("O IVA escolhido não é válido.")
+
+    codigo_barras = (dados.get("codigo_barras") or "").strip() or None
+
+    if codigo_barras:
+
+        codigo_existente = (
+            supabase
+            .table("produtos")
+            .select("referencia")
+            .eq("codigo_barras_produto", codigo_barras)
+            .limit(1)
+            .execute()
+        )
+
+        if codigo_existente.data:
+            raise ValueError(
+                f"Já existe um produto com o código de barras {codigo_barras}."
+            )
+
+    stock_bruto = dados.get("stock") or 0
+
+    try:
+        stock = int(stock_bruto)
+    except (TypeError, ValueError):
+        raise ValueError("O stock indicado não é válido.")
+
+    if stock < 0:
+        raise ValueError("O stock não pode ser negativo.")
+
+    if stock > 2147483647:
+        raise ValueError(
+            "O stock indicado é demasiado grande "
+            "(máximo permitido: 2.147.483.647)."
+        )
+
+    descontinuado = dados.get("descontinuado") in ("on", "true", "True", True)
+
+    # --------------------------------------------------------
+    # FAMÍLIA
+    # --------------------------------------------------------
+
+    id_familia = dados.get("familia_id")
+
+    if not id_familia:
+        raise ValueError("É necessário escolher ou criar uma família.")
+
+    if id_familia == "novo":
+
+        nome_familia = (dados.get("familia_nome_novo") or "").strip()
+        cor_familia_bruta = (dados.get("familia_cor_novo") or "").strip()
+
+        if not nome_familia or not cor_familia_bruta:
+            raise ValueError("Preenche o nome e a cor da nova família.")
+
+        # Se já for um código hex válido, usa-o tal como está.
+        # Caso contrário, trata-se de um nome de cor (em qualquer
+        # idioma) e traduz-se/converte-se para hex, tal como
+        # acontece com a cor das variantes de produto.
+        if re.fullmatch(r"#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})", cor_familia_bruta):
+            cor_familia = cor_familia_bruta
+        else:
+            cor_familia = traduzir_e_converter_cor(cor_familia_bruta)
+
+        familia = criar_familia(
+            nome=nome_familia,
+            cor=cor_familia,
+            # Valores por defeito por agora - estas colunas vão sair
+            # da tabela "familia" mais tarde.
+            ordem=0,
+            pagina_inicial=0,
+            pagina_final=0
+        )
+
+        if not familia:
+            raise ValueError("Não foi possível criar a nova família.")
+
+        id_familia = familia["id_familia"]
+
+    else:
+        id_familia = int(id_familia)
+
+    # --------------------------------------------------------
+    # SUBFAMÍLIA
+    # --------------------------------------------------------
+
+    id_subfamilia = dados.get("subfamilia_id")
+
+    if not id_subfamilia:
+        raise ValueError("É necessário escolher ou criar uma subfamília.")
+
+    if id_subfamilia == "novo":
+
+        nome_subfamilia = (dados.get("subfamilia_nome_novo") or "").strip()
+
+        if not nome_subfamilia:
+            raise ValueError("Preenche o nome da nova subfamília.")
+
+        subfamilia = criar_subfamilia(
+            nome=nome_subfamilia,
+            id_familia=id_familia,
+            # Valores por defeito por agora - estas colunas vão sair
+            # da tabela "subfamilia" mais tarde.
+            ordem=0,
+            pagina=0
+        )
+
+        if not subfamilia:
+            raise ValueError("Não foi possível criar a nova subfamília.")
+
+        id_subfamilia = subfamilia["id_subfamilia"]
+
+    else:
+        id_subfamilia = int(id_subfamilia)
+
+    # --------------------------------------------------------
+    # MODELO
+    # --------------------------------------------------------
+
+    id_modelo = dados.get("modelo_id")
+
+    if not id_modelo:
+        raise ValueError("É necessário escolher ou criar um modelo.")
+
+    if id_modelo == "novo":
+
+        nome_modelo = (dados.get("modelo_nome_novo") or "").strip()
+
+        if not nome_modelo:
+            raise ValueError("Preenche o nome do novo modelo.")
+
+        modelo = criar_modelo(
+            nome_catalogo=nome_modelo,
+            id_subfamilia=id_subfamilia,
+            descricao_catalogo=(dados.get("modelo_descricao_novo") or "").strip() or None,
+            descricao_detalhada=(dados.get("modelo_descricao_detalhada_novo") or "").strip() or None
+        )
+
+        if not modelo:
+            raise ValueError("Não foi possível criar o novo modelo.")
+
+        id_modelo = modelo["id_modelo"]
+
+    else:
+        id_modelo = int(id_modelo)
+
+    # --------------------------------------------------------
+    # COR
+    # --------------------------------------------------------
+
+    id_cor = dados.get("cor_id")
+
+    if not id_cor:
+        raise ValueError("É necessário escolher ou criar uma cor.")
+
+    if id_cor == "novo":
+
+        nome_cor_novo = (dados.get("cor_nome_novo") or "").strip()
+
+        if not nome_cor_novo:
+            raise ValueError("Preenche o nome da nova cor.")
+
+        cor = criar_cor(
+            nome_cor=nome_cor_novo,
+            codigo_cor=(dados.get("cor_hex_novo") or "").strip() or None
+        )
+
+        if not cor:
+            raise ValueError(
+                "Não foi possível criar a nova cor "
+                "(já deve existir uma cor com esse nome)."
+            )
+
+        id_cor = cor["id_cor"]
+
+    else:
+        id_cor = int(id_cor)
+
+    # --------------------------------------------------------
+    # CRIAR O PRODUTO (VARIANTE)
+    # --------------------------------------------------------
+
+    response = (
+        supabase
+        .table("produtos")
+        .insert({
+            "referencia": referencia,
+            "id_modelo": id_modelo,
+            "id_cor": id_cor,
+            "preco_base": preco_base,
+            "id_iva": id_iva,
+            "quantidade_stock": stock,
+            "codigo_barras_produto": codigo_barras,
+            "descontinuado": descontinuado
+        })
+        .execute()
+    )
+
+    if not response.data:
+        raise ValueError("Não foi possível criar o produto.")
+
+    return response.data[0]
 
 
 def atualizar_produto_admin(

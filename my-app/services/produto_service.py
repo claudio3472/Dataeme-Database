@@ -598,3 +598,59 @@ def obter_produto_por_referencia(referencia):
         "num_avaliacao":
             num_av
     }
+
+
+def obter_avaliacao(id_modelo):
+    
+    response = (
+        supabase
+        .table("produtos")
+        .select(""" 
+                
+            avaliacoes (
+                classificacao,
+                comentario,
+                data_avaliacao, 
+                
+                cliente (
+                    nome
+                )
+            )
+                
+        """)
+        .eq("id_modelo", id_modelo)
+        .execute()
+    )
+    
+    lista_avaliacao = []
+
+    for avaliacao in response.data:
+        
+        if avaliacao["comentario"].strip() is None:
+            continue
+        
+        lista_avaliacao.append({
+            
+            "classificacao":
+                avaliacao["classificacao"],
+            
+            "comentario":
+                avaliacao["comentario"],
+            
+            "data_avaliacao":
+                avaliacao["data_avaliacao"],
+            
+            "nome":
+                avaliacao["nome"]
+        })
+        
+        
+    return {
+        
+        "lista_avaliacao":
+            lista_avaliacao
+    }
+        
+        
+        
+        

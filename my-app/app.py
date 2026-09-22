@@ -5,7 +5,8 @@ from flask import (
     redirect,
     session,
     url_for,
-    send_from_directory
+    send_from_directory,
+    jsonify
 )
 
 import postgrest
@@ -36,7 +37,8 @@ from services.clientes_service import (
 from services.produto_service import (
     obter_produtos,
     obter_produto_por_referencia,
-    obter_categorias
+    obter_categorias,
+    obter_avaliacao
 )
 
 from services.email_service import (
@@ -67,7 +69,12 @@ from services.admin_service import (
     obter_ivas,
     atualizar_ivas,
     criar_ivas,
-    agrupar_itens_pedidos
+    agrupar_itens_pedidos,
+    obter_familias,
+    obter_subfamilias,
+    obter_modelos,
+    obter_cores,
+    criar_produto_admin
 )
 
 from gerarPDF import(
@@ -1242,8 +1249,140 @@ def produtos_admin():
         filtro=filtro,
         categorias=categorias,
         id_familia=id_familia,
-        id_subfamilia=id_subfamilia
+        id_subfamilia=id_subfamilia,
+        familias=obter_familias(),
+        cores=obter_cores(),
+        ivas=obter_ivas()
     )
+
+
+# ============================================================
+# ADMIN - PRODUTOS - CRIAR NOVO PRODUTO (POP-UP)
+# ============================================================
+
+@app.route("/produtos_admin/criar", methods=["POST"])
+def criar_produto_admin_route():
+
+    if "id_utilizador" not in session:
+        return redirect(url_for("login"))
+
+    if not session.get("is_admin", False):
+        return redirect(url_for("login"))
+
+    try:
+
+        criar_produto_admin(request.form)
+
+    except ValueError as e:
+
+        return redirect(
+            url_for(
+                "produtos_admin",
+                erro=str(e)
+            )
+        )
+
+    except postgrest.exceptions.APIError as e:
+
+        print("Erro da base de dados ao criar produto:", e)
+
+        return redirect(
+            url_for(
+                "produtos_admin",
+                erro="Não foi possível criar o produto (verifica os dados)."
+            )
+        )
+
+    except Exception as e:
+
+        print("Erro ao criar produto:", e)
+
+        return redirect(
+            url_for(
+                "produtos_admin",
+                erro="Ocorreu um erro inesperado ao criar o produto."
+            )
+        )
+
+    return redirect(
+        url_for(
+            "produtos_admin",
+            sucesso="Produto criado com sucesso."
+        )
+    )
+
+
+# ============================================================
+# ADMIN - PRODUTOS - DROPDOWNS DEPENDENTES (JSON)
+# ============================================================
+
+@app.route("/produtos_admin/api/subfamilias")
+def api_subfamilias_admin():
+
+    if "id_utilizador" not in session or not session.get("is_admin", False):
+        return jsonify([]), 403
+
+    id_familia = request.args.get("familia", type=int)
+
+    return jsonify(obter_subfamilias(id_familia))
+
+
+@app.route("/produtos_admin/api/modelos")
+def api_modelos_admin():
+
+    if "id_utilizador" not in session or not session.get("is_admin", False):
+        return jsonify([]), 403
+
+    id_subfamilia = request.args.get("subfamilia", type=int)
+
+    return jsonify(obter_modelos(id_subfamilia))
+
+
+# ============================================================
+# ADMIN - PRODUTOS - IMPORTAR EXCEL (por agora só regista o carregamento)
+# ============================================================
+
+@app.route("/produtos_admin/importar", methods=["POST"])
+def importar_produtos_admin():
+
+    if "id_utilizador" not in session:
+        return redirect(url_for("login"))
+
+    if not session.get("is_admin", False):
+        return redirect(url_for("login"))
+
+    ficheiro = request.files.get("ficheiro_excel")
+
+    if not ficheiro or ficheiro.filename == "":
+
+        return redirect(
+            url_for(
+                "produtos_admin",
+                erro="Nenhum ficheiro foi selecionado."
+            )
+        )
+
+    extensoes_aceites = (".xlsx", ".xls", ".csv")
+
+    if not ficheiro.filename.lower().endswith(extensoes_aceites):
+
+        return redirect(
+            url_for(
+                "produtos_admin",
+                erro="Formato não suportado. Envia um ficheiro .xlsx, .xls ou .csv."
+            )
+        )
+
+    # Por agora não processamos o conteúdo - só confirmamos o carregamento.
+    print(f"[Importar Excel/CSV] Ficheiro recebido: {ficheiro.filename}")
+
+    return redirect(
+        url_for(
+            "produtos_admin",
+            sucesso=f"Ficheiro '{ficheiro.filename}' foi carregado."
+        )
+    )
+
 
 # ============================================================
 # ADMIN - CLIENTES
