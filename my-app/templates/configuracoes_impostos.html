@@ -210,6 +210,65 @@
 
         }
 
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.45);
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 20px;
+        }
+
+        .modal-overlay.aberto {
+            display: flex;
+        }
+
+        .modal-caixa {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            width: 100%;
+            max-width: 640px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+            position: relative;
+        }
+
+        .modal-caixa h2 {
+            margin-top: 0;
+        }
+
+        .modal-fechar {
+            position: absolute;
+            top: 18px;
+            right: 20px;
+            background: none;
+            border: none;
+            font-size: 22px;
+            line-height: 1;
+            cursor: pointer;
+            color: #555;
+        }
+
+        .modal-caixa .campo label {
+            display: block;
+            margin-bottom: 4px;
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+
+        .modal-caixa .campo select,
+        .modal-caixa .campo input {
+            width: 100%;
+            padding: 8px;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+            box-sizing: border-box;
+        }
+
     </style>
 
 </head>
@@ -317,14 +376,10 @@
                                 </div>
                             </div>
 
-                            <button 
-                            type="submit" 
-                            formaction="{{ url_for('apagar_iva') }}" 
-                            name="id_iva_apagar" 
-                            value="{{ iva.id_iva }}" 
-                            class="botao-remover" 
-                            title="Remover"
-                            onclick="return confirm('Tem a certeza que quer apagar esta taxa de IVA?');"
+                            <button
+                                type="button"
+                                class="botao-remover"
+                                onclick="abrirConfiguracaoTaxa({{ iva.id_iva }})"
                             >&times;</button>
 
                         </div>
@@ -350,7 +405,33 @@
     </div>
 
 
+    <!-- =========================
+         MODAL - CONFIGURAÇÃO TAXA
+         (fora do loop: existe uma única vez na página)
+         ========================= -->
+
+    <div class="modal-overlay" id="configuracaoTaxa">
+        <div class="modal-caixa">
+
+            <button type="button" class="modal-fechar" onclick="fecharConfiguracaoTaxa()">&times;</button>
+
+            <h2>Configurar Taxa IVA</h2>
+
+            <div class="campo">
+                <label for="configuracaoDropdown">Alterar para outra taxa existente</label>
+                <select id="configuracaoDropdown" name="iva_dropdown" form="form-ivas"></select>
+            </div>
+
+            <div id="configuracaoRemover"></div>
+
+        </div>
+    </div>
+
+
     <script>
+
+        // Lista de IVAs disponível no lado do JavaScript, gerada em segurança pelo Jinja
+        const todasIvas = {{ ivas | tojson }};
 
         let contadorNovas = 0;
 
@@ -427,6 +508,58 @@
                 botaoGuardar.click();
             }
 
+        });
+
+
+        function abrirConfiguracaoTaxa(id_iva) {
+
+            const select = document.getElementById("configuracaoDropdown");
+            select.innerHTML = "";
+
+            document.getElementById("configuracaoTaxa").classList.add("aberto");
+
+            const opcaoVazia = document.createElement("option");
+            opcaoVazia.value = "";
+            opcaoVazia.textContent = todasIvas.length > 1 ? "-- Escolher --" : "-- Nenhuma existente --";
+            select.appendChild(opcaoVazia);
+
+            todasIvas.forEach(function (item) {
+
+                // não mostrar a própria taxa como alternativa a ela mesma
+                if (item.id_iva === id_iva) {
+                    return;
+                }
+
+                const opcao = document.createElement("option");
+                opcao.value = item.id_iva;
+                opcao.textContent = item.descricao + " (" + item.percentagem + "%)";
+                select.appendChild(opcao);
+            });
+
+            document.getElementById("configuracaoRemover").innerHTML = `
+                <p>Altera o IVA para outro valor</p>
+                <button
+                    type="submit"
+                    form="form-ivas"
+                    formaction="{{ url_for('apagar_iva') }}"
+                    name="id_iva_apagar"
+                    value="${id_iva}"
+                    class="botao-remover"
+                    title="Remover"
+                    onclick="return confirm('Tem a certeza que quer apagar esta taxa de IVA? Todos os produtos com este IVA vão passar a ter o iva selecionado.');"
+                >&times;</button>
+            `;
+        }
+
+        function fecharConfiguracaoTaxa() {
+            document.getElementById("configuracaoTaxa").classList.remove("aberto");
+        }
+
+        // Fecha o pop-up ao clicar fora da caixa
+        document.getElementById("configuracaoTaxa").addEventListener("click", function (evento) {
+            if (evento.target === this) {
+                fecharConfiguracaoTaxa();
+            }
         });
 
     </script>

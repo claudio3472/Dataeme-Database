@@ -439,21 +439,28 @@ def obter_produtos_admin(filtro=None, id_familia=None, id_subfamilia=None):
         .execute()
     )
 
+    # --------------------------------------------------------
+    # IVAs — indexados pelo id_iva real (não pela posição na lista)
+    # --------------------------------------------------------
+
     iva_response = (
         supabase
         .table("iva")
-        .select("percentagem")
+        .select("id_iva, percentagem")
         .order("percentagem")
         .execute()
     )
 
-    ivas = iva_response.data
+    ivas = iva_response.data or []
 
-    iva_lista = []
+    ivas_por_id = {
+        iva["id_iva"]: iva["percentagem"]
+        for iva in ivas
+    }
 
-    for iva in ivas:
-
-        iva_lista.append(iva["percentagem"])
+    # Lista de percentagens disponíveis, para preencher
+    # dropdowns/selects no template
+    iva_lista = [iva["percentagem"] for iva in ivas]
 
     produtos_todos = produtos_response.data or []
 
@@ -521,7 +528,7 @@ def obter_produtos_admin(filtro=None, id_familia=None, id_subfamilia=None):
                 "preco_base": produto["preco_base"],
                 "descontinuado": produto["descontinuado"],
                 "stock": produto["quantidade_stock"],
-                "iva": ivas[int(produto["id_iva"])-1]["percentagem"],
+                "iva": ivas_por_id.get(produto["id_iva"]),
                 "iva_lista": iva_lista,
                 "codigo_barras": produto.get("codigo_barras", "")
             })

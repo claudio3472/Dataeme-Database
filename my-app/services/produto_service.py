@@ -601,7 +601,7 @@ def obter_produto_por_referencia(referencia):
 
 
 def obter_avaliacao(id_modelo):
-    
+
     response = (
         supabase
         .table("produtos")
@@ -611,45 +611,40 @@ def obter_avaliacao(id_modelo):
                 classificacao,
                 comentario,
                 data_avaliacao, 
-                
                 cliente (
                     nome
-                )
+                )  
             )
                 
         """)
         .eq("id_modelo", id_modelo)
         .execute()
     )
-    
+
     lista_avaliacao = []
 
-    for avaliacao in response.data:
-        
-        if avaliacao["comentario"].strip() is None:
+    for produto in response.data:
+
+        avaliacoes = produto.get("avaliacoes")
+
+        if not avaliacoes:
             continue
-        
-        lista_avaliacao.append({
-            
-            "classificacao":
-                avaliacao["classificacao"],
-            
-            "comentario":
-                avaliacao["comentario"],
-            
-            "data_avaliacao":
-                avaliacao["data_avaliacao"],
-            
-            "nome":
-                avaliacao["nome"]
-        })
-        
-        
-    return {
-        
-        "lista_avaliacao":
-            lista_avaliacao
-    }
+
+        for l in avaliacoes:
+
+            if not l.get("comentario"):
+                continue
+
+            cliente = l.get("cliente")
+
+            lista_avaliacao.append({
+                "classificacao": l["classificacao"],
+                "comentario": l["comentario"],
+                "data_avaliacao": l["data_avaliacao"],
+                "nome": cliente["nome"] if cliente else "Anónimo",
+            })
+
+    return lista_avaliacao
         
         
         

@@ -662,10 +662,17 @@ def produto(referencia):
     if produto is None:
 
         return "Produto não encontrado", 404
-
+    
+    lista_avaliacoes = obter_avaliacao(
+        produto["id_modelo"]
+    )
+    
+    print(lista_avaliacoes)
+    
     return render_template(
         "produto.html",
-        produto=produto
+        produto=produto,
+        lista_avaliacoes=lista_avaliacoes
     )
 
 
@@ -1204,7 +1211,7 @@ def produtos_admin():
 
         preco_base = request.form["preco_base"]
         stock = request.form["stock"]
-
+        iva = request.form["iva"]       
         descontinuado = (
             "descontinuado" in request.form
         )
@@ -1213,7 +1220,8 @@ def produtos_admin():
             referencia=referencia,
             preco_base=preco_base,
             stock=stock,
-            descontinuado=descontinuado
+            descontinuado=descontinuado,
+            iva= iva
         )
 
         if not resposta:
@@ -1730,11 +1738,20 @@ def configuracoes_impostos():
 
 @app.route("/configuracoes_admin/impostos/apagar_iva", methods=["POST"])
 def apagar_iva():
-
     id_iva = request.form["id_iva_apagar"]
-
+    novo_iva = request.form["iva_dropdown"]
+    
+    if not novo_iva or novo_iva == "":
+        ivas_atuais = obter_ivas()
+        
+        return render_template(
+            "configuracoes_impostos.html",
+            ivas=ivas_atuais,
+            erro="Os dados das taxas IVAs não foram alterados"
+        )
+        
     try:
-
+        supabase.table("produtos").update({"id_iva": novo_iva}).eq("id_iva", id_iva).execute()
         supabase.table("iva").delete().eq("id_iva", id_iva).execute()
 
     except postgrest.exceptions.APIError as e:
@@ -1749,10 +1766,12 @@ def apagar_iva():
             erro=erro
         )
 
-    return redirect(
-        url_for(
-            "configuracoes_impostos"
-        )
+    ivas_atuais = obter_ivas()
+            
+    return render_template(
+        "configuracoes_impostos.html",
+        ivas=ivas_atuais,
+        sucesso="Dados alterados com sucesso"
     )
 
 
