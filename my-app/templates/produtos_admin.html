@@ -75,6 +75,154 @@
         .campo {
             margin-bottom: 10px;
         }
+
+        /* ================= BOTÃO NOVO PRODUTO ================= */
+
+        .btn-novo-produto {
+            display: inline-block;
+            padding: 10px 18px;
+            background-color: #4472C4;
+            border: none;
+            border-radius: 15px;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 3px 8px rgba(68, 114, 196, 0.35);
+            margin-bottom: 15px;
+        }
+
+        .btn-novo-produto:hover {
+            opacity: 0.9;
+        }
+
+        .botoes-topo {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .btn-importar-excel {
+            display: inline-block;
+            padding: 10px 18px;
+            background-color: #1E7B34;
+            border-radius: 15px;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 3px 8px rgba(30, 123, 52, 0.35);
+        }
+
+        .btn-importar-excel:hover {
+            opacity: 0.9;
+        }
+
+        /* ================= MODAL / POP-UP ================= */
+
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.45);
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 20px;
+        }
+
+        .modal-overlay.aberto {
+            display: flex;
+        }
+
+        .modal-caixa {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            width: 100%;
+            max-width: 640px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+            position: relative;
+        }
+
+        .modal-caixa h2 {
+            margin-top: 0;
+        }
+
+        .modal-fechar {
+            position: absolute;
+            top: 18px;
+            right: 20px;
+            background: none;
+            border: none;
+            font-size: 22px;
+            line-height: 1;
+            cursor: pointer;
+            color: #555;
+        }
+
+        .modal-caixa .campo label {
+            display: block;
+            margin-bottom: 4px;
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+
+        .modal-caixa .campo select,
+        .modal-caixa .campo input {
+            width: 100%;
+            padding: 8px;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+            box-sizing: border-box;
+        }
+
+        .bloco-novo {
+            display: none;
+            border-left: 3px solid #4472C4;
+            padding-left: 12px;
+            margin: 10px 0 16px 0;
+        }
+
+        .bloco-novo.aberto {
+            display: block;
+        }
+
+        .linha-dupla {
+            display: flex;
+            gap: 10px;
+        }
+
+        .linha-dupla .campo {
+            flex: 1;
+        }
+
+        .modal-caixa hr {
+            border: none;
+            border-top: 1px solid #eee;
+            margin: 18px 0;
+        }
+
+        .modal-caixa .btn-guardar {
+            width: 100%;
+            padding: 12px;
+            background-color: #4472C4;
+            border: none;
+            border-radius: 15px;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 3px 8px rgba(68, 114, 196, 0.35);
+            margin-top: 5px;
+        }
+
+        .aviso-cor {
+            font-size: 0.8em;
+            color: #666;
+            margin-top: -4px;
+            margin-bottom: 10px;
+        }
     </style>
 </head>
 
@@ -98,6 +246,34 @@
 
 
 <div class="container">
+
+    <div class="botoes-topo">
+
+        <button type="button" class="btn-novo-produto" onclick="abrirModalNovoProduto()">
+            + Novo Produto
+        </button>
+
+        <form
+            method="POST"
+            action="{{ url_for('importar_produtos_admin') }}"
+            enctype="multipart/form-data"
+            id="formImportarExcel"
+        >
+            <label for="ficheiroExcel" class="btn-importar-excel">
+                📄 Importar Excel/CSV
+            </label>
+
+            <input
+                type="file"
+                id="ficheiroExcel"
+                name="ficheiro_excel"
+                accept=".xlsx,.xls,.csv"
+                style="display:none;"
+                onchange="document.getElementById('formImportarExcel').submit()"
+            >
+        </form>
+
+    </div>
 
     <!-- PESQUISA -->
     <div class="filtro_pesquisa">
@@ -424,6 +600,315 @@
     {% endfor %}
 
 </div>
+
+
+<!-- =========================
+     MODAL - NOVO PRODUTO
+     ========================= -->
+
+<div class="modal-overlay" id="modalNovoProduto">
+    <div class="modal-caixa">
+
+        <button type="button" class="modal-fechar" onclick="fecharModalNovoProduto()">&times;</button>
+
+        <h2>Novo Produto</h2>
+
+        <form method="POST" action="{{ url_for('criar_produto_admin_route') }}">
+
+            <!-- FAMÍLIA -->
+            <div class="campo">
+                <label>Família</label>
+                <select id="selectFamilia" name="familia_id" onchange="mudouFamilia()" required>
+                    <option value="">-- Escolher família --</option>
+                    {% for familia in familias %}
+                        <option value="{{ familia.id_familia }}">{{ familia.nome }}</option>
+                    {% endfor %}
+                    <option value="novo">+ Nova família</option>
+                </select>
+            </div>
+
+            <div class="bloco-novo" id="blocoFamiliaNova">
+                <div class="campo">
+                    <label>Nome da nova família</label>
+                    <input type="text" name="familia_nome_novo">
+                </div>
+                <div class="campo">
+                    <label>Cor da família (nome ou hex)</label>
+                    <input type="text" name="familia_cor_novo" placeholder="ex: azul ou #4472C4">
+                </div>
+            </div>
+
+            <!-- SUBFAMÍLIA -->
+            <div class="campo">
+                <label>Subfamília</label>
+                <select id="selectSubfamilia" name="subfamilia_id" onchange="mudouSubfamilia()" required disabled>
+                    <option value="">-- Escolher família primeiro --</option>
+                </select>
+            </div>
+
+            <div class="bloco-novo" id="blocoSubfamiliaNova">
+                <div class="campo">
+                    <label>Nome da nova subfamília</label>
+                    <input type="text" name="subfamilia_nome_novo">
+                </div>
+            </div>
+
+            <!-- MODELO -->
+            <div class="campo">
+                <label>Modelo</label>
+                <select id="selectModelo" name="modelo_id" onchange="mudouModelo()" required disabled>
+                    <option value="">-- Escolher subfamília primeiro --</option>
+                </select>
+            </div>
+
+            <div class="bloco-novo" id="blocoModeloNovo">
+                <div class="campo">
+                    <label>Nome do novo modelo</label>
+                    <input type="text" name="modelo_nome_novo">
+                </div>
+                <div class="campo">
+                    <label>Descrição (catálogo)</label>
+                    <input type="text" name="modelo_descricao_novo">
+                </div>
+                <div class="campo">
+                    <label>Descrição detalhada</label>
+                    <input type="text" name="modelo_descricao_detalhada_novo">
+                </div>
+            </div>
+
+            <hr>
+
+            <!-- COR -->
+            <div class="campo">
+                <label>Cor</label>
+                <select id="selectCor" name="cor_id" onchange="mudouCor()" required>
+                    <option value="">-- Escolher cor --</option>
+                    {% for cor in cores %}
+                        <option value="{{ cor.id_cor }}">{{ cor.nome_cor }}{% if cor.codigo_cor %} ({{ cor.codigo_cor }}){% endif %}</option>
+                    {% endfor %}
+                    <option value="novo">+ Nova cor</option>
+                </select>
+            </div>
+
+            <div class="bloco-novo" id="blocoCorNova">
+                <div class="campo">
+                    <label>Nome da nova cor (em qualquer idioma)</label>
+                    <input type="text" name="cor_nome_novo" placeholder="ex: vermelho escuro">
+                </div>
+                <p class="aviso-cor">
+                    O nome é traduzido automaticamente para inglês e convertido
+                    em código hex. Só preenche o campo abaixo se quiseres indicar
+                    o hex manualmente.
+                </p>
+                <div class="campo">
+                    <label>Código hex (opcional)</label>
+                    <input type="text" name="cor_hex_novo" placeholder="ex: #8B0000">
+                </div>
+            </div>
+
+            <hr>
+
+            <!-- REFERÊNCIA / PREÇO / STOCK -->
+            <div class="linha-dupla">
+                <div class="campo">
+                    <label>Referência</label>
+                    <input type="number" name="referencia" required>
+                </div>
+                <div class="campo">
+                    <label>IVA</label>
+                    <select name="id_iva" required>
+                        <option value="">--</option>
+                        {% for iva in ivas %}
+                            <option value="{{ iva.id_iva }}">{{ iva.percentagem }}%{% if iva.descricao %} - {{ iva.descricao }}{% endif %}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div class="linha-dupla">
+                <div class="campo">
+                    <label>Preço base</label>
+                    <input type="number" name="preco_base" step="0.01" min="0" required>
+                </div>
+                <div class="campo">
+                    <label>Stock</label>
+                    <input type="number" name="stock" min="0" max="2147483647" value="0" required>
+                </div>
+            </div>
+
+            <div class="campo">
+                <label>Código de barras (opcional)</label>
+                <input type="text" name="codigo_barras">
+            </div>
+
+            <div class="campo checkbox">
+                <label>
+                    <input type="checkbox" name="descontinuado">
+                    Produto descontinuado
+                </label>
+            </div>
+
+            <button type="submit" class="btn-guardar">Criar produto</button>
+
+        </form>
+
+    </div>
+</div>
+
+
+<script>
+
+    function abrirModalNovoProduto() {
+        document.getElementById("modalNovoProduto").classList.add("aberto");
+    }
+
+    function fecharModalNovoProduto() {
+        document.getElementById("modalNovoProduto").classList.remove("aberto");
+    }
+
+    // Fecha o pop-up ao clicar fora da caixa
+    document.getElementById("modalNovoProduto").addEventListener("click", function (evento) {
+        if (evento.target === this) {
+            fecharModalNovoProduto();
+        }
+    });
+
+    function preencherSelect(select, itens, chaveValor, chaveTexto, textoNovo) {
+
+        select.innerHTML = "";
+
+        const opcaoVazia = document.createElement("option");
+        opcaoVazia.value = "";
+        opcaoVazia.textContent = itens.length ? "-- Escolher --" : "-- Nenhuma existente --";
+        select.appendChild(opcaoVazia);
+
+        itens.forEach(function (item) {
+            const opcao = document.createElement("option");
+            opcao.value = item[chaveValor];
+            opcao.textContent = item[chaveTexto];
+            select.appendChild(opcao);
+        });
+
+        const opcaoNova = document.createElement("option");
+        opcaoNova.value = "novo";
+        opcaoNova.textContent = textoNovo;
+        select.appendChild(opcaoNova);
+
+        select.disabled = false;
+    }
+
+    function mudouFamilia() {
+
+        const selectFamilia = document.getElementById("selectFamilia");
+        const blocoFamiliaNova = document.getElementById("blocoFamiliaNova");
+        const selectSubfamilia = document.getElementById("selectSubfamilia");
+        const blocoSubfamiliaNova = document.getElementById("blocoSubfamiliaNova");
+
+        blocoSubfamiliaNova.classList.remove("aberto");
+        document.getElementById("blocoModeloNovo").classList.remove("aberto");
+
+        const selectModelo = document.getElementById("selectModelo");
+        selectModelo.innerHTML = '<option value="">-- Escolher subfamília primeiro --</option>';
+        selectModelo.disabled = true;
+
+        if (selectFamilia.value === "novo") {
+
+            blocoFamiliaNova.classList.add("aberto");
+
+            // Família ainda não existe -> não há subfamílias, tem de criar uma nova
+            selectSubfamilia.innerHTML = '';
+            const opcaoNova = document.createElement("option");
+            opcaoNova.value = "novo";
+            opcaoNova.textContent = "+ Nova subfamília";
+            selectSubfamilia.appendChild(opcaoNova);
+            selectSubfamilia.value = "novo";
+            selectSubfamilia.disabled = false;
+            mudouSubfamilia();
+
+            return;
+        }
+
+        blocoFamiliaNova.classList.remove("aberto");
+
+        if (!selectFamilia.value) {
+            selectSubfamilia.innerHTML = '<option value="">-- Escolher família primeiro --</option>';
+            selectSubfamilia.disabled = true;
+            return;
+        }
+
+        fetch("{{ url_for('api_subfamilias_admin') }}?familia=" + selectFamilia.value)
+            .then(function (resposta) { return resposta.json(); })
+            .then(function (subfamilias) {
+                preencherSelect(selectSubfamilia, subfamilias, "id_subfamilia", "nome", "+ Nova subfamília");
+            });
+    }
+
+    function mudouSubfamilia() {
+
+        const selectSubfamilia = document.getElementById("selectSubfamilia");
+        const blocoSubfamiliaNova = document.getElementById("blocoSubfamiliaNova");
+        const selectModelo = document.getElementById("selectModelo");
+        const blocoModeloNovo = document.getElementById("blocoModeloNovo");
+
+        blocoModeloNovo.classList.remove("aberto");
+
+        if (selectSubfamilia.value === "novo") {
+
+            blocoSubfamiliaNova.classList.add("aberto");
+
+            // Subfamília ainda não existe -> tem de criar um novo modelo
+            selectModelo.innerHTML = '';
+            const opcaoNova = document.createElement("option");
+            opcaoNova.value = "novo";
+            opcaoNova.textContent = "+ Novo modelo";
+            selectModelo.appendChild(opcaoNova);
+            selectModelo.value = "novo";
+            selectModelo.disabled = false;
+            mudouModelo();
+
+            return;
+        }
+
+        blocoSubfamiliaNova.classList.remove("aberto");
+
+        if (!selectSubfamilia.value) {
+            selectModelo.innerHTML = '<option value="">-- Escolher subfamília primeiro --</option>';
+            selectModelo.disabled = true;
+            return;
+        }
+
+        fetch("{{ url_for('api_modelos_admin') }}?subfamilia=" + selectSubfamilia.value)
+            .then(function (resposta) { return resposta.json(); })
+            .then(function (modelos) {
+                preencherSelect(selectModelo, modelos, "id_modelo", "nome_catalogo", "+ Novo modelo");
+            });
+    }
+
+    function mudouModelo() {
+
+        const selectModelo = document.getElementById("selectModelo");
+        const blocoModeloNovo = document.getElementById("blocoModeloNovo");
+
+        if (selectModelo.value === "novo") {
+            blocoModeloNovo.classList.add("aberto");
+        } else {
+            blocoModeloNovo.classList.remove("aberto");
+        }
+    }
+
+    function mudouCor() {
+
+        const selectCor = document.getElementById("selectCor");
+        const blocoCorNova = document.getElementById("blocoCorNova");
+
+        if (selectCor.value === "novo") {
+            blocoCorNova.classList.add("aberto");
+        } else {
+            blocoCorNova.classList.remove("aberto");
+        }
+    }
+
+</script>
 
 </body>
 </html>

@@ -17,24 +17,27 @@
             <a href="{{ url_for('catalogo') }}" class="{{ 'ativo' if not id_familia else '' }}">Todas as famílias</a>
 
             {% for familia in categorias %}
-
+                
                 <div class="familia-filtro">
 
-                    <a href="{{ url_for('catalogo', familia=familia.id_familia) }}" class="{{ 'ativo' if id_familia == familia.id_familia else '' }}">{{ familia.nome }}</a>
+                    <a href="{{ url_for('catalogo', familia=familia.id_familia) }}" class="{{ 'ativo' if id_familia == familia.id_familia else '' }}" style="background-color: {{ familia.cor }}";>{{ familia.nome }}</a>
 
 
                     {% if id_familia == familia.id_familia and familia.subfamilias %}
 
                         <div class="subfamilia-filtro">
+                            <a href="{{ url_for('catalogo', familia=familia.id_familia) }}" class="{{ 'ativo' if not id_subfamilia else '' }}" style="{{ 'background-color: ' ~ familia.cor ~ '; border-color: ' ~ familia.cor ~ ';' if not id_subfamilia else '' }}">Todas</a>
 
-                            <a href="{{ url_for('catalogo', familia=familia.id_familia) }}" class="{{ 'ativo' if not id_subfamilia else '' }}">Todas</a>
+                           {% for sub in familia.subfamilias %}
 
-                            {% for sub in familia.subfamilias %}
+    
+                                <a href="{{ url_for('catalogo', familia=familia.id_familia, subfamilia=sub.id_subfamilia) }}"
+                                class="{{ 'ativo' if id_subfamilia|string == sub.id_subfamilia|string else '' }}"
+                                style="{{ 'background-color: ' ~ familia.cor ~ '; border-color: ' ~ familia.cor ~ ';' if id_subfamilia|string == sub.id_subfamilia|string else '' }}"
+                        
+                            >{{ sub.nome }}</a>
 
-                                <a href="{{ url_for('catalogo', familia=familia.id_familia, subfamilia=sub.id_subfamilia) }}" class="{{ 'ativo' if id_subfamilia == sub.id_subfamilia else '' }}">{{ sub.nome }}</a>
-
-                            {% endfor %}
-
+{% endfor %}
                         </div>
 
                     {% endif %}
@@ -50,9 +53,12 @@
 
         {% set subfamilia_anterior = namespace(valor='') %}
 
+        {% set grid_aberto = namespace(valor=False) %}
+
 
         {% for produto in produtos %}
 
+            {% set cat_atual = categorias | selectattr('nome', 'equalto', produto.familia) | first %}
 
             <!-- =========================
                  NOVA FAMÍLIA
@@ -60,23 +66,19 @@
 
             {% if familia_anterior.valor != produto.familia %}
 
-
-                {% if not loop.first %}
+                {% if grid_aberto.valor %}
                     </div>
+                    {% set grid_aberto.valor = False %}
                 {% endif %}
 
-
-                <div class="familia">
+                <div class="familia" style="background-color: {{ cat_atual.cor if cat_atual else '#ccc' }};">
 
                     {{ produto.familia }}
 
                 </div>
 
-
                 {% set familia_anterior.valor = produto.familia %}
-
                 {% set subfamilia_anterior.valor = '' %}
-
 
             {% endif %}
 
@@ -88,24 +90,21 @@
 
             {% if subfamilia_anterior.valor != produto.subfamilia %}
 
-
-                {% if not loop.first %}
+                {% if grid_aberto.valor %}
                     </div>
+                    {% set grid_aberto.valor = False %}
                 {% endif %}
 
-
-                <div class="subfamilia">
+                <div class="subfamilia" style="border-bottom: 3px solid {{ cat_atual.cor if cat_atual else '#ccc' }};">
 
                     {{ produto.subfamilia }}
 
                 </div>
 
-
                 <div class="produtos">
 
-
                 {% set subfamilia_anterior.valor = produto.subfamilia %}
-
+                {% set grid_aberto.valor = True %}
 
             {% endif %}
 

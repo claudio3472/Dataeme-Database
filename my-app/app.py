@@ -5,7 +5,8 @@ from flask import (
     redirect,
     session,
     url_for,
-    send_from_directory
+    send_from_directory,
+    jsonify
 )
 
 import postgrest
@@ -36,7 +37,8 @@ from services.clientes_service import (
 from services.produto_service import (
     obter_produtos,
     obter_produto_por_referencia,
-    obter_categorias
+    obter_categorias,
+    obter_avaliacao
 )
 
 from services.email_service import (
@@ -67,7 +69,12 @@ from services.admin_service import (
     obter_ivas,
     atualizar_ivas,
     criar_ivas,
-    agrupar_itens_pedidos
+    agrupar_itens_pedidos,
+    obter_familias,
+    obter_subfamilias,
+    obter_modelos,
+    obter_cores,
+    criar_produto_admin
 )
 
 from gerarPDF import(
@@ -655,10 +662,17 @@ def produto(referencia):
     if produto is None:
 
         return "Produto não encontrado", 404
-
+    
+    lista_avaliacoes = obter_avaliacao(
+        produto["id_modelo"]
+    )
+    
+    print(lista_avaliacoes)
+    
     return render_template(
         "produto.html",
-        produto=produto
+        produto=produto,
+        lista_avaliacoes=lista_avaliacoes
     )
 
 
@@ -1197,7 +1211,7 @@ def produtos_admin():
 
         preco_base = request.form["preco_base"]
         stock = request.form["stock"]
-
+        iva = request.form["iva"]       
         descontinuado = (
             "descontinuado" in request.form
         )
@@ -1206,7 +1220,8 @@ def produtos_admin():
             referencia=referencia,
             preco_base=preco_base,
             stock=stock,
-            descontinuado=descontinuado
+            descontinuado=descontinuado,
+            iva= iva
         )
 
         if not resposta:
@@ -1242,8 +1257,140 @@ def produtos_admin():
         filtro=filtro,
         categorias=categorias,
         id_familia=id_familia,
-        id_subfamilia=id_subfamilia
+        id_subfamilia=id_subfamilia,
+        familias=obter_familias(),
+        cores=obter_cores(),
+        ivas=obter_ivas()
     )
+
+
+# ============================================================
+# ADMIN - PRODUTOS - CRIAR NOVO PRODUTO (POP-UP)
+# ============================================================
+
+@app.route("/produtos_admin/criar", methods=["POST"])
+def criar_produto_admin_route():
+
+    if "id_utilizador" not in session:
+        return redirect(url_for("login"))
+
+    if not session.get("is_admin", False):
+        return redirect(url_for("login"))
+
+    try:
+
+        criar_produto_admin(request.form)
+
+    except ValueError as e:
+
+        return redirect(
+            url_for(
+                "produtos_admin",
+                erro=str(e)
+            )
+        )
+
+    except postgrest.exceptions.APIError as e:
+
+        print("Erro da base de dados ao criar produto:", e)
+
+        return redirect(
+            url_for(
+                "produtos_admin",
+                erro="Não foi possível criar o produto (verifica os dados)."
+            )
+        )
+
+    except Exception as e:
+
+        print("Erro ao criar produto:", e)
+
+        return redirect(
+            url_for(
+                "produtos_admin",
+                erro="Ocorreu um erro inesperado ao criar o produto."
+            )
+        )
+
+    return redirect(
+        url_for(
+            "produtos_admin",
+            sucesso="Produto criado com sucesso."
+        )
+    )
+
+
+# ============================================================
+# ADMIN - PRODUTOS - DROPDOWNS DEPENDENTES (JSON)
+# ============================================================
+
+@app.route("/produtos_admin/api/subfamilias")
+def api_subfamilias_admin():
+
+    if "id_utilizador" not in session or not session.get("is_admin", False):
+        return jsonify([]), 403
+
+    id_familia = request.args.get("familia", type=int)
+
+    return jsonify(obter_subfamilias(id_familia))
+
+
+@app.route("/produtos_admin/api/modelos")
+def api_modelos_admin():
+
+    if "id_utilizador" not in session or not session.get("is_admin", False):
+        return jsonify([]), 403
+
+    id_subfamilia = request.args.get("subfamilia", type=int)
+
+    return jsonify(obter_modelos(id_subfamilia))
+
+
+# ============================================================
+# ADMIN - PRODUTOS - IMPORTAR EXCEL (por agora só regista o carregamento)
+# ============================================================
+
+@app.route("/produtos_admin/importar", methods=["POST"])
+def importar_produtos_admin():
+
+    if "id_utilizador" not in session:
+        return redirect(url_for("login"))
+
+    if not session.get("is_admin", False):
+        return redirect(url_for("login"))
+
+    ficheiro = request.files.get("ficheiro_excel")
+
+    if not ficheiro or ficheiro.filename == "":
+
+        return redirect(
+            url_for(
+                "produtos_admin",
+                erro="Nenhum ficheiro foi selecionado."
+            )
+        )
+
+    extensoes_aceites = (".xlsx", ".xls", ".csv")
+
+    if not ficheiro.filename.lower().endswith(extensoes_aceites):
+
+        return redirect(
+            url_for(
+                "produtos_admin",
+                erro="Formato não suportado. Envia um ficheiro .xlsx, .xls ou .csv."
+            )
+        )
+
+    # Por agora não processamos o conteúdo - só confirmamos o carregamento.
+    print(f"[Importar Excel/CSV] Ficheiro recebido: {ficheiro.filename}")
+
+    return redirect(
+        url_for(
+            "produtos_admin",
+            sucesso=f"Ficheiro '{ficheiro.filename}' foi carregado."
+        )
+    )
+
 
 # ============================================================
 # ADMIN - CLIENTES
@@ -1591,11 +1738,20 @@ def configuracoes_impostos():
 
 @app.route("/configuracoes_admin/impostos/apagar_iva", methods=["POST"])
 def apagar_iva():
-
     id_iva = request.form["id_iva_apagar"]
-
+    novo_iva = request.form["iva_dropdown"]
+    
+    if not novo_iva or novo_iva == "":
+        ivas_atuais = obter_ivas()
+        
+        return render_template(
+            "configuracoes_impostos.html",
+            ivas=ivas_atuais,
+            erro="Os dados das taxas IVAs não foram alterados"
+        )
+        
     try:
-
+        supabase.table("produtos").update({"id_iva": novo_iva}).eq("id_iva", id_iva).execute()
         supabase.table("iva").delete().eq("id_iva", id_iva).execute()
 
     except postgrest.exceptions.APIError as e:
@@ -1610,10 +1766,12 @@ def apagar_iva():
             erro=erro
         )
 
-    return redirect(
-        url_for(
-            "configuracoes_impostos"
-        )
+    ivas_atuais = obter_ivas()
+            
+    return render_template(
+        "configuracoes_impostos.html",
+        ivas=ivas_atuais,
+        sucesso="Dados alterados com sucesso"
     )
 
 
