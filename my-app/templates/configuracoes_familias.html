@@ -10,7 +10,7 @@
         content="width=device-width, initial-scale=1.0"
     >
 
-    <title>Impostos - DataEme</title>
+    <title>Famílias - DataEme</title>
 
     <link
         rel="stylesheet"
@@ -114,9 +114,9 @@
             background-color: #dfe6f5;
         }
 
-        .iva-linha {
+        .familia-linha {
             display: grid;
-            grid-template-columns: 1fr 140px 40px;
+            grid-template-columns: 1fr 1fr 140px 40px;
             gap: 20px;
             align-items: center;
 
@@ -124,19 +124,20 @@
             border-bottom: 1px solid #eee;
         }
 
-        .iva-linha:last-of-type {
+        .familia-linha:last-of-type {
             border-bottom: none;
         }
 
-        .iva-descricao label,
-        .iva-percentagem label {
+        .familia-descricao label,
+        .familia-percentagem label,
+        .familia-nome label {
             display: block;
             color: #777;
             font-size: 13px;
             margin-bottom: 6px;
         }
 
-        .iva-descricao input {
+        .familia-descricao input {
             width: 100%;
             padding: 10px 12px;
             border: 1px solid #ddd;
@@ -144,13 +145,13 @@
             font-size: 15px;
         }
 
-        .iva-percentagem-campo {
+        .familia-percentagem-campo {
             display: flex;
             align-items: center;
             gap: 6px;
         }
 
-        .iva-percentagem-campo input {
+        .familia-percentagem-campo input {
             width: 100%;
             padding: 10px 12px;
             border: 1px solid #ddd;
@@ -159,7 +160,7 @@
             text-align: right;
         }
 
-        .iva-percentagem-campo span {
+        .familia-percentagem-campo span {
             font-weight: bold;
             color: #555;
         }
@@ -175,7 +176,7 @@
             margin-top: 18px;
         }
 
-        .iva-linha.iva-nova .botao-remover {
+        .familia-linha.familia-nova .botao-remover {
             visibility: visible;
         }
 
@@ -203,8 +204,8 @@
                 padding: 20px;
             }
 
-            .iva-linha {
-                grid-template-columns: 1fr 100px 30px;
+            .familia-linha {
+                grid-template-columns: 1fr 1fr 140px 40px;
                 gap: 10px;
             }
 
@@ -269,6 +270,14 @@
             box-sizing: border-box;
         }
 
+        .familia-nome input{
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 15px;
+        }
+
     </style>
 
 </head>
@@ -304,15 +313,15 @@
 
             &nbsp; / &nbsp;
 
-            Impostos
+            Famílias
 
         </div>
 
 
-        <div class="pagina-titulo">Impostos</div>
+        <div class="pagina-titulo">Famílias</div>
 
         <div class="pagina-subtitulo">
-            Gerir as taxas de IVA usadas no cálculo dos preços.
+            Gerir as famílias de produtos.
         </div>
 
         {% if sucesso %}
@@ -336,54 +345,60 @@
 
             <div class="painel-cabecalho">
 
-                <h2>Taxas de IVA</h2>
+                <h2> Famílias </h2>
 
-                <button type="button" class="botao-adicionar" id="botao-adicionar-iva">
+                <!--<button type="button" class="botao-adicionar" id="botao-adicionar-familia">
                     + Nova taxa
-                </button>
+                </button> -->
 
             </div>
 
-            <form method="POST" id="form-ivas" action="{{ url_for('configuracoes_impostos') }}">
+            <form method="POST" id="form-familias" action="{{ url_for('configuracoes_familias') }}">
 
-                <div id="ivas-container">
+                <div id="familias-container">
 
-                    {% for iva in ivas %}
+                    {% for familia in familias %}
 
-                        <div class="iva-linha">
+                        <div class="familia-linha">
 
-                            <input type="hidden" name="id_iva" value="{{ iva.id_iva }}">
+                            <input type="hidden" name="id_familia" value="{{ familia.id_familia }}">
 
-                            <div class="iva-descricao">
-                                <label>Descrição</label>
+                            <div class="familia-nome">
+
+                                <label>Nome</label>
                                 <input
                                     type="text"
-                                    name="descricao_{{ iva.id_iva }}"
-                                    value="{{ iva.descricao or '' }}"
-                                    placeholder="Ex: Taxa normal"
+                                    name="nome_{{ familia.id_familia }}"
+                                    value="{{ familia.nome }}"
+                                    required
                                 >
                             </div>
 
-                            <div class="iva-percentagem">
-                                <label>Percentagem</label>
-                                <div class="iva-percentagem-campo">
+                            <div class="familia-descricao">
+                                <label>Descrição</label>
+                                <input
+                                    type="text"
+                                    name="descricao_{{ familia.id_familia }}"
+                                    value="{{ familia.descricao or '' }}"
+                                >
+                            </div>
+
+                            <div class="familia-percentagem">
+                                <label>Cor</label>
+                                <div class="familia-percentagem-campo">
                                     <input
-                                        type="number"
-                                        name="percentagem_{{ iva.id_iva }}"
-                                        value="{{ iva.percentagem }}"
-                                        min="0"
-                                        max="100"
-                                        step="0.01"
+                                        type="text"
+                                        name="percentagem_{{ familia.id_familia }}"
+                                        value="{{ familia.cor }}"
                                         required
                                     >
-                                    <span>%</span>
                                 </div>
                             </div>
 
                             <button
                                 type="button"
                                 class="botao-remover"
-                                onclick="abrirConfiguracaoTaxa({{ iva.id_iva }})"
+                                onclick="abrirConfiguracaoFamilia({{ familia.id_familia }})"
                             >&times;</button>
 
                         </div>
@@ -392,9 +407,9 @@
 
                 </div>
 
-                {% if not ivas %}
+                {% if not familias %}
 
-                    <p id="mensagem-vazio">Não existem taxas de IVA configuradas.</p>
+                    <p id="mensagem-vazio">Não existem famílias.</p>
 
                 {% endif %}
 
@@ -410,20 +425,20 @@
 
 
     <!-- =========================
-         MODAL - CONFIGURAÇÃO TAXA
+         MODAL - CONFIGURAÇÃO FAMÍLIA
          (fora do loop: existe uma única vez na página)
          ========================= -->
 
-    <div class="modal-overlay" id="configuracaoTaxa">
+    <div class="modal-overlay" id="configuracaoFamilia">
         <div class="modal-caixa">
 
-            <button type="button" class="modal-fechar" onclick="fecharConfiguracaoTaxa()">&times;</button>
+            <button type="button" class="modal-fechar" onclick="fecharConfiguracaoFamilia()">&times;</button>
 
-            <h2>Configurar Taxa IVA</h2>
+            <h2>Configurar Famílias</h2>
 
             <div class="campo">
-                <label for="configuracaoDropdown">Alterar para outra taxa existente</label>
-                <select id="configuracaoDropdown" name="iva_dropdown" form="form-ivas"></select>
+                <label for="configuracaoDropdown">Alterar para outra família existente</label>
+                <select id="configuracaoDropdown" name="familia_dropdown" form="form-familias"></select>
             </div>
 
             <div id="configuracaoRemover"></div>
@@ -434,15 +449,15 @@
 
     <script>
 
-        // Lista de IVAs disponível no lado do JavaScript, gerada em segurança pelo Jinja
-        const todasIvas = {{ ivas | tojson }};
+        // Lista de famílias disponível no lado do JavaScript, gerada em segurança pelo Jinja
+        const todasFamilias = {{ familias | tojson }};
 
         let contadorNovas = 0;
 
-        const container = document.getElementById("ivas-container");
-        const botaoAdicionar = document.getElementById("botao-adicionar-iva");
+        const container = document.getElementById("familias-container");
+        const botaoAdicionar = document.getElementById("botao-adicionar-familia");
         const mensagemVazio = document.getElementById("mensagem-vazio");
-        const formIvas = document.getElementById("form-ivas");
+        const formFamilias = document.getElementById("form-familias");
         const botaoGuardar = document.querySelector(".botao-guardar");
 
         function criarLinhaVazia() {
@@ -452,34 +467,39 @@
             const idTemporario = "novo-" + contadorNovas;
 
             const linha = document.createElement("div");
-            linha.className = "iva-linha iva-nova";
+            linha.className = "familia-linha familia-nova";
 
             linha.innerHTML = `
-                <input type="hidden" name="id_iva" value="${idTemporario}">
+                <input type="hidden" name="id_familia" value="${idTemporario}">
 
-                <div class="iva-descricao">
+                <div class="familia-descricao">
+                    <label>Nome</label>
+                    <input
+                        type="text"
+                        name="nome_${idTemporario}"
+                        required
+                    >
+                </div>
+
+                <div class="familia-descricao">
                     <label>Descrição</label>
                     <input
                         type="text"
                         name="descricao_${idTemporario}"
-                        placeholder="Ex: Taxa reduzida"
                     >
                 </div>
 
-                <div class="iva-percentagem">
-                    <label>Percentagem</label>
-                    <div class="iva-percentagem-campo">
+                <div class="familia-percentagem">
+                    <label>Cor</label>
+                    <div class="familia-percentagem-campo">
                         <input
-                            type="number"
+                            type="text"
                             name="percentagem_${idTemporario}"
-                            min="0"
-                            max="100"
-                            step="0.01"
-                            placeholder="0.00"
+                            required
                         >
-                        <span>%</span>
                     </div>
                 </div>
+
 
                 <button type="button" class="botao-remover" title="Remover">&times;</button>
             `;
@@ -503,7 +523,7 @@
             criarLinhaVazia();
         });
 
-        formIvas.addEventListener("keydown", function (evento) {
+        formFamilias.addEventListener("keydown", function (evento) {
 
             if (evento.key === "Enter" && evento.target.tagName === "INPUT") {
 
@@ -515,54 +535,54 @@
         });
 
 
-        function abrirConfiguracaoTaxa(id_iva) {
+        function abrirConfiguracaoFamilia(id_familia) {
 
             const select = document.getElementById("configuracaoDropdown");
             select.innerHTML = "";
 
-            document.getElementById("configuracaoTaxa").classList.add("aberto");
+            document.getElementById("configuracaoFamilia").classList.add("aberto");
 
             const opcaoVazia = document.createElement("option");
             opcaoVazia.value = "";
-            opcaoVazia.textContent = todasIvas.length > 1 ? "-- Escolher --" : "-- Nenhuma existente --";
+            opcaoVazia.textContent = todasFamilias.length > 1 ? "-- Escolher --" : "-- Nenhuma existente --";
             select.appendChild(opcaoVazia);
 
-            todasIvas.forEach(function (item) {
+            todasFamilias.forEach(function (item) {
 
                 // não mostrar a própria taxa como alternativa a ela mesma
-                if (item.id_iva === id_iva) {
+                if (item.id_familia === id_familia) {
                     return;
                 }
 
                 const opcao = document.createElement("option");
-                opcao.value = item.id_iva;
-                opcao.textContent = item.descricao + " (" + item.percentagem + "%)";
+                opcao.value = item.id_familia;
+                opcao.textContent = item.nome;
                 select.appendChild(opcao);
             });
 
             document.getElementById("configuracaoRemover").innerHTML = `
-                <p>Altera o IVA para outro valor</p>
+                <p>Altera a família para outro valor</p>
                 <button
                     type="submit"
-                    form="form-ivas"
-                    formaction="{{ url_for('apagar_iva') }}"
-                    name="id_iva_apagar"
-                    value="${id_iva}"
+                    form="form-familias"
+                    formaction="{{ url_for('apagar_familia') }}"
+                    name="id_familia_apagar"
+                    value="${id_familia}"
                     class="botao-remover"
                     title="Remover"
-                    onclick="return confirm('Tem a certeza que quer apagar esta taxa de IVA? Todos os produtos com este IVA vão passar a ter o iva selecionado.');"
+                    onclick="return confirm('Tem a certeza que quer apagar esta família? Todos os produtos com esta família vão passar a ter a família selecionada.');"
                 >&times;</button>
             `;
         }
 
-        function fecharConfiguracaoTaxa() {
-            document.getElementById("configuracaoTaxa").classList.remove("aberto");
+        function fecharConfiguracaoFamilia() {
+            document.getElementById("configuracaoFamilia").classList.remove("aberto");
         }
 
         // Fecha o pop-up ao clicar fora da caixa
-        document.getElementById("configuracaoTaxa").addEventListener("click", function (evento) {
+        document.getElementById("configuracaoFamilia").addEventListener("click", function (evento) {
             if (evento.target === this) {
-                fecharConfiguracaoTaxa();
+                fecharConfiguracaoFamilia();
             }
         });
 

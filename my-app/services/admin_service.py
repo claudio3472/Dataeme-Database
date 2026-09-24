@@ -1,6 +1,7 @@
 import difflib
 import re
 import unicodedata
+import pandas as pd
 
 from deep_translator import GoogleTranslator
 import webcolors
@@ -327,6 +328,7 @@ def agrupar_itens_pedidos(info):
 def obter_produtos_admin(filtro=None, id_familia=None, id_subfamilia=None):
     """
     Obtém os modelos de produtos e todas as suas variantes (cores).
+    Ordenado pela ordem da família (e nome do modelo como desempate).
     """
 
     # --------------------------------------------------------
@@ -348,7 +350,7 @@ def obter_produtos_admin(filtro=None, id_familia=None, id_subfamilia=None):
     familias_response = (
         supabase
         .table("familia")
-        .select("id_familia, nome")
+        .select("id_familia, nome, ordem")
         .execute()
     )
 
@@ -390,7 +392,6 @@ def obter_produtos_admin(filtro=None, id_familia=None, id_subfamilia=None):
             "descricao_detalhada, "
             "id_subfamilia"
         )
-        .order("nome_catalogo")
     )
 
     if filtro:
@@ -432,7 +433,6 @@ def obter_produtos_admin(filtro=None, id_familia=None, id_subfamilia=None):
             "quantidade_stock",
             "codigo_barras_produto",
             "id_iva"
-
         )
         .in_("id_modelo", ids_modelo)
         .order("referencia")
@@ -549,10 +549,18 @@ def obter_produtos_admin(filtro=None, id_familia=None, id_subfamilia=None):
             "descricao_detalhada": modelo["descricao_detalhada"],
             "familia": familia["nome"] if familia else "",
             "id_familia": familia["id_familia"] if familia else None,
+            "ordem_familia": familia["ordem"] if familia else None,
             "subfamilia": subfamilia["nome"] if subfamilia else "",
             "id_subfamilia": subfamilia["id_subfamilia"] if subfamilia else None,
             "variantes": variantes
         })
+
+    resultado.sort(
+        key=lambda item: (
+            item["ordem_familia"] if item["ordem_familia"] is not None else float("inf"),
+            item["nome"]
+        )
+    )
 
     return resultado
 
@@ -569,7 +577,7 @@ def obter_familias():
     response = (
         supabase
         .table("familia")
-        .select("id_familia, nome")
+        .select("id_familia, nome, cor, descricao")
         .order("nome")
         .execute()
     )
@@ -1262,3 +1270,5 @@ def atualizar_estado_pedido_admin(id_pedido, estado):
         return None
 
     return response.data[0]
+
+

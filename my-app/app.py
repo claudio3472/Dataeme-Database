@@ -85,6 +85,10 @@ from services.avaliacao_service import (
     comparar_avaliacao
 )
 
+from load_products import (
+    importar_produtos
+)
+
 app = Flask(__name__)
 
 app.secret_key = "ALTERAR_PARA_UMA_CHAVE_SECRETA"
@@ -1383,7 +1387,9 @@ def importar_produtos_admin():
 
     # Por agora não processamos o conteúdo - só confirmamos o carregamento.
     print(f"[Importar Excel/CSV] Ficheiro recebido: {ficheiro.filename}")
-
+    importar_produtos(ficheiro)
+    
+    
     return redirect(
         url_for(
             "produtos_admin",
@@ -1655,8 +1661,9 @@ def configuracoes_admin():
     )
 
 
-
-
+# ============================================================
+# ADMIN - CONFIGURAÇÕES - IMPOSTOS
+# ============================================================
 @app.route("/configuracoes_admin/impostos", methods=["GET", "POST"])
 def configuracoes_impostos():
 
@@ -1837,7 +1844,61 @@ def configuracoes_utilizadores():
     return render_template(
         "configuracoes_utilizadores.html"
     )
+    
+    
+# ============================================================
+# ADMIN - CONFIGURAÇÕES (MENU)
+# ============================================================
 
+@app.route("/configuracoes_admin/familias", methods=["GET", "POST"])
+def configuracoes_familias():
+    
+    if "id_utilizador" not in session:
+        return redirect(url_for("login"))
+
+    if not session.get("is_admin", False):
+        return redirect(url_for("login"))
+    
+    
+    familias = obter_familias()
+
+    return render_template(
+        "configuracoes_familias.html",
+        familias=familias
+    )
+
+@app.route("/configuracoes_admin/impostos/apagar_familia", methods=["POST"])
+def apagar_familia():
+    '''id_familia = request.form["id_familia_apagar"]
+    novo_familia = request.form["familia_dropdown"]
+    
+    if not novo_familia or novo_familia == "":
+        familias_atuais = obter_familias()
+        
+        return render_template(
+            "configuracoes_familias.html",
+            familias=familias_atuais,
+            erro="Os dados das famílias não foram alterados"
+        )
+        
+    try:
+        supabase.table("produtos").update({"id_iva": novo_iva}).eq("id_iva", id_iva).execute()
+        supabase.table("iva").delete().eq("id_iva", id_iva).execute()
+
+    except postgrest.exceptions.APIError as e:
+
+        erro = traduzir_erro_iva(e)
+'''
+    familias_atuais = obter_familias()
+
+    return render_template(
+        "configuracoes_familias.html",
+        familias=familias_atuais
+    )
+
+# ============================================================
+# CARREGAR ICON
+# ============================================================
 
 @app.route('/media/<path:filename>')
 def media(filename):
