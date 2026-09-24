@@ -41,14 +41,34 @@
 
         .cliente{
             display: grid;
-            grid: 5px / auto auto auto;
+            grid: 20px / 33% 33% 33%;
             padding:10px;
             margin-top: 8px;
-            
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+
         }
 
-        .cliente_element{
+        .cliente_element_nome {
             text-align: center;
+            margin-left: 0px;
+            margin-right: auto;
+        }
+
+        .cliente_element_nif{
+            text-align: center;
+        }
+
+        .cliente_element_editar{
+            text-align: center;
+            text-decoration: none;
+            color: white;
+            font-size: 18px;
+            height: 20px;
+            background-color: #2f6fed;
+            width: 40%;
+            border-radius: 8px;
+            margin-right: 0px;
+            margin-left: auto;
         }
 
         .info p{
@@ -59,15 +79,6 @@
             margin-top: 10px;
         }
 
-        .editar{
-            text-decoration: none;
-            color: white;
-            font-size: 18px;
-            height: 20px;
-            background-color: #2f6fed;
-            width: auto;
-            border-radius: 8px;
-        }
     </style>
 </head>
 
@@ -141,11 +152,11 @@
 
                 <div class="cliente">
 
-                    <strong class="cliente_element">
+                    <strong class="cliente_element_nome">
                         {{ c.nome }}
                     </strong>
 
-                    <span class="cliente_element">
+                    <span class="cliente_element_nif">
                         NIF: {{ c.nif }}
                     </span>
 
@@ -154,7 +165,7 @@
                             'clientes_admin',
                             cliente=c.id_cliente,
                             filtro=filtro
-                        ) }}" class="cliente_element editar"
+                        ) }}" class="cliente_element_editar"
                     >
                         Ver / Editar
                     </a>
