@@ -1,6 +1,7 @@
 import difflib
 import re
 import unicodedata
+import pandas as pd
 
 from deep_translator import GoogleTranslator
 import webcolors
@@ -1262,3 +1263,5 @@ def atualizar_estado_pedido_admin(id_pedido, estado):
         return None
 
     return response.data[0]
+
+

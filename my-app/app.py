@@ -85,6 +85,10 @@ from services.avaliacao_service import (
     comparar_avaliacao
 )
 
+from load_products import (
+    importar_produtos
+)
+
 app = Flask(__name__)
 
 app.secret_key = "ALTERAR_PARA_UMA_CHAVE_SECRETA"
@@ -1383,7 +1387,9 @@ def importar_produtos_admin():
 
     # Por agora não processamos o conteúdo - só confirmamos o carregamento.
     print(f"[Importar Excel/CSV] Ficheiro recebido: {ficheiro.filename}")
-
+    importar_produtos(ficheiro)
+    
+    
     return redirect(
         url_for(
             "produtos_admin",
