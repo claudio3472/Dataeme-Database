@@ -74,7 +74,10 @@ from services.admin_service import (
     obter_subfamilias,
     obter_modelos,
     obter_cores,
-    criar_produto_admin
+    criar_produto_admin,
+    atualizar_familias,
+    apagar_familia_admin,
+    atualizar_modelo_subfamilia
 )
 
 from gerarPDF import(
@@ -1325,6 +1328,54 @@ def criar_produto_admin_route():
 
 
 # ============================================================
+# ADMIN - PRODUTOS - ATUALIZAR FAMÍLIA/SUBFAMÍLIA DE UM MODELO
+# ============================================================
+
+@app.route("/produtos_admin/atualizar_familia", methods=["POST"])
+def atualizar_familia_modelo_admin():
+
+    if "id_utilizador" not in session:
+        return redirect(url_for("login"))
+
+    if not session.get("is_admin", False):
+        return redirect(url_for("login"))
+
+    id_modelo = request.form.get("id_modelo")
+    id_subfamilia = request.form.get("subfamilia_id")
+
+    try:
+
+        atualizar_modelo_subfamilia(id_modelo, id_subfamilia)
+
+    except ValueError as e:
+
+        return redirect(
+            url_for(
+                "produtos_admin",
+                erro=str(e)
+            )
+        )
+
+    except postgrest.exceptions.APIError as e:
+
+        print("Erro ao atualizar família/subfamília do modelo:", e)
+
+        return redirect(
+            url_for(
+                "produtos_admin",
+                erro="Não foi possível atualizar a família/subfamília do modelo."
+            )
+        )
+
+    return redirect(
+        url_for(
+            "produtos_admin",
+            sucesso="Família/subfamília atualizada com sucesso."
+        )
+    )
+
+
+# ============================================================
 # ADMIN - PRODUTOS - DROPDOWNS DEPENDENTES (JSON)
 # ============================================================
 
@@ -1852,49 +1903,121 @@ def configuracoes_utilizadores():
 
 @app.route("/configuracoes_admin/familias", methods=["GET", "POST"])
 def configuracoes_familias():
-    
+
     if "id_utilizador" not in session:
         return redirect(url_for("login"))
 
     if not session.get("is_admin", False):
         return redirect(url_for("login"))
-    
-    
+
+    if request.method == "POST":
+
+        ids = request.form.getlist("id_familia")
+
+        familias_form = []
+
+        for id_familia in ids:
+
+            # Criação de novas famílias não é suportada por este
+            # formulário (só edição de famílias já existentes).
+            if id_familia.startswith("novo-"):
+                continue
+
+            familias_form.append({
+                "id_familia": id_familia,
+                "nome": request.form.get(f"nome_{id_familia}"),
+                "descricao": request.form.get(f"descricao_{id_familia}"),
+                "cor": request.form.get(f"percentagem_{id_familia}")
+            })
+
+        try:
+
+            if familias_form:
+                atualizar_familias(familias_form)
+
+        except postgrest.exceptions.APIError as e:
+
+            erro = traduzir_erro_familia(e)
+
+            familias_atuais = obter_familias()
+
+            return render_template(
+                "configuracoes_familias.html",
+                familias=familias_atuais,
+                erro=erro
+            )
+
+        return redirect(
+            url_for(
+                "configuracoes_familias",
+                sucesso="Famílias atualizadas com sucesso."
+            )
+        )
+
     familias = obter_familias()
+
+    sucesso = request.args.get("sucesso")
 
     return render_template(
         "configuracoes_familias.html",
-        familias=familias
+        familias=familias,
+        sucesso=sucesso
     )
+
 
 @app.route("/configuracoes_admin/impostos/apagar_familia", methods=["POST"])
 def apagar_familia():
-    '''id_familia = request.form["id_familia_apagar"]
-    novo_familia = request.form["familia_dropdown"]
-    
-    if not novo_familia or novo_familia == "":
+
+    id_familia = request.form["id_familia_apagar"]
+    id_subfamilia_destino = request.form.get("subfamilia_dropdown")
+
+    try:
+        apagar_familia_admin(id_familia, id_subfamilia_destino)
+
+    except ValueError as e:
+
         familias_atuais = obter_familias()
-        
+
         return render_template(
             "configuracoes_familias.html",
             familias=familias_atuais,
-            erro="Os dados das famílias não foram alterados"
+            erro=str(e)
         )
-        
-    try:
-        supabase.table("produtos").update({"id_iva": novo_iva}).eq("id_iva", id_iva).execute()
-        supabase.table("iva").delete().eq("id_iva", id_iva).execute()
 
     except postgrest.exceptions.APIError as e:
 
-        erro = traduzir_erro_iva(e)
-'''
+        erro = traduzir_erro_familia(e)
+
+        familias_atuais = obter_familias()
+
+        return render_template(
+            "configuracoes_familias.html",
+            familias=familias_atuais,
+            erro=erro
+        )
+
     familias_atuais = obter_familias()
 
     return render_template(
         "configuracoes_familias.html",
-        familias=familias_atuais
+        familias=familias_atuais,
+        sucesso="Família apagada com sucesso."
     )
+
+
+def traduzir_erro_familia(e):
+    """
+    Converte erros conhecidos do Postgres/Supabase, ao guardar ou
+    apagar famílias, em mensagens percetíveis para o utilizador.
+    """
+
+    mensagem = str(e)
+
+    if "familia_nome" in mensagem and ("unique" in mensagem or "key" in mensagem):
+        return "Já existe uma família com esse nome."
+
+    # Fallback genérico para qualquer outro erro de BD não previsto
+    return "Não foi possível guardar as alterações. Verifica os valores e tenta novamente."
 
 # ============================================================
 # CARREGAR ICON

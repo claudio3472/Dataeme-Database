@@ -242,6 +242,54 @@
             opacity: 0.9;
         }
 
+        /* ================= FAMÍLIA / SUBFAMÍLIA EDITÁVEIS ================= */
+
+        .form-familia-modelo {
+            margin-top: 8px;
+            margin-bottom: 4px;
+        }
+
+        .linha-familia-subfamilia {
+            display: flex;
+            gap: 10px;
+            align-items: flex-end;
+            flex-wrap: wrap;
+        }
+
+        .linha-familia-subfamilia .campo {
+            display: flex;
+            flex-direction: column;
+            min-width: 160px;
+            margin-bottom: 0;
+        }
+
+        .linha-familia-subfamilia .campo label {
+            font-size: 0.75em;
+            color: #777;
+            margin-bottom: 4px;
+        }
+
+        .linha-familia-subfamilia select {
+            padding: 8px;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+        }
+
+        .btn-guardar-familia {
+            padding: 9px 16px;
+            background-color: #4472C4;
+            border: none;
+            border-radius: 10px;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 3px 8px rgba(68, 114, 196, 0.35);
+        }
+
+        .btn-guardar-familia:hover {
+            opacity: 0.9;
+        }
+
     </style>
 </head>
 
@@ -396,30 +444,7 @@
     {% endif %}
 
 
-    {% set familia_anterior = namespace(valor='') %}
-
-
     {% for produto in produtos %}
-
-        <!-- FAMÍLIA -->
-
-        {% if familia_anterior.valor != produto.familia %}
-
-            <div class="familia">
-                {{ produto.familia }}
-            </div>
-
-            {% set familia_anterior.valor = produto.familia %}
-
-        {% endif %}
-
-
-        <!-- SUBFAMÍLIA -->
-
-        <div class="subfamilia">
-            {{ produto.subfamilia }}
-        </div>
-
 
         <!-- MODELO -->
 
@@ -436,6 +461,63 @@
                         {{ produto.descricao }}
                     </p>
                 {% endif %}
+
+
+                <!-- FAMÍLIA / SUBFAMÍLIA (EDITÁVEIS) -->
+
+                <form
+                    method="POST"
+                    action="{{ url_for('atualizar_familia_modelo_admin') }}"
+                    class="form-familia-modelo"
+                >
+
+                    <input type="hidden" name="id_modelo" value="{{ produto.id_modelo }}">
+
+                    <div class="linha-familia-subfamilia">
+
+                        <div class="campo">
+                            <label>Família</label>
+                            <select
+                                name="familia_id"
+                                class="select-familia-modelo"
+                                onchange="mudouFamiliaModelo(this)"
+                                required
+                            >
+                                <option value="">-- Escolher --</option>
+                                {% for familia in familias %}
+                                    <option
+                                        value="{{ familia.id_familia }}"
+                                        {{ 'selected' if familia.id_familia == produto.id_familia else '' }}
+                                    >
+                                        {{ familia.nome }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="campo">
+                            <label>Subfamília</label>
+                            <select
+                                name="subfamilia_id"
+                                class="select-subfamilia-modelo"
+                                data-atual="{{ produto.id_subfamilia or '' }}"
+                                required
+                            >
+                                {% if produto.id_subfamilia %}
+                                    <option value="{{ produto.id_subfamilia }}" selected>{{ produto.subfamilia }}</option>
+                                {% else %}
+                                    <option value="">-- Escolher família --</option>
+                                {% endif %}
+                            </select>
+                        </div>
+
+                        <button type="submit" class="btn-guardar-familia">
+                            Guardar
+                        </button>
+
+                    </div>
+
+                </form>
 
             </div>
 
@@ -935,6 +1017,55 @@
             blocoCorNova.classList.remove("aberto");
         }
     }
+
+    // ================= FAMÍLIA / SUBFAMÍLIA POR MODELO (LISTA) =================
+
+    function carregarSubfamiliasModelo(selectFamilia, manterAtual) {
+
+        const linha = selectFamilia.closest(".linha-familia-subfamilia");
+        const selectSubfamilia = linha.querySelector(".select-subfamilia-modelo");
+        const idAtual = manterAtual ? selectSubfamilia.dataset.atual : "";
+
+        if (!selectFamilia.value) {
+            selectSubfamilia.innerHTML = '<option value="">-- Escolher família --</option>';
+            return;
+        }
+
+        fetch("{{ url_for('api_subfamilias_admin') }}?familia=" + selectFamilia.value)
+            .then(function (resposta) { return resposta.json(); })
+            .then(function (subfamilias) {
+
+                selectSubfamilia.innerHTML = "";
+
+                if (!subfamilias.length) {
+                    selectSubfamilia.innerHTML = '<option value="">-- Sem subfamílias --</option>';
+                    return;
+                }
+
+                subfamilias.forEach(function (sub) {
+
+                    const opcao = document.createElement("option");
+                    opcao.value = sub.id_subfamilia;
+                    opcao.textContent = sub.nome;
+
+                    if (idAtual && String(sub.id_subfamilia) === String(idAtual)) {
+                        opcao.selected = true;
+                    }
+
+                    selectSubfamilia.appendChild(opcao);
+                });
+            });
+    }
+
+    function mudouFamiliaModelo(selectFamilia) {
+        carregarSubfamiliasModelo(selectFamilia, false);
+    }
+
+    // Ao carregar a página, preenche a subfamília de cada modelo
+    // de acordo com a família já atribuída, mantendo a subfamília atual selecionada.
+    document.querySelectorAll(".select-familia-modelo").forEach(function (select) {
+        carregarSubfamiliasModelo(select, true);
+    });
 
 </script>
 

@@ -176,6 +176,24 @@ def traduzir_e_converter_cor(nome_cor_original):
     return _nome_cor_para_hex(nome_ingles)
 
 
+def _resolver_cor_familia(cor_bruta):
+    """
+    Aceita a cor de uma família tal como vem do formulário: pode já
+    ser um código hex (ex: "#4472C4") ou o nome de uma cor em
+    qualquer idioma (ex: "azul", "brick red"). Devolve sempre um
+    código hex válido, traduzindo e convertendo o nome quando
+    necessário através das funções já existentes para as cores dos
+    produtos.
+    """
+
+    cor_bruta = (cor_bruta or "").strip()
+
+    if re.fullmatch(r"#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})", cor_bruta):
+        return cor_bruta
+
+    return traduzir_e_converter_cor(cor_bruta)
+
+
 def obter_ivas():
     """
     Obtém todas as taxas de IVA existentes.
@@ -673,6 +691,160 @@ def criar_familia(nome, cor, ordem, pagina_inicial, pagina_final, descricao=None
     return response.data[0] if response.data else None
 
 
+def atualizar_familias(familias):
+    """
+    Atualiza o nome, a descrição e a cor de famílias existentes.
+
+    'familias' é uma lista de dicionários:
+    [
+        {"id_familia": 1, "nome": "Roupa", "descricao": "...", "cor": "azul"},
+        {"id_familia": 2, "nome": "Calçado", "descricao": "...", "cor": "#4472C4"}
+    ]
+
+    A cor pode vir como código hex (ex: "#4472C4") ou como nome de
+    cor em qualquer idioma; nomes são traduzidos e convertidos
+    automaticamente para hex antes de serem guardados.
+    """
+
+    resultado = []
+
+    for familia in familias:
+
+        id_familia = familia.get("id_familia")
+        nome = (familia.get("nome") or "").strip()
+        descricao = familia.get("descricao")
+
+        if not nome:
+            continue
+
+        try:
+            id_familia = int(id_familia)
+        except (TypeError, ValueError):
+            continue
+
+        cor = _resolver_cor_familia(familia.get("cor"))
+
+        response = (
+            supabase
+            .table("familia")
+            .update({
+                "nome": nome,
+                "descricao": descricao,
+                "cor": cor
+            })
+            .eq("id_familia", id_familia)
+            .execute()
+        )
+
+        if response.data:
+            resultado.append(response.data[0])
+
+    return resultado
+
+
+def apagar_familia_admin(id_familia, id_subfamilia_destino=None):
+    """
+    Apaga uma família.
+
+    Se a família tiver subfamílias (e, através delas, modelos e
+    produtos associados), é obrigatório indicar 'id_subfamilia_destino':
+    o id de uma subfamília já existente de OUTRA família, para onde
+    todos os modelos (e respetivas variantes/produtos) são movidos
+    antes de as subfamílias e a família antigas serem apagadas.
+
+    Isto garante que tanto a família como a subfamília de todos os
+    produtos que estavam na família apagada ficam atualizadas.
+    """
+
+    id_familia = int(id_familia)
+
+    subfamilias_response = (
+        supabase
+        .table("subfamilia")
+        .select("id_subfamilia")
+        .eq("familia_id_familia", id_familia)
+        .execute()
+    )
+
+    ids_subfamilias_antigas = [
+        s["id_subfamilia"] for s in (subfamilias_response.data or [])
+    ]
+
+    if ids_subfamilias_antigas:
+
+        if not id_subfamilia_destino:
+            raise ValueError(
+                "Esta família tem produtos associados. Escolhe uma "
+                "família e subfamília de destino para onde os mover."
+            )
+
+        try:
+            id_subfamilia_destino = int(id_subfamilia_destino)
+        except (TypeError, ValueError):
+            raise ValueError("A subfamília de destino escolhida não é válida.")
+
+        if id_subfamilia_destino in ids_subfamilias_antigas:
+            raise ValueError(
+                "A subfamília de destino tem de pertencer a outra família."
+            )
+
+        # Move todos os modelos (e, por consequência, todas as suas
+        # variantes/produtos) para a subfamília de destino - isto
+        # atualiza de uma vez a família e a subfamília dos produtos
+        # que estavam na família apagada.
+        (
+            supabase
+            .table("produtos_modelo")
+            .update({"id_subfamilia": id_subfamilia_destino})
+            .in_("id_subfamilia", ids_subfamilias_antigas)
+            .execute()
+        )
+
+        # As subfamílias antigas ficam sem modelos - podem ser apagadas.
+        (
+            supabase
+            .table("subfamilia")
+            .delete()
+            .in_("id_subfamilia", ids_subfamilias_antigas)
+            .execute()
+        )
+
+    (
+        supabase
+        .table("familia")
+        .delete()
+        .eq("id_familia", id_familia)
+        .execute()
+    )
+
+
+def atualizar_modelo_subfamilia(id_modelo, id_subfamilia):
+    """
+    Atualiza a subfamília de um modelo de produto já existente.
+
+    Como a família de um modelo é sempre determinada pela sua
+    subfamília, mudar a subfamília aqui atualiza automaticamente
+    também a família apresentada para esse modelo (e para todas as
+    suas variantes/produtos).
+    """
+
+    try:
+        id_modelo = int(id_modelo)
+        id_subfamilia = int(id_subfamilia)
+    except (TypeError, ValueError):
+        raise ValueError("É necessário escolher uma família e uma subfamília válidas.")
+
+    response = (
+        supabase
+        .table("produtos_modelo")
+        .update({"id_subfamilia": id_subfamilia})
+        .eq("id_modelo", id_modelo)
+        .execute()
+    )
+
+    return response.data[0] if response.data else None
+
+
 def criar_subfamilia(nome, id_familia, ordem, pagina, descricao=None):
     """
     Cria uma nova subfamília dentro de uma família existente.
@@ -866,10 +1038,7 @@ def criar_produto_admin(dados):
         # Caso contrário, trata-se de um nome de cor (em qualquer
         # idioma) e traduz-se/converte-se para hex, tal como
         # acontece com a cor das variantes de produto.
-        if re.fullmatch(r"#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})", cor_familia_bruta):
-            cor_familia = cor_familia_bruta
-        else:
-            cor_familia = traduzir_e_converter_cor(cor_familia_bruta)
+        cor_familia = _resolver_cor_familia(cor_familia_bruta)
 
         familia = criar_familia(
             nome=nome_familia,
@@ -1270,5 +1439,3 @@ def atualizar_estado_pedido_admin(id_pedido, estado):
         return None
 
     return response.data[0]
-
-

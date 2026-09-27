@@ -437,8 +437,13 @@
             <h2>Configurar Famílias</h2>
 
             <div class="campo">
-                <label for="configuracaoDropdown">Alterar para outra família existente</label>
+                <label for="configuracaoDropdown">Mover produtos para esta família</label>
                 <select id="configuracaoDropdown" name="familia_dropdown" form="form-familias"></select>
+            </div>
+
+            <div class="campo" id="campoSubfamiliaMover" style="display:none;">
+                <label for="configuracaoSubfamiliaDropdown">Mover produtos para esta subfamília</label>
+                <select id="configuracaoSubfamiliaDropdown" name="subfamilia_dropdown" form="form-familias"></select>
             </div>
 
             <div id="configuracaoRemover"></div>
@@ -538,7 +543,12 @@
         function abrirConfiguracaoFamilia(id_familia) {
 
             const select = document.getElementById("configuracaoDropdown");
+            const campoSubfamilia = document.getElementById("campoSubfamiliaMover");
+            const selectSubfamilia = document.getElementById("configuracaoSubfamiliaDropdown");
+
             select.innerHTML = "";
+            selectSubfamilia.innerHTML = "";
+            campoSubfamilia.style.display = "none";
 
             document.getElementById("configuracaoFamilia").classList.add("aberto");
 
@@ -549,7 +559,7 @@
 
             todasFamilias.forEach(function (item) {
 
-                // não mostrar a própria taxa como alternativa a ela mesma
+                // não mostrar a própria família como alternativa a ela mesma
                 if (item.id_familia === id_familia) {
                     return;
                 }
@@ -560,8 +570,16 @@
                 select.appendChild(opcao);
             });
 
+            select.onchange = function () {
+                carregarSubfamiliasParaMover(select.value);
+            };
+
             document.getElementById("configuracaoRemover").innerHTML = `
-                <p>Altera a família para outro valor</p>
+                <p>
+                    Se esta família tiver produtos associados, escolhe acima a
+                    família e a subfamília de destino: todos esses produtos
+                    passam a ter a nova família e subfamília escolhidas.
+                </p>
                 <button
                     type="submit"
                     form="form-familias"
@@ -570,9 +588,38 @@
                     value="${id_familia}"
                     class="botao-remover"
                     title="Remover"
-                    onclick="return confirm('Tem a certeza que quer apagar esta família? Todos os produtos com esta família vão passar a ter a família selecionada.');"
+                    onclick="return confirm('Tem a certeza que quer apagar esta família? Se tiver produtos associados, eles vão passar a ter a família e subfamília escolhidas.');"
                 >&times;</button>
             `;
+        }
+
+        function carregarSubfamiliasParaMover(id_familia) {
+
+            const campoSubfamilia = document.getElementById("campoSubfamiliaMover");
+            const selectSubfamilia = document.getElementById("configuracaoSubfamiliaDropdown");
+
+            selectSubfamilia.innerHTML = "";
+
+            if (!id_familia) {
+                campoSubfamilia.style.display = "none";
+                return;
+            }
+
+            fetch("{{ url_for('api_subfamilias_admin') }}?familia=" + id_familia)
+                .then(function (resposta) {
+                    return resposta.json();
+                })
+                .then(function (subfamilias) {
+
+                    subfamilias.forEach(function (sub) {
+                        const opcao = document.createElement("option");
+                        opcao.value = sub.id_subfamilia;
+                        opcao.textContent = sub.nome;
+                        selectSubfamilia.appendChild(opcao);
+                    });
+
+                    campoSubfamilia.style.display = subfamilias.length ? "block" : "none";
+                });
         }
 
         function fecharConfiguracaoFamilia() {

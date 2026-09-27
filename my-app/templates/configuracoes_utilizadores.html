@@ -50,7 +50,15 @@
         .breadcrumb a:hover {
             text-decoration: underline;
         }
-        
+
+        .campo-so-cliente {
+            display: none;
+        }
+
+        .campo-so-cliente.visivel {
+            display: block;
+        }
+
     </style>
 
 </head>
@@ -91,7 +99,7 @@
 
         <div class="card">
             
-            <form method="POST">
+            <form method="POST" id="form-criar-utilizador">
 
                 <p>
                     <strong>Admin:</strong>
@@ -101,6 +109,7 @@
                         name="admin"
                         id="yes"
                         value="True"
+                        onchange="mudouTipoUtilizador()"
                         required
                     >
                     <label for="yes">Sim</label>
@@ -110,6 +119,7 @@
                         name="admin"
                         id="no"
                         value="False"
+                        onchange="mudouTipoUtilizador()"
                         required
                     >
                     <label for="no">Não</label>
@@ -126,27 +136,27 @@
                     >
                 </p>
 
-                <p>
+                <p class="campo-so-cliente" id="campoNif">
                     <strong>NIF:</strong>
                     <input
                         type="text"
                         name="nif"
                         value=""
-                        required
+                        id="inputNif"
                     >
                 </p>
 
-                <p>
+                <p class="campo-so-cliente" id="campoEmail">
                     <strong>Email:</strong>
                     <input
                         type="email"
                         name="email"
                         value=""
-                        required
+                        id="inputEmail"
                     >
                 </p>
 
-                <p>
+                <p class="campo-so-cliente" id="campoTelefone">
                     <strong>Telefone:</strong>
 
                     <input
@@ -154,19 +164,19 @@
                         name="ind"
                         value=""
                         placeholder="+351"
-                        required
                         style="width: 60px;"
+                        id="inputInd"
                     >
 
                     <input
                         type="tel"
                         name="tel"
                         value=""
-                        required
+                        id="inputTel"
                     >
                 </p>
 
-                <p>
+                <p class="campo-so-cliente" id="campoPostal">
                     <strong>Código Postal:</strong>
 
                     <input
@@ -174,8 +184,8 @@
                         name="postal"
                         value=""
                         placeholder="0000-000"
-                        required
                         style="width: 90px;"
+                        id="inputPostal"
                     >
 
                     <input
@@ -183,18 +193,18 @@
                         name="local"
                         value=""
                         placeholder="Localidade"
-                        required
+                        id="inputLocal"
                     >
                 </p>
 
-                <p>
+                <p class="campo-so-cliente" id="campoMorada">
                     <strong>Morada:</strong>
 
                     <input
                         type="text"
                         name="morada"
                         value=""
-                        required
+                        id="inputMorada"
                     >
                 </p>
 
@@ -209,14 +219,14 @@
                     >
                 </p>
 
-                <p>
+                <p class="campo-so-cliente" id="campoConfirmarPassword">
                     <strong>Confirmar Password:</strong>
 
                     <input
                         type="password"
                         name="confirmar_password"
                         value=""
-                        required
+                        id="inputConfirmarPassword"
                     >
                 </p>
 
@@ -245,4 +255,45 @@
             </form>
         </div>
     </div>
+
+    <script>
+
+        const camposSoCliente = document.querySelectorAll(".campo-so-cliente");
+
+        // Campos que só são obrigatórios quando o utilizador é um cliente normal
+        const inputsSoCliente = [
+            document.getElementById("inputNif"),
+            document.getElementById("inputEmail"),
+            document.getElementById("inputInd"),
+            document.getElementById("inputTel"),
+            document.getElementById("inputPostal"),
+            document.getElementById("inputLocal"),
+            document.getElementById("inputMorada"),
+            document.getElementById("inputConfirmarPassword")
+        ];
+
+        function mudouTipoUtilizador() {
+
+            const isAdmin = document.getElementById("yes").checked;
+
+            camposSoCliente.forEach(function (campo) {
+                campo.classList.toggle("visivel", !isAdmin);
+            });
+
+            inputsSoCliente.forEach(function (input) {
+
+                if (!input) {
+                    return;
+                }
+
+                input.required = !isAdmin;
+
+                if (isAdmin) {
+                    input.value = "";
+                }
+            });
+        }
+
+    </script>
+
 </body>

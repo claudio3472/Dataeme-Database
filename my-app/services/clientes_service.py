@@ -235,11 +235,29 @@ def verificar_duplicados(nif, email):
         )
 
 
+def verificar_username_disponivel(username):
+    utilizador_existe = (
+        supabase
+        .table("utilizador")
+        .select("username")
+        .eq("username", username)
+        .execute()
+    )
+
+    if utilizador_existe.data:
+        raise ValueError(
+            "Já existe um utilizador com esse nome de utilizador."
+        )
+
+
 def registar_cliente_web(form, admin=False):
     nome = form["nome"].strip()
     password = form["password"]
-    confirmar_password = form["confirmar_password"]
+
     if admin == False:
+
+        confirmar_password = form["confirmar_password"]
+
         nif = form["nif"].strip()
         morada = form["morada"].strip()
         email = form["email"].strip().lower()
@@ -265,12 +283,16 @@ def registar_cliente_web(form, admin=False):
                 nif,
                 email
             )
+
+    else:
+        verificar_username_disponivel(nome)
+
     validar_nome(nome)
 
     validar_password(password)
 
-    if password != confirmar_password:
-    
+    if admin == False and password != confirmar_password:
+
         raise ValueError(
             "A nova password não corresponde com a confirmação da password."
         )
