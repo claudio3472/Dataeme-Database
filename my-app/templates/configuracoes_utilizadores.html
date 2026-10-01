@@ -14,53 +14,6 @@
         href="{{ url_for('static', filename='css/style.css') }}"
     >
 
-    <style>
-        form p {
-            padding: 20px;
-            box-shadow: 0 3px 10px rgba(68, 67, 67, 0.08);
-        }
-            
-        form button {
-            margin-left: 20px;
-            padding: 10px;
-            font-size: 15px;
-        }
-
-        .submitContainer {
-            display: flex;
-            flex-direction: row;
-            gap: 20px;
-        }
-
-        .submitContainer div{
-            margin-top: 15px;
-        }
-
-                .breadcrumb {
-            margin-bottom: 25px;
-            color: #777;
-            font-size: 14px;
-        }
-
-        .breadcrumb a {
-            color: #4472C4;
-            text-decoration: none;
-        }
-
-        .breadcrumb a:hover {
-            text-decoration: underline;
-        }
-
-        .campo-so-cliente {
-            display: none;
-        }
-
-        .campo-so-cliente.visivel {
-            display: block;
-        }
-
-    </style>
-
 </head>
 
 <body>
@@ -98,8 +51,41 @@
         </div>
 
         <div class="card">
+
+            <div class="botao_container">
+
+                <form
+                    method="POST"
+                    action="{{ url_for('importar_utilizadores_admin') }}"
+                    enctype="multipart/form-data"
+                    id="formImportarExcel"
+                >
+                    <label for="ficheiroExcel" class="btn-importar-excel">
+                        📄 Importar Excel/CSV
+                    </label>
+
+                    <input
+                        type="file"
+                        id="ficheiroExcel"
+                        name="ficheiro_excel"
+                        accept=".xlsx,.xls,.csv"
+                        style="display:none;"
+                        onchange="document.getElementById('formImportarExcel').submit()"
+                    >
+                </form>
+
+                <a class="btn-download-produto"  href="{{ url_for('static', filename='data/Utilizadores_Modelo.xlsx') }}" download="Utilizadores_Modelo.xlsx">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 3v12"/>
+                        <path d="M7 10l5 5 5-5"/>
+                        <path d="M4 20h16"/>
+                    </svg>
+                    Download Template
+                </a>
+                
+            </div>
             
-            <form method="POST" id="form-criar-utilizador">
+            <form method="POST" id="form-criar-utilizador" class="form_utilizadores">
 
                 <p>
                     <strong>Admin:</strong>

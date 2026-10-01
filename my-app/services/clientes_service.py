@@ -194,7 +194,28 @@ def validar_password(password):
         )
 
 
-def verificar_duplicados(nif, email):
+def validar_numero_cliente(numero):
+    if not numero.isdigit() or int(numero) <= 0:
+        raise ValueError(
+            "O número de cliente deve ser um número inteiro positivo."
+        )
+
+
+def verificar_duplicados(nif, email, numero_cliente=None):
+    if numero_cliente is not None:
+        numero_existe = (
+            supabase
+            .table("cliente")
+            .select("numero_cliente")
+            .eq("numero_cliente", numero_cliente)
+            .execute()
+        )
+
+        if numero_existe.data:
+            raise ValueError(
+                "Já existe um cliente com esse número de cliente."
+            )
+
     nif_existe = (
         supabase
         .table("cliente")
@@ -250,7 +271,7 @@ def verificar_username_disponivel(username):
         )
 
 
-def registar_cliente_web(form, admin=False):
+def registar_cliente_web(form, admin=False, permitir_numero_manual=False):
     nome = form["nome"].strip()
     password = form["password"]
 
@@ -267,8 +288,17 @@ def registar_cliente_web(form, admin=False):
         localizacao = form["local"].strip()
         predio = form["predio"]
         andar = form["andar"].strip()
-        
-        
+
+        # Número de cliente: automático, a não ser que um admin o defina.
+        numero_cliente = None
+
+        if permitir_numero_manual:
+            numero_cliente = (form.get("numero_cliente") or "").strip() or None
+
+        if numero_cliente is not None:
+            validar_numero_cliente(numero_cliente)
+            numero_cliente = int(numero_cliente)
+
         validar_nif(nif)
         validar_indicativo(indicativo)
         validar_telefone(
@@ -281,7 +311,8 @@ def registar_cliente_web(form, admin=False):
         validar_morada(morada)
         verificar_duplicados(
                 nif,
-                email
+                email,
+                numero_cliente
             )
 
     else:
@@ -344,6 +375,10 @@ def registar_cliente_web(form, admin=False):
             "id_utilizador": id_utilizador
         }
 
+        # Se não for enviado, a base de dados gera o número automaticamente
+        if numero_cliente is not None:
+            cliente["numero_cliente"] = numero_cliente
+
         (
             supabase
             .table("cliente")
@@ -380,6 +415,7 @@ def obter_cliente(id_utilizador):
 
     return {
         "id_cliente": cliente["id_cliente"],
+        "numero_cliente": cliente["numero_cliente"],
         "nif": cliente["nif"],
         "nome": cliente["nome"],
         "morada": morada,

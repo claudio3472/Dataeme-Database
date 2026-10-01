@@ -1,6 +1,6 @@
 from config import supabase
 
-PRODUTOS_POR_PAGINA = 5
+PRODUTOS_POR_PAGINA = 50
 
 
 # ============================================================

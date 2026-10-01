@@ -92,6 +92,10 @@ from load_products import (
     importar_produtos
 )
 
+from load_utilizadores import (
+    importar_utilizadores
+)
+
 app = Flask(__name__)
 
 app.secret_key = "ALTERAR_PARA_UMA_CHAVE_SECRETA"
@@ -1250,10 +1254,13 @@ def produtos_admin():
     id_familia = request.args.get("familia", type=int)
     id_subfamilia = request.args.get("subfamilia", type=int)
 
-    produtos = obter_produtos_admin(
+    pagina = request.args.get("pagina", 1, type=int)
+
+    produtos, total_paginas, total_produtos = obter_produtos_admin(
         filtro,
         id_familia=id_familia,
-        id_subfamilia=id_subfamilia
+        id_subfamilia=id_subfamilia,
+        pagina=pagina
     )
 
     categorias = obter_categorias()
@@ -1265,6 +1272,9 @@ def produtos_admin():
         categorias=categorias,
         id_familia=id_familia,
         id_subfamilia=id_subfamilia,
+        pagina=min(max(pagina or 1, 1), total_paginas),
+        total_paginas=total_paginas,
+        total_produtos=total_produtos,
         familias=obter_familias(),
         cores=obter_cores(),
         ivas=obter_ivas()
@@ -1436,8 +1446,6 @@ def importar_produtos_admin():
             )
         )
 
-    # Por agora não processamos o conteúdo - só confirmamos o carregamento.
-    print(f"[Importar Excel/CSV] Ficheiro recebido: {ficheiro.filename}")
     importar_produtos(ficheiro)
     
     
@@ -1528,6 +1536,12 @@ def clientes_admin():
         andar = request.form[
             "andar"
         ].strip()
+
+        # Opcional: se o campo vier vazio, o número atual não é alterado
+        numero_cliente = request.form.get(
+            "numero_cliente",
+            ""
+        ).strip()
         
         if not predio:
             morada_completa = morada
@@ -1536,17 +1550,33 @@ def clientes_admin():
         else:
             morada_completa = f"{morada}, {predio}, {andar}"
 
-        response = atualizar_cliente_admin(
-            id_cliente,
-            nome,
-            nif,
-            email,
-            ind,
-            tel,
-            postal,
-            local,
-            morada_completa
-        )
+        try:
+
+            response = atualizar_cliente_admin(
+                id_cliente,
+                nome,
+                nif,
+                email,
+                ind,
+                tel,
+                postal,
+                local,
+                morada_completa,
+                numero_cliente
+            )
+
+        except Exception as e:
+
+            print("Erro ao alterar cliente:", e)
+
+            return redirect(
+                url_for(
+                    "clientes_admin",
+                    cliente=id_cliente,
+                    erro="Não foi possível alterar os dados. "
+                         "Verifica se o número de cliente, NIF ou email já existem."
+                )
+            )
 
         if not response:
 
@@ -1606,6 +1636,51 @@ def clientes_admin():
         filtro=filtro,
         sucesso=sucesso,
         erro=erro
+    )
+
+
+# ============================================================
+# ADMIN - CLIENTES - IMPORTAR EXCEL (por agora só regista o carregamento)
+# ============================================================
+
+@app.route("/configuracoes_utilizadores/importar", methods=["POST"])
+def importar_utilizadores_admin():
+
+    if "id_utilizador" not in session:
+        return redirect(url_for("login"))
+
+    if not session.get("is_admin", False):
+        return redirect(url_for("login"))
+
+    ficheiro = request.files.get("ficheiro_excel")
+
+    if not ficheiro or ficheiro.filename == "":
+
+        return redirect(
+            url_for(
+                "configuracoes_utilizadores",
+                erro="Nenhum ficheiro foi selecionado."
+            )
+        )
+
+    extensoes_aceites = (".xlsx", ".xls", ".csv")
+
+    if not ficheiro.filename.lower().endswith(extensoes_aceites):
+
+        return redirect(
+            url_for(
+                "configuracoes_utilizadores",
+                erro="Formato não suportado. Envia um ficheiro .xlsx, .xls ou .csv."
+            )
+        )
+
+    importar_utilizadores(ficheiro)
+    
+    return redirect(
+        url_for(
+            "configuracoes_utilizadores",
+            sucesso=f"Ficheiro '{ficheiro.filename}' foi carregado."
+        )
     )
 
 # ============================================================
@@ -1870,7 +1945,8 @@ def configuracoes_utilizadores():
 
         registar_cliente_web(
             request.form,
-            admin
+            admin,
+            permitir_numero_manual=session.get("is_admin", False)
         )
 
     except ValueError as e:

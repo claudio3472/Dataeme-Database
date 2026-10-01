@@ -16,199 +16,6 @@
         href="{{ url_for('static', filename='css/style.css') }}"
     >
 
-    <style>
-
-        .variantes {
-            display: flex;
-            flex-wrap: wrap; 
-            gap: 10px;
-            margin-top: 10px;
-            height: auto;
-        }
-
-        .variante {
-            display: flex;
-            flex-direction: column;
-            margin-bottom: 15px;
-            height: 100%;
-            width: min-content;
-            background-color: white;
-            border-radius: 12px;
-            padding: 30px;
-            row-gap: 5px;
-            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
-        }
-
-        .card.produto-modelo {
-            box-sizing: border-box;
-            width: 100%;
-            overflow-x: hidden;   
-        }
-
-
-        .campo {
-            margin-bottom: 10px;
-        }
-
-        /* ============================
-           FILTROS
-           ============================ */
-
-        .filtros-pedidos {
-            display: flex;
-            flex-wrap: wrap;
-            align-items: flex-end;
-            gap: 20px;
-
-            margin-bottom: 30px;
-            padding: 25px;
-
-            background-color: white;
-            border-radius: 12px;
-
-            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
-        }
-
-        .filtro-campo {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-        }
-
-        .filtro-campo label {
-            font-size: 13px;
-            color: #777;
-            font-weight: bold;
-        }
-
-        .filtro-campo input,
-        .filtro-campo select {
-            padding: 10px 12px;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            font-size: 14px;
-            min-width: 180px;
-        }
-
-        .filtro-datas {
-            display: none;
-            gap: 15px;
-        }
-
-        .filtro-datas.ativo {
-            display: flex;
-        }
-
-        .filtro-agrupar {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-
-            padding: 11px 4px;
-        }
-
-        .filtro-agrupar label {
-            font-size: 14px;
-            font-weight: bold;
-            color: #444;
-            cursor: pointer;
-        }
-
-        .filtro-agrupar input {
-            width: 18px;
-            height: 18px;
-            cursor: pointer;
-        }
-
-        .botao-filtrar {
-            background-color: #4472C4;
-            color: white;
-            border: none;
-            padding: 11px 22px;
-            border-radius: 8px;
-            font-weight: bold;
-            font-size: 14px;
-            cursor: pointer;
-            transition: background-color 0.2s ease;
-        }
-
-        .botao-filtrar:hover {
-            background-color: #2f5ca8;
-        }
-
-        .botao-limpar {
-            color: #4472C4;
-            text-decoration: none;
-            font-weight: bold;
-            font-size: 14px;
-            padding: 11px 4px;
-        }
-
-        .botao-limpar:hover {
-            text-decoration: underline;
-        }
-
-        .sem-pedidos {
-            background: white;
-            border-radius: 12px;
-            padding: 30px;
-            text-align: center;
-            color: #888;
-            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
-        }
-
-        /* ============================
-           TABELA AGRUPADA
-           ============================ */
-
-        .painel-agrupado {
-            background-color: white;
-            border-radius: 12px;
-            padding: 30px;
-            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
-            overflow-x: auto;
-        }
-
-        .painel-agrupado h2 {
-            margin-bottom: 20px;
-            font-size: 20px;
-            color: #222;
-        }
-
-        table.tabela-agrupada {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        table.tabela-agrupada th {
-            text-align: left;
-            font-size: 13px;
-            color: #777;
-            padding: 10px 12px;
-            border-bottom: 2px solid #eee;
-            white-space: nowrap;
-        }
-
-        table.tabela-agrupada td {
-            padding: 12px;
-            border-bottom: 1px solid #f2f2f2;
-            font-size: 14px;
-        }
-
-        table.tabela-agrupada tr:last-child td {
-            border-bottom: none;
-        }
-
-        .quantidade-badge {
-            display: inline-block;
-            background-color: #eef1f8;
-            color: #4472C4;
-            font-weight: bold;
-            padding: 4px 12px;
-            border-radius: 999px;
-        }
-
-    </style>
 </head>
 
 <body>
@@ -453,14 +260,14 @@
                     </form>
 
                     <!-- ESTE DIV SÓ ABRE UMA VEZ POR PEDIDO -->
-                    <div class="variantes">
+                    <div class="variantes_pedido">
 
             {% endif %}
 
 
                         <!-- PRODUTO (uma variante por linha) -->
 
-                        <div class="variante">
+                        <div class="variante_pedido">
 
                             <div class="campo">
                                 <label>Referência</label>
