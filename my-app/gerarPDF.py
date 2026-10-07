@@ -542,6 +542,7 @@ def obter_info_pdf(id):
                 data_pedido,
                 cliente(
                     nome,
+                    numero_cliente,
                     email,
                     nif,
                     morada,
@@ -598,7 +599,7 @@ def obter_info_pdf(id):
 
         "nome_cliente": cli["nome"],
         "email": cli["email"],
-        "num_cliente": ped["id_cliente"],
+        "num_cliente": cli["numero_cliente"],
         "nif": cli["nif"],
         "cliente_morada": cli.get("morada"),
         "cliente_codigo_postal": cli.get("codigo_postal"),

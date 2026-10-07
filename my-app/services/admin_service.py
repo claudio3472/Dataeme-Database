@@ -176,6 +176,24 @@ def traduzir_e_converter_cor(nome_cor_original):
     return _nome_cor_para_hex(nome_ingles)
 
 
+def _resolver_cor_familia(cor_bruta):
+    """
+    Aceita a cor de uma família tal como vem do formulário: pode já
+    ser um código hex (ex: "#4472C4") ou o nome de uma cor em
+    qualquer idioma (ex: "azul", "brick red"). Devolve sempre um
+    código hex válido, traduzindo e convertendo o nome quando
+    necessário através das funções já existentes para as cores dos
+    produtos.
+    """
+
+    cor_bruta = (cor_bruta or "").strip()
+
+    if re.fullmatch(r"#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})", cor_bruta):
+        return cor_bruta
+
+    return traduzir_e_converter_cor(cor_bruta)
+
+
 def obter_ivas():
     """
     Obtém todas as taxas de IVA existentes.
@@ -325,96 +343,80 @@ def agrupar_itens_pedidos(info):
     )
 
 
-def obter_produtos_admin(filtro=None, id_familia=None, id_subfamilia=None):
+PRODUTOS_ADMIN_POR_PAGINA = 20
+
+
+def obter_produtos_admin(filtro=None, id_familia=None, id_subfamilia=None, pagina=1):
     """
-    Obtém os modelos de produtos e todas as suas variantes (cores).
-    Ordenado pela ordem da família (e nome do modelo como desempate).
+    Obtém UMA página de modelos de produto, cada um com as suas variantes (cores).
+    Ordenado pela ordem da família e pelo nome do modelo.
+
+    A filtragem, a ordenação e a paginação são feitas na base de dados
+    (através da view v_modelos_admin), por isso só chegam à aplicação os
+    modelos da página pedida.
+
+    Devolve: (lista_de_modelos, total_de_paginas, total_de_modelos)
     """
 
-    # --------------------------------------------------------
-    # SUBFAMÍLIAS E FAMÍLIAS
-    # --------------------------------------------------------
+    por_pagina = PRODUTOS_ADMIN_POR_PAGINA
 
-    subfamilias_response = (
-        supabase
-        .table("subfamilia")
-        .select("id_subfamilia, nome, familia_id_familia")
-        .execute()
-    )
-
-    subfamilias = {
-        s["id_subfamilia"]: s
-        for s in (subfamilias_response.data or [])
-    }
-
-    familias_response = (
-        supabase
-        .table("familia")
-        .select("id_familia, nome, ordem")
-        .execute()
-    )
-
-    familias = {
-        f["id_familia"]: f
-        for f in (familias_response.data or [])
-    }
+    try:
+        pagina = max(1, int(pagina or 1))
+    except (TypeError, ValueError):
+        pagina = 1
 
     # --------------------------------------------------------
-    # RESTRINGIR SUBFAMÍLIAS RELEVANTES ANTES DE IR À BASE DE DADOS
+    # MODELOS DA PÁGINA (filtrados e ordenados na base de dados)
     # --------------------------------------------------------
 
-    ids_subfamilia_validas = None
+    def pedir_pagina(numero_pagina):
 
-    if id_subfamilia:
-        ids_subfamilia_validas = [id_subfamilia]
+        inicio = (numero_pagina - 1) * por_pagina
 
-    elif id_familia:
-        ids_subfamilia_validas = [
-            s["id_subfamilia"]
-            for s in subfamilias.values()
-            if s["familia_id_familia"] == id_familia
-        ]
-
-        if not ids_subfamilia_validas:
-            return []
-
-    # --------------------------------------------------------
-    # MODELOS
-    # --------------------------------------------------------
-
-    modelos_query = (
-        supabase
-        .table("produtos_modelo")
-        .select(
-            "id_modelo, "
-            "nome_catalogo, "
-            "descricao_catalogo, "
-            "descricao_detalhada, "
-            "id_subfamilia"
-        )
-    )
-
-    if filtro:
-        modelos_query = modelos_query.ilike(
-            "nome_catalogo",
-            f"%{filtro}%"
+        query = (
+            supabase
+            .table("v_modelos_admin")
+            .select("*", count="exact")
+            .order("ordem_familia")
+            .order("nome_catalogo")
+            .order("id_modelo")
         )
 
-    if ids_subfamilia_validas is not None:
-        modelos_query = modelos_query.in_(
-            "id_subfamilia",
-            ids_subfamilia_validas
-        )
+        if filtro:
+            query = query.ilike(
+                "nome_catalogo",
+                f"%{filtro}%"
+            )
 
-    modelos_response = modelos_query.execute()
+        if id_subfamilia:
+            query = query.eq("id_subfamilia", id_subfamilia)
 
-    if not modelos_response.data:
-        return []
+        elif id_familia:
+            query = query.eq("id_familia", id_familia)
 
-    modelos = modelos_response.data
+        return query.range(
+            inicio,
+            inicio + por_pagina - 1
+        ).execute()
+
+    resposta = pedir_pagina(pagina)
+
+    total = resposta.count or 0
+
+    total_paginas = max(1, -(-total // por_pagina))
+
+    # Página pedida para lá do fim (ex.: depois de apagar) -> última página
+    if pagina > total_paginas:
+        pagina = total_paginas
+        resposta = pedir_pagina(pagina)
+
+    modelos = resposta.data or []
+
+    if not modelos:
+        return [], total_paginas, total
 
     # --------------------------------------------------------
-    # UMA ÚNICA QUERY PARA TODAS AS VARIANTES DE TODOS OS MODELOS
+    # VARIANTES DOS MODELOS DESTA PÁGINA (poucas linhas)
     # --------------------------------------------------------
 
     ids_modelo = [
@@ -439,8 +441,18 @@ def obter_produtos_admin(filtro=None, id_familia=None, id_subfamilia=None):
         .execute()
     )
 
+    produtos_todos = produtos_response.data or []
+
+    produtos_por_modelo = {}
+
+    for produto in produtos_todos:
+        produtos_por_modelo.setdefault(
+            produto["id_modelo"],
+            []
+        ).append(produto)
+
     # --------------------------------------------------------
-    # IVAs — indexados pelo id_iva real (não pela posição na lista)
+    # IVAs (tabela pequena)
     # --------------------------------------------------------
 
     iva_response = (
@@ -462,19 +474,8 @@ def obter_produtos_admin(filtro=None, id_familia=None, id_subfamilia=None):
     # dropdowns/selects no template
     iva_lista = [iva["percentagem"] for iva in ivas]
 
-    produtos_todos = produtos_response.data or []
-
-    # Agrupar variantes por modelo (em memória, O(n))
-    produtos_por_modelo = {}
-
-    for produto in produtos_todos:
-        produtos_por_modelo.setdefault(
-            produto["id_modelo"],
-            []
-        ).append(produto)
-
     # --------------------------------------------------------
-    # UMA ÚNICA QUERY PARA TODAS AS CORES DE TODOS OS PRODUTOS
+    # CORES USADAS NESTA PÁGINA
     # --------------------------------------------------------
 
     cores_ids = list({
@@ -501,21 +502,17 @@ def obter_produtos_admin(filtro=None, id_familia=None, id_subfamilia=None):
             for c in (cores_response.data or [])
         }
 
-    # ========================================================
+    # --------------------------------------------------------
     # MONTAR RESULTADO
-    # ========================================================
+    # --------------------------------------------------------
 
     resultado = []
 
     for modelo in modelos:
 
-        id_modelo = modelo["id_modelo"]
-
-        produtos = produtos_por_modelo.get(id_modelo, [])
-
         variantes = []
 
-        for produto in produtos:
+        for produto in produtos_por_modelo.get(modelo["id_modelo"], []):
 
             cor = cores.get(produto["id_cor"])
 
@@ -530,39 +527,23 @@ def obter_produtos_admin(filtro=None, id_familia=None, id_subfamilia=None):
                 "stock": produto["quantidade_stock"],
                 "iva": ivas_por_id.get(produto["id_iva"]),
                 "iva_lista": iva_lista,
-                "codigo_barras": produto.get("codigo_barras", "")
+                "codigo_barras": produto.get("codigo_barras_produto") or ""
             })
-
-        subfamilia = subfamilias.get(modelo["id_subfamilia"])
-
-        familia = None
-
-        if subfamilia:
-            familia = familias.get(
-                subfamilia["familia_id_familia"]
-            )
 
         resultado.append({
             "id_modelo": modelo["id_modelo"],
             "nome": modelo["nome_catalogo"],
             "descricao": modelo["descricao_catalogo"],
             "descricao_detalhada": modelo["descricao_detalhada"],
-            "familia": familia["nome"] if familia else "",
-            "id_familia": familia["id_familia"] if familia else None,
-            "ordem_familia": familia["ordem"] if familia else None,
-            "subfamilia": subfamilia["nome"] if subfamilia else "",
-            "id_subfamilia": subfamilia["id_subfamilia"] if subfamilia else None,
+            "familia": modelo["familia"] or "",
+            "id_familia": modelo["id_familia"],
+            "ordem_familia": modelo["ordem_familia"],
+            "subfamilia": modelo["subfamilia"] or "",
+            "id_subfamilia": modelo["id_subfamilia"],
             "variantes": variantes
         })
 
-    resultado.sort(
-        key=lambda item: (
-            item["ordem_familia"] if item["ordem_familia"] is not None else float("inf"),
-            item["nome"]
-        )
-    )
-
-    return resultado
+    return resultado, total_paginas, total
 
 
 # ============================================================
@@ -650,30 +631,188 @@ def obter_cores():
 # NOVO PRODUTO - CRIAÇÃO DE FAMÍLIA / SUBFAMÍLIA / MODELO / COR
 # ============================================================
 
-def criar_familia(nome, cor, ordem, pagina_inicial, pagina_final, descricao=None):
+def criar_familia(nome, cor, ordem=None, descricao=None):
     """
     Cria uma nova família. 'cor' é o código/etiqueta de cor da
     própria família (usado no catálogo), não a cor de uma variante.
     """
 
+    dados = {
+        "nome": nome,
+        "descricao": descricao,
+        "cor": cor
+    }
+
+    # Se 'ordem' não for indicada, a base de dados atribui o
+    # número seguinte automaticamente.
+    if ordem is not None:
+        dados["ordem"] = ordem
+
     response = (
         supabase
         .table("familia")
-        .insert({
-            "nome": nome,
-            "descricao": descricao,
-            "ordem": ordem,
-            "pagina_inicial": pagina_inicial,
-            "pagina_final": pagina_final,
-            "cor": cor
-        })
+        .insert(dados)
         .execute()
     )
 
     return response.data[0] if response.data else None
 
 
-def criar_subfamilia(nome, id_familia, ordem, pagina, descricao=None):
+def atualizar_familias(familias):
+    """
+    Atualiza o nome, a descrição e a cor de famílias existentes.
+
+    'familias' é uma lista de dicionários:
+    [
+        {"id_familia": 1, "nome": "Roupa", "descricao": "...", "cor": "azul"},
+        {"id_familia": 2, "nome": "Calçado", "descricao": "...", "cor": "#4472C4"}
+    ]
+
+    A cor pode vir como código hex (ex: "#4472C4") ou como nome de
+    cor em qualquer idioma; nomes são traduzidos e convertidos
+    automaticamente para hex antes de serem guardados.
+    """
+
+    resultado = []
+
+    for familia in familias:
+
+        id_familia = familia.get("id_familia")
+        nome = (familia.get("nome") or "").strip()
+        descricao = familia.get("descricao")
+
+        if not nome:
+            continue
+
+        try:
+            id_familia = int(id_familia)
+        except (TypeError, ValueError):
+            continue
+
+        cor = _resolver_cor_familia(familia.get("cor"))
+
+        response = (
+            supabase
+            .table("familia")
+            .update({
+                "nome": nome,
+                "descricao": descricao,
+                "cor": cor
+            })
+            .eq("id_familia", id_familia)
+            .execute()
+        )
+
+        if response.data:
+            resultado.append(response.data[0])
+
+    return resultado
+
+
+def apagar_familia_admin(id_familia, id_subfamilia_destino=None):
+    """
+    Apaga uma família.
+
+    Se a família tiver subfamílias (e, através delas, modelos e
+    produtos associados), é obrigatório indicar 'id_subfamilia_destino':
+    o id de uma subfamília já existente de OUTRA família, para onde
+    todos os modelos (e respetivas variantes/produtos) são movidos
+    antes de as subfamílias e a família antigas serem apagadas.
+
+    Isto garante que tanto a família como a subfamília de todos os
+    produtos que estavam na família apagada ficam atualizadas.
+    """
+
+    id_familia = int(id_familia)
+
+    subfamilias_response = (
+        supabase
+        .table("subfamilia")
+        .select("id_subfamilia")
+        .eq("familia_id_familia", id_familia)
+        .execute()
+    )
+
+    ids_subfamilias_antigas = [
+        s["id_subfamilia"] for s in (subfamilias_response.data or [])
+    ]
+
+    if ids_subfamilias_antigas:
+
+        if not id_subfamilia_destino:
+            raise ValueError(
+                "Esta família tem produtos associados. Escolhe uma "
+                "família e subfamília de destino para onde os mover."
+            )
+
+        try:
+            id_subfamilia_destino = int(id_subfamilia_destino)
+        except (TypeError, ValueError):
+            raise ValueError("A subfamília de destino escolhida não é válida.")
+
+        if id_subfamilia_destino in ids_subfamilias_antigas:
+            raise ValueError(
+                "A subfamília de destino tem de pertencer a outra família."
+            )
+
+        # Move todos os modelos (e, por consequência, todas as suas
+        # variantes/produtos) para a subfamília de destino - isto
+        # atualiza de uma vez a família e a subfamília dos produtos
+        # que estavam na família apagada.
+        (
+            supabase
+            .table("produtos_modelo")
+            .update({"id_subfamilia": id_subfamilia_destino})
+            .in_("id_subfamilia", ids_subfamilias_antigas)
+            .execute()
+        )
+
+        # As subfamílias antigas ficam sem modelos - podem ser apagadas.
+        (
+            supabase
+            .table("subfamilia")
+            .delete()
+            .in_("id_subfamilia", ids_subfamilias_antigas)
+            .execute()
+        )
+
+    (
+        supabase
+        .table("familia")
+        .delete()
+        .eq("id_familia", id_familia)
+        .execute()
+    )
+
+
+def atualizar_modelo_subfamilia(id_modelo, id_subfamilia):
+    """
+    Atualiza a subfamília de um modelo de produto já existente.
+
+    Como a família de um modelo é sempre determinada pela sua
+    subfamília, mudar a subfamília aqui atualiza automaticamente
+    também a família apresentada para esse modelo (e para todas as
+    suas variantes/produtos).
+    """
+
+    try:
+        id_modelo = int(id_modelo)
+        id_subfamilia = int(id_subfamilia)
+    except (TypeError, ValueError):
+        raise ValueError("É necessário escolher uma família e uma subfamília válidas.")
+
+    response = (
+        supabase
+        .table("produtos_modelo")
+        .update({"id_subfamilia": id_subfamilia})
+        .eq("id_modelo", id_modelo)
+        .execute()
+    )
+
+    return response.data[0] if response.data else None
+
+
+def criar_subfamilia(nome, id_familia, ordem=0, descricao=None):
     """
     Cria uma nova subfamília dentro de uma família existente.
     """
@@ -685,7 +824,6 @@ def criar_subfamilia(nome, id_familia, ordem, pagina, descricao=None):
             "nome": nome,
             "descricao": descricao,
             "ordem": ordem,
-            "pagina": pagina,
             "familia_id_familia": id_familia
         })
         .execute()
@@ -866,19 +1004,11 @@ def criar_produto_admin(dados):
         # Caso contrário, trata-se de um nome de cor (em qualquer
         # idioma) e traduz-se/converte-se para hex, tal como
         # acontece com a cor das variantes de produto.
-        if re.fullmatch(r"#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})", cor_familia_bruta):
-            cor_familia = cor_familia_bruta
-        else:
-            cor_familia = traduzir_e_converter_cor(cor_familia_bruta)
+        cor_familia = _resolver_cor_familia(cor_familia_bruta)
 
         familia = criar_familia(
             nome=nome_familia,
-            cor=cor_familia,
-            # Valores por defeito por agora - estas colunas vão sair
-            # da tabela "familia" mais tarde.
-            ordem=0,
-            pagina_inicial=0,
-            pagina_final=0
+            cor=cor_familia
         )
 
         if not familia:
@@ -908,10 +1038,7 @@ def criar_produto_admin(dados):
         subfamilia = criar_subfamilia(
             nome=nome_subfamilia,
             id_familia=id_familia,
-            # Valores por defeito por agora - estas colunas vão sair
-            # da tabela "subfamilia" mais tarde.
-            ordem=0,
-            pagina=0
+            ordem=0
         )
 
         if not subfamilia:
@@ -1059,10 +1186,17 @@ def obter_clientes(filtro=None):
     )
 
     if filtro:
-        query = query.or_(
+        condicoes = (
             f"nome.ilike.%{filtro}%,"
             f"nif.ilike.%{filtro}%"
         )
+
+        # numero_cliente é numérico, por isso só entra na pesquisa
+        # se o filtro for um número
+        if filtro.isdigit():
+            condicoes += f",numero_cliente.eq.{int(filtro)}"
+
+        query = query.or_(condicoes)
 
     response = query.execute()
 
@@ -1092,9 +1226,10 @@ def obter_cliente_admin(id_cliente):
     morada = morada_completa[0] if tamanho > 0 else ''
     predio = morada_completa[1] if tamanho > 1 else ''
     andar = morada_completa[2] if tamanho > 2  else ''
-    print(cliente["codigo_postal"])
+    
     return {
         "id_cliente": cliente["id_cliente"],
+        "numero_cliente": cliente["numero_cliente"],
         "nif": cliente["nif"],
         "nome": cliente["nome"],
         "morada": morada,
@@ -1117,22 +1252,35 @@ def atualizar_cliente_admin(
     telefone,
     codigo_postal,
     localizacao,
-    morada
+    morada,
+    numero_cliente=None
 ):
+
+    dados = {
+        "nome": nome,
+        "nif": nif,
+        "email": email,
+        "indicativo": indicativo,
+        "telefone": telefone,
+        "codigo_postal": codigo_postal,
+        "localizacao": localizacao,
+        "morada": morada
+    }
+
+    # Número de cliente: só é alterado se o admin o preencher.
+    # Levanta ValueError se não for um número inteiro positivo.
+    if numero_cliente not in (None, ""):
+        numero_cliente = int(numero_cliente)
+
+        if numero_cliente <= 0:
+            raise ValueError("O número de cliente deve ser positivo.")
+
+        dados["numero_cliente"] = numero_cliente
 
     response = (
         supabase
         .table("cliente")
-        .update({
-            "nome": nome,
-            "nif": nif,
-            "email": email,
-            "indicativo": indicativo,
-            "telefone": telefone,
-            "codigo_postal": codigo_postal,
-            "localizacao": localizacao,
-            "morada": morada
-        })
+        .update(dados)
         .eq("id_cliente", id_cliente)
         .execute()
     )
@@ -1172,7 +1320,8 @@ def obter_info(filtro_cliente=None, data_inicio=None, data_fim=None):
                 data_pedido,
                 id_cliente,
                 cliente(
-                    nome
+                    nome,
+                    numero_cliente
                 )
             )
         """)
@@ -1200,11 +1349,12 @@ def obter_info(filtro_cliente=None, data_inicio=None, data_fim=None):
         info.append({
             "data": ped["data_pedido"],
             "id_pedido": ped["id_pedido"],
+            "id_cliente": ped["id_cliente"],
             "valor_total": ped["valor_total"],
             "estado_pedido": ped["estado"],
             "observacoes": ped["observacoes"],
             "nome_cliente": cli.get("nome"),
-            "num_cliente": ped["id_cliente"],
+            "num_cliente": cli.get("numero_cliente"),
 
             "id_modelo": prod["id_modelo"],
             "referencia": r["produto_referencia"],
@@ -1253,8 +1403,68 @@ def obter_info(filtro_cliente=None, data_inicio=None, data_fim=None):
 
     return sorted(
         info,
-        key=lambda p: p["num_cliente"]
+        key=lambda p: p["num_cliente"] or 0
     )
+
+
+def obter_produtos_relatorio():
+    """
+    Obtém as referências, nomes e cores do catálogo para filtrar relatórios,
+    incluindo produtos que ainda não aparecem em encomendas finalizadas.
+    """
+
+    por_pagina = 500
+    inicio = 0
+    produtos = []
+
+    while True:
+        response = (
+            supabase
+            .table("produtos")
+            .select("""
+                referencia,
+                cores_produto(
+                    nome_cor
+                ),
+                produtos_modelo(
+                    nome_catalogo
+                )
+            """)
+            .order("referencia")
+            .range(inicio, inicio + por_pagina - 1)
+            .execute()
+        )
+
+        pagina = response.data or []
+        produtos.extend(pagina)
+
+        if len(pagina) < por_pagina:
+            break
+
+        inicio += por_pagina
+
+    resultado = []
+
+    for produto in produtos:
+        referencia = produto.get("referencia")
+        modelo = produto.get("produtos_modelo") or {}
+        cor = produto.get("cores_produto") or {}
+        nome_produto = modelo.get("nome_catalogo") or f"Produto {referencia}"
+        nome_cor = cor.get("nome_cor")
+        label = f"{referencia} — {nome_produto}"
+
+        if nome_cor:
+            label += f" · {nome_cor}"
+
+        resultado.append({
+            "referencia": referencia,
+            "nome_produto": nome_produto,
+            "cor": nome_cor,
+            "label": label
+        })
+
+    return resultado
+
 
 def atualizar_estado_pedido_admin(id_pedido, estado):
 
@@ -1270,5 +1480,3 @@ def atualizar_estado_pedido_admin(id_pedido, estado):
         return None
 
     return response.data[0]
-
-

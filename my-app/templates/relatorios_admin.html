@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#0D3C8C">
+    <title>Relatórios - DataEme</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        :root {
+            --report-blue: #0D3C8C;
+            --report-blue-mid: #1565C0;
+            --report-teal: #0E7C86;
+            --report-green: #598046;
+            --report-ink: #1F3A4D;
+            --report-muted: #647580;
+            --report-border: #dce5e8;
+            --report-page: #F2F2F2;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            margin: 0;
+            color: var(--report-ink);
+            background: var(--report-page);
+            font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+        }
+
+        .report-choice:focus-visible,
+        .report-tabs a:focus-visible,
+        .filter-panel a:focus-visible,
+        .filter-panel button:focus-visible {
+            outline: 3px solid #A4C400;
+            outline-offset: 3px;
+        }
+
+        .reports-shell {
+            width: min(100% - 36px, 1120px);
+            margin: 0 auto;
+            padding: 30px 0 64px;
+        }
+
+        .reports-breadcrumb {
+            margin-bottom: 25px;
+            color: var(--report-muted);
+            font-size: 0.86rem;
+        }
+
+        .reports-breadcrumb a {
+            color: var(--report-blue-mid);
+            text-decoration: none;
+        }
+
+        .reports-breadcrumb a:hover {
+            text-decoration: underline;
+        }
+
+        .reports-intro {
+            margin-bottom: 24px;
+        }
+
+        .reports-kicker {
+            margin: 0 0 7px;
+            color: var(--report-green);
+            font-size: 0.75rem;
+            font-weight: 750;
+            letter-spacing: 0.13em;
+            text-transform: uppercase;
+        }
+
+        .reports-intro h2 {
+            margin: 0;
+            font-size: clamp(1.8rem, 4vw, 2.35rem);
+            letter-spacing: -0.04em;
+        }
+
+        .reports-intro > p:last-child {
+            max-width: 660px;
+            margin: 9px 0 0;
+            color: var(--report-muted);
+            line-height: 1.6;
+        }
+
+        .report-choices {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 18px;
+        }
+
+        .report-choice {
+            position: relative;
+            min-height: 190px;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            padding: 24px;
+            color: var(--report-ink);
+            background: #fff;
+            border: 1px solid var(--report-border);
+            border-radius: 18px;
+            box-shadow: 0 10px 30px rgba(13, 60, 140, 0.06);
+            text-decoration: none;
+            transition: transform 150ms ease, box-shadow 150ms ease, border-color 150ms ease;
+        }
+
+        .report-choice:hover {
+            transform: translateY(-2px);
+            border-color: rgba(14, 124, 134, 0.42);
+            box-shadow: 0 16px 34px rgba(13, 60, 140, 0.11);
+        }
+
+        .report-choice-icon {
+            width: 42px;
+            height: 42px;
+            display: grid;
+            place-items: center;
+            margin-bottom: 17px;
+            color: #fff;
+            background: linear-gradient(145deg, var(--report-blue-mid), var(--report-teal), var(--report-green));
+            border-radius: 13px;
+            font-size: 1.25rem;
+        }
+
+        .report-choice h2 {
+            margin: 0;
+            font-size: 1.15rem;
+        }
+
+        .report-choice p {
+            max-width: 450px;
+            margin: 8px 0 0;
+            color: var(--report-muted);
+            line-height: 1.55;
+        }
+
+        .report-choice-arrow {
+            position: absolute;
+            top: 27px;
+            right: 25px;
+            color: var(--report-teal);
+            font-size: 1.35rem;
+            font-weight: 700;
+        }
+
+        .report-tabs {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin: 0 0 16px;
+            padding: 6px;
+            background: #e8eef1;
+            border-radius: 13px;
+        }
+
+        .report-tabs a {
+            padding: 10px 15px;
+            color: var(--report-muted);
+            border-radius: 9px;
+            font-size: 0.9rem;
+            font-weight: 700;
+            text-decoration: none;
+        }
+
+        .report-tabs a.active {
+            color: #fff;
+            background: linear-gradient(105deg, var(--report-blue), var(--report-teal), var(--report-green));
+            box-shadow: 0 4px 12px rgba(13, 60, 140, 0.15);
+        }
+
+        .filter-panel,
+        .results-panel {
+            padding: clamp(18px, 3vw, 26px);
+            background: #fff;
+            border: 1px solid var(--report-border);
+            border-radius: 17px;
+            box-shadow: 0 10px 30px rgba(13, 60, 140, 0.05);
+        }
+
+        .filter-panel {
+            margin-bottom: 18px;
+        }
+
+        .filter-heading {
+            margin: 0 0 5px;
+            font-size: 1.05rem;
+        }
+
+        .filter-note {
+            margin: 0 0 18px;
+            color: var(--report-muted);
+            font-size: 0.86rem;
+            line-height: 1.5;
+        }
+
+        .filter-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 14px;
+            align-items: end;
+        }
+
+        .filter-grid.with-user,
+        .filter-grid.with-product {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+
+        .filter-grid.with-product .filter-actions {
+            grid-column: 1 / -1;
+        }
+
+        .filter-field label {
+            display: block;
+            margin-bottom: 7px;
+            font-size: 0.84rem;
+            font-weight: 700;
+        }
+
+        .filter-field input,
+        .filter-field select {
+            width: 100%;
+            min-height: 44px;
+            padding: 9px 11px;
+            color: var(--report-ink);
+            background: #fff;
+            border: 1px solid #cfdadd;
+            border-radius: 9px;
+            font: inherit;
+        }
+
+        .filter-field input:focus,
+        .filter-field select:focus {
+            border-color: var(--report-teal);
+            outline: 3px solid rgba(31, 181, 181, 0.18);
+        }
+
+        .filter-actions {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .filter-actions button {
+            min-height: 44px;
+            padding: 10px 17px;
+            color: #fff;
+            background: linear-gradient(105deg, var(--report-blue), var(--report-teal), var(--report-green));
+            border: 0;
+            border-radius: 9px;
+            cursor: pointer;
+            font: inherit;
+            font-size: 0.9rem;
+            font-weight: 700;
+        }
+
+        .filter-actions button:hover {
+            filter: brightness(1.06);
+        }
+
+        .filter-actions a {
+            color: var(--report-blue-mid);
+            font-size: 0.88rem;
+            font-weight: 650;
+            text-decoration: none;
+        }
+
+        .filter-actions a:hover {
+            text-decoration: underline;
+            text-underline-offset: 3px;
+        }
+
+        .report-error {
+            margin: 0 0 18px;
+            padding: 12px 14px;
+            color: #8c2228;
+            background: #fff2f1;
+            border: 1px solid #f0c8c5;
+            border-radius: 10px;
+        }
+
+        .report-prompt {
+            padding: 16px;
+            color: var(--report-teal);
+            background: #f0f8f7;
+            border: 1px solid #cce5e2;
+            border-radius: 11px;
+            line-height: 1.5;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 12px;
+            margin-bottom: 18px;
+        }
+
+        .summary-grid.user-summary {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+
+        .summary-card {
+            min-height: 92px;
+            padding: 16px;
+            background: #fff;
+            border: 1px solid var(--report-border);
+            border-top: 3px solid var(--report-teal);
+            border-radius: 13px;
+        }
+
+        .summary-card:nth-child(2) {
+            border-top-color: var(--report-green);
+        }
+
+        .summary-card:nth-child(3) {
+            border-top-color: var(--report-blue-mid);
+        }
+
+        .summary-card:nth-child(4) {
+            border-top-color: #A4C400;
+        }
+
+        .summary-card span {
+            display: block;
+            color: var(--report-muted);
+            font-size: 0.78rem;
+            font-weight: 650;
+        }
+
+        .summary-card strong {
+            display: block;
+            margin-top: 8px;
+            color: var(--report-ink);
+            font-size: 1.35rem;
+            letter-spacing: -0.03em;
+        }
+
+        .results-panel h2 {
+            margin: 0 0 15px;
+            font-size: 1.05rem;
+        }
+
+        .table-scroll {
+            overflow-x: auto;
+        }
+
+        .report-table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+
+        .report-table th,
+        .report-table td {
+            padding: 12px 10px;
+            border-bottom: 1px solid #e7edef;
+            vertical-align: middle;
+        }
+
+        .report-table th {
+            color: var(--report-muted);
+            font-size: 0.76rem;
+            font-weight: 750;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+
+        .report-table td {
+            font-size: 0.9rem;
+        }
+
+        .report-table td.numeric,
+        .report-table th.numeric {
+            text-align: right;
+            white-space: nowrap;
+        }
+
+        .product-name {
+            font-weight: 700;
+        }
+
+        .empty-state {
+            padding: 22px 12px;
+            color: var(--report-muted);
+            text-align: center;
+        }
+
+        @media (max-width: 760px) {
+            .report-choices {
+                grid-template-columns: 1fr;
+            }
+
+            .filter-grid,
+            .filter-grid.with-user,
+            .filter-grid.with-product {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .filter-actions {
+                grid-column: 1 / -1;
+            }
+
+            .summary-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .summary-grid.user-summary {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 480px) {
+            .reports-shell {
+                width: min(100% - 24px, 1120px);
+                padding-top: 22px;
+            }
+
+            .filter-grid,
+            .filter-grid.with-user,
+            .filter-grid.with-product {
+                grid-template-columns: 1fr;
+            }
+
+            .filter-actions {
+                grid-column: auto;
+            }
+
+            .report-tabs a {
+                flex: 1 1 auto;
+                text-align: center;
+            }
+
+            .summary-grid {
+                gap: 9px;
+            }
+
+            .summary-card {
+                padding: 13px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Configurações</h1>
+        <nav>
+            <a href="{{ url_for('confirm_admin') }}">Dashboard</a>
+            <a href="/logout">Logout</a>
+        </nav>
+    </header>
+
+    <main class="reports-shell">
+        <div class="reports-breadcrumb">
+            <a href="{{ url_for('confirm_admin') }}">Dashboard</a>
+            &nbsp; / &nbsp;
+            <a href="{{ url_for('configuracoes_admin') }}">Configurações</a>
+            &nbsp; / &nbsp;
+            Relatórios
+        </div>
+
+        <section class="reports-intro">
+            <p class="reports-kicker">Área de administração</p>
+            <h2>Relatórios</h2>
+            <p>Consulte vendas concluídas, compras por utilizador ou o total comprado de um produto num período específico.</p>
+        </section>
+
+        {% if erro %}
+        <div class="report-error" role="alert">{{ erro }}</div>
+        {% endif %}
+
+        {% if not tipo %}
+        <section class="report-choices" aria-label="Escolha um relatório">
+            <a class="report-choice" href="{{ url_for('relatorios_admin', tipo='vendas') }}">
+                <span class="report-choice-icon" aria-hidden="true">↗</span>
+                <span class="report-choice-arrow" aria-hidden="true">→</span>
+                <h2>Relatório de vendas</h2>
+                <p>Veja produtos vendidos, quantidades, número de encomendas e valor total, com filtro por período.</p>
+            </a>
+
+            <a class="report-choice" href="{{ url_for('relatorios_admin', tipo='utilizador') }}">
+                <span class="report-choice-icon" aria-hidden="true">👤</span>
+                <span class="report-choice-arrow" aria-hidden="true">→</span>
+                <h2>Compras por utilizador</h2>
+                <p>Escolha um utilizador e um período para consultar os produtos comprados e respetivas quantidades.</p>
+            </a>
+
+            <a class="report-choice" href="{{ url_for('relatorios_admin', tipo='produto') }}">
+                <span class="report-choice-icon" aria-hidden="true">▦</span>
+                <span class="report-choice-arrow" aria-hidden="true">→</span>
+                <h2>Compras por produto</h2>
+                <p>Escolha um produto e um período para ver a quantidade total comprada por todos os utilizadores.</p>
+            </a>
+        </section>
+        {% else %}
+        <nav class="report-tabs" aria-label="Tipo de relatório">
+            <a
+                class="{% if tipo == 'vendas' %}active{% endif %}"
+                href="{{ url_for('relatorios_admin', tipo='vendas', data_inicio=data_inicio, data_fim=data_fim) }}"
+                {% if tipo == 'vendas' %}aria-current="page"{% endif %}
+            >Relatório de vendas</a>
+            <a
+                class="{% if tipo == 'utilizador' %}active{% endif %}"
+                href="{{ url_for('relatorios_admin', tipo='utilizador', id_cliente=id_cliente, data_inicio=data_inicio, data_fim=data_fim) if id_cliente else url_for('relatorios_admin', tipo='utilizador', data_inicio=data_inicio, data_fim=data_fim) }}"
+                {% if tipo == 'utilizador' %}aria-current="page"{% endif %}
+            >Compras por utilizador</a>
+            <a
+                class="{% if tipo == 'produto' %}active{% endif %}"
+                href="{{ url_for('relatorios_admin', tipo='produto', referencia_produto=referencia_produto, data_inicio=data_inicio, data_fim=data_fim) if referencia_produto else url_for('relatorios_admin', tipo='produto', data_inicio=data_inicio, data_fim=data_fim) }}"
+                {% if tipo == 'produto' %}aria-current="page"{% endif %}
+            >Compras por produto</a>
+        </nav>
+
+        <section class="filter-panel" aria-labelledby="filterHeading">
+            <h2 class="filter-heading" id="filterHeading">Filtros</h2>
+            <p class="filter-note">
+                {% if tipo == 'vendas' %}
+                    O relatório considera apenas encomendas finalizadas. As datas são opcionais.
+                {% elif tipo == 'utilizador' %}
+                    Escolha um utilizador e, se desejar, limite os resultados por data. Só são consideradas encomendas finalizadas.
+                {% else %}
+                    Pesquise pelo nome, referência ou cor, escolha um produto e limite os resultados por data. O total reúne as compras de todos os utilizadores em encomendas finalizadas.
+                {% endif %}
+            </p>
+
+            <form method="get" action="{{ url_for('relatorios_admin') }}">
+                <input type="hidden" name="tipo" value="{{ tipo }}">
+                <div class="filter-grid {% if tipo == 'utilizador' %}with-user{% elif tipo == 'produto' %}with-product{% endif %}">
+                    {% if tipo == 'utilizador' %}
+                    <div class="filter-field">
+                        <label for="id_cliente">Utilizador</label>
+                        <select id="id_cliente" name="id_cliente" required>
+                            <option value="">Selecione um utilizador</option>
+                            {% for cliente in clientes %}
+                            <option
+                                value="{{ cliente.id_cliente }}"
+                                {% if id_cliente == cliente.id_cliente %}selected{% endif %}
+                            >
+                                {% if cliente.numero_cliente %}{{ cliente.numero_cliente }} — {% endif %}{{ cliente.nome }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    {% endif %}
+
+                    {% if tipo == 'produto' %}
+                    <div class="filter-field product-search-field">
+                        <label for="produto-pesquisa">Produto</label>
+                        <input
+                            type="search"
+                            id="produto-pesquisa"
+                            autocomplete="off"
+                            aria-controls="referencia_produto"
+                            placeholder="Escreva nome, referência ou cor"
+                        >
+                        <select id="referencia_produto" name="referencia_produto" required>
+                            <option value="">Selecione um produto</option>
+                            {% for produto_disponivel in produtos_disponiveis %}
+                            <option
+                                value="{{ produto_disponivel.referencia }}"
+                                {% if referencia_produto == produto_disponivel.referencia %}selected{% endif %}
+                            >{{ produto_disponivel.label }}</option>
+                            {% endfor %}
+                        </select>
+                        <span class="product-filter-status" id="produto-pesquisa-estado" role="status" aria-live="polite"></span>
+                    </div>
+                    {% endif %}
+
+                    <div class="filter-field">
+                        <label for="data_inicio">Data de início</label>
+                        <input type="date" id="data_inicio" name="data_inicio" value="{{ data_inicio }}">
+                    </div>
+
+                    <div class="filter-field">
+                        <label for="data_fim">Data de fim</label>
+                        <input type="date" id="data_fim" name="data_fim" value="{{ data_fim }}">
+                    </div>
+
+                    <div class="filter-actions">
+                        <button type="submit">Aplicar filtros</button>
+                        <a href="{{ url_for('relatorios_admin', tipo=tipo) }}">Limpar filtros</a>
+                    </div>
+                </div>
+            </form>
+        </section>
+
+        {% if tipo == 'utilizador' and not cliente_selecionado and not erro %}
+        <div class="report-prompt" role="status">Selecione um utilizador para ver os produtos e as quantidades compradas.</div>
+        {% elif tipo == 'produto' and not produto_selecionado and not erro %}
+        <div class="report-prompt" role="status">
+            {% if produtos_disponiveis %}
+                Selecione um produto para ver o total comprado por todos os utilizadores.
+            {% else %}
+                Não há compras finalizadas de produtos para apresentar.
+            {% endif %}
+        </div>
+        {% elif not erro %}
+        <section class="summary-grid {% if tipo == 'utilizador' %}user-summary{% endif %}" aria-label="Resumo do relatório">
+            <div class="summary-card">
+                <span>{% if tipo == 'vendas' %}Unidades vendidas{% else %}Unidades compradas{% endif %}</span>
+                <strong>{{ resumo.quantidade }}</strong>
+            </div>
+            <div class="summary-card">
+                <span>
+                    {% if tipo == 'vendas' %}Valor vendido
+                    {% elif tipo == 'produto' %}Valor total comprado
+                    {% else %}Total gasto{% endif %}
+                </span>
+                <strong>{{ "%.2f"|format(resumo.valor) }} €</strong>
+            </div>
+            {% if tipo in ('vendas', 'produto') %}
+            <div class="summary-card">
+                <span>Encomendas</span>
+                <strong>{{ resumo.encomendas }}</strong>
+            </div>
+            {% endif %}
+            {% if tipo == 'produto' %}
+            <div class="summary-card">
+                <span>Utilizadores</span>
+                <strong>{{ resumo.utilizadores }}</strong>
+            </div>
+            {% else %}
+            <div class="summary-card">
+                <span>Produtos diferentes</span>
+                <strong>{{ resumo.produtos }}</strong>
+            </div>
+            {% endif %}
+        </section>
+
+        <section class="results-panel" aria-labelledby="resultsHeading">
+            <h2 id="resultsHeading">
+                {% if tipo == 'vendas' %}
+                    Produtos vendidos
+                {% elif tipo == 'produto' %}
+                    Compras agregadas · {{ produto_selecionado.label }}
+                {% else %}
+                    Produtos comprados
+                    {% if cliente_selecionado %} · {{ cliente_selecionado.nome }}{% endif %}
+                {% endif %}
+            </h2>
+
+            {% if produtos %}
+            <div class="table-scroll">
+                <table class="report-table">
+                    <thead>
+                        <tr>
+                            <th>Referência</th>
+                            <th>Produto</th>
+                            <th>Cor</th>
+                            <th class="numeric">Quantidade</th>
+                            {% if tipo in ('vendas', 'produto') %}<th class="numeric">Encomendas</th>{% endif %}
+                            <th class="numeric">
+                                {% if tipo == 'vendas' %}Valor vendido{% else %}Valor comprado{% endif %}
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for produto in produtos %}
+                        <tr>
+                            <td>{{ produto.referencia }}</td>
+                            <td class="product-name">{{ produto.nome_produto or ('Produto ' ~ produto.referencia) }}</td>
+                            <td>{{ produto.cor or '—' }}</td>
+                            <td class="numeric">{{ produto.quantidade_total }}</td>
+                            {% if tipo in ('vendas', 'produto') %}<td class="numeric">{{ produto.num_pedidos }}</td>{% endif %}
+                            <td class="numeric">{{ "%.2f"|format(produto.valor_total|float) }} €</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="empty-state">
+                {% if tipo == 'vendas' %}
+                    Não foram encontradas vendas finalizadas no período selecionado.
+                {% elif tipo == 'produto' %}
+                    Não foram encontradas compras finalizadas deste produto no período selecionado.
+                {% else %}
+                    Não foram encontradas compras finalizadas para este utilizador no período selecionado.
+                {% endif %}
+            </p>
+            {% endif %}
+        </section>
+        {% endif %}
+        {% endif %}
+    </main>
+
+    <script>
+        (function () {
+            const search = document.getElementById("produto-pesquisa");
+            const select = document.getElementById("referencia_produto");
+            const status = document.getElementById("produto-pesquisa-estado");
+
+            if (!search || !select || !status) {
+                return;
+            }
+
+            const allProducts = Array.from(select.options)
+                .filter(function (option) {
+                    return option.value !== "";
+                })
+                .map(function (option) {
+                    return {
+                        value: option.value,
+                        label: option.textContent.trim()
+                    };
+                });
+
+            function normalize(value) {
+                return value
+                    .toLocaleLowerCase("pt-PT")
+                    .normalize("NFD")
+                    .replace(/[\u0300-\u036f]/g, "");
+            }
+
+            function filterProducts() {
+                const query = normalize(search.value.trim());
+                const currentValue = select.value;
+                const matches = allProducts.filter(function (product) {
+                    return normalize(product.label).includes(query);
+                });
+
+                select.replaceChildren(new Option("Selecione um produto", ""));
+                matches.forEach(function (product) {
+                    select.add(new Option(product.label, product.value));
+                });
+
+                if (matches.some(function (product) {
+                    return product.value === currentValue;
+                })) {
+                    select.value = currentValue;
+                } else {
+                    select.value = "";
+                }
+
+                if (!allProducts.length) {
+                    status.textContent = "Não há produtos com compras finalizadas.";
+                } else if (query && !matches.length) {
+                    status.textContent = "Nenhum produto corresponde à pesquisa.";
+                } else if (query) {
+                    status.textContent = matches.length + " produto(s) encontrado(s).";
+                } else {
+                    status.textContent = "";
+                }
+            }
+
+            const selectedProduct = allProducts.find(function (product) {
+                return product.value === select.value;
+            });
+
+            if (selectedProduct) {
+                search.value = selectedProduct.label;
+            }
+
+            search.addEventListener("input", filterProducts);
+            select.addEventListener("change", function () {
+                const selected = allProducts.find(function (product) {
+                    return product.value === select.value;
+                });
+
+                if (selected) {
+                    search.value = selected.label;
+                    filterProducts();
+                }
+            });
+
+            filterProducts();
+        })();
+    </script>
+</body>
+</html>

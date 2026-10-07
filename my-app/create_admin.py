@@ -1,8 +1,6 @@
 import re
 from config import supabase, ph
 
-
-
 def create_admin(username, password):
     password_hash = ph.hash(password)
 

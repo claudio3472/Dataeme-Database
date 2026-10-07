@@ -1,5 +1,16 @@
 import re
+from datetime import datetime, timedelta, timezone
+
 from config import supabase, ph
+from load_utilizadores import gerar_password_provisoria
+from services.email_service import (enviar_password_provisoria, enviar_codigo_recuperacao)
+import secrets
+import time
+
+from flask import session
+
+
+import secrets 
 
 """ MUDAR PARA USAR O PRIMEIRO DIGITO DO NIF PARA ESCOLHER SE É EMPRESA OU NÃO
 E AJUSTAR O NOME CONSOANTE. 
@@ -194,7 +205,28 @@ def validar_password(password):
         )
 
 
-def verificar_duplicados(nif, email):
+def validar_numero_cliente(numero):
+    if not numero.isdigit() or int(numero) <= 0:
+        raise ValueError(
+            "O número de cliente deve ser um número inteiro positivo."
+        )
+
+
+def verificar_duplicados(nif, email, numero_cliente=None):
+    if numero_cliente is not None:
+        numero_existe = (
+            supabase
+            .table("cliente")
+            .select("numero_cliente")
+            .eq("numero_cliente", numero_cliente)
+            .execute()
+        )
+
+        if numero_existe.data:
+            raise ValueError(
+                "Já existe um cliente com esse número de cliente."
+            )
+
     nif_existe = (
         supabase
         .table("cliente")
@@ -235,11 +267,29 @@ def verificar_duplicados(nif, email):
         )
 
 
-def registar_cliente_web(form, admin=False):
+def verificar_username_disponivel(username):
+    utilizador_existe = (
+        supabase
+        .table("utilizador")
+        .select("username")
+        .eq("username", username)
+        .execute()
+    )
+
+    if utilizador_existe.data:
+        raise ValueError(
+            "Já existe um utilizador com esse nome de utilizador."
+        )
+
+
+def registar_cliente_web(form, admin=False, permitir_numero_manual=False):
     nome = form["nome"].strip()
     password = form["password"]
-    confirmar_password = form["confirmar_password"]
+
     if admin == False:
+
+        confirmar_password = form["confirmar_password"]
+
         nif = form["nif"].strip()
         morada = form["morada"].strip()
         email = form["email"].strip().lower()
@@ -249,8 +299,17 @@ def registar_cliente_web(form, admin=False):
         localizacao = form["local"].strip()
         predio = form["predio"]
         andar = form["andar"].strip()
-        
-        
+
+        # Número de cliente: automático, a não ser que um admin o defina.
+        numero_cliente = None
+
+        if permitir_numero_manual:
+            numero_cliente = (form.get("numero_cliente") or "").strip() or None
+
+        if numero_cliente is not None:
+            validar_numero_cliente(numero_cliente)
+            numero_cliente = int(numero_cliente)
+
         validar_nif(nif)
         validar_indicativo(indicativo)
         validar_telefone(
@@ -263,14 +322,19 @@ def registar_cliente_web(form, admin=False):
         validar_morada(morada)
         verificar_duplicados(
                 nif,
-                email
+                email,
+                numero_cliente
             )
+
+    else:
+        verificar_username_disponivel(nome)
+
     validar_nome(nome)
 
     validar_password(password)
 
-    if password != confirmar_password:
-    
+    if admin == False and password != confirmar_password:
+
         raise ValueError(
             "A nova password não corresponde com a confirmação da password."
         )
@@ -322,6 +386,10 @@ def registar_cliente_web(form, admin=False):
             "id_utilizador": id_utilizador
         }
 
+        # Se não for enviado, a base de dados gera o número automaticamente
+        if numero_cliente is not None:
+            cliente["numero_cliente"] = numero_cliente
+
         (
             supabase
             .table("cliente")
@@ -358,6 +426,7 @@ def obter_cliente(id_utilizador):
 
     return {
         "id_cliente": cliente["id_cliente"],
+        "numero_cliente": cliente["numero_cliente"],
         "nif": cliente["nif"],
         "nome": cliente["nome"],
         "morada": morada,
@@ -388,3 +457,89 @@ def obter_cliente_por_email(email):
         return response.data[0]
 
     return None
+
+
+# ============================================================
+# CONTAS CRIADAS PELO ADMIN (password provisória)
+# ============================================================
+
+COOLDOWN_PASSWORD_PROVISORIA = timedelta(minutes=10)
+DOMINIO_EMAIL_FALSO = "@dataeme.invalid"
+
+
+def _mascarar_email(email):
+    nome, _, dominio = email.partition("@")
+    return f"{nome[:1]}***@{dominio}"
+
+
+def tratar_registo_conta_pre_criada(nif):
+    """
+    Chamar no registo. Se o NIF pertencer a uma conta criada pelo admin
+    que ainda não foi ativada, envia um código de recuperação para o email
+    guardado na ficha do cliente (nunca para um email escrito no formulário).
+
+    O código usa a sessão e a rota existente /confirmar-codigo para o cliente
+    definir uma password nova. A password existente nunca é desencriptada
+    nem enviada por email.
+
+    Devolve (estado, email_mascarado):
+        (None, None)       -> não é uma conta pré-criada; seguir o registo normal
+        ("enviado", email) -> código enviado para a conta pré-criada
+        ("sem_email", None)-> a conta não tem um email válido
+    """
+
+    resposta_utilizador = (
+        supabase
+        .table("utilizador")
+        .select("id_utilizador, deve_alterar_password")
+        .eq("username", nif)
+        .limit(1)
+        .execute()
+    )
+
+    if not resposta_utilizador.data:
+        return None, None
+
+    utilizador = resposta_utilizador.data[0]
+
+    if not utilizador.get("deve_alterar_password"):
+        return None, None
+
+    resposta_cliente = (
+        supabase
+        .table("cliente")
+        .select("nome, email")
+        .eq("id_utilizador", utilizador["id_utilizador"])
+        .limit(1)
+        .execute()
+    )
+
+    if not resposta_cliente.data:
+        return None, None
+
+    cliente = resposta_cliente.data[0]
+    email = (cliente.get("email") or "").strip()
+
+    if not email or email.endswith(DOMINIO_EMAIL_FALSO):
+        return "sem_email", None
+
+    email_mascarado = _mascarar_email(email)
+    codigo = str(secrets.randbelow(900000) + 100000)
+
+    # A página confirmar_codigo() existente usa estas chaves para validar
+    # o código e guardar a password escolhida pelo cliente.
+    session["recuperacao_codigo"] = codigo
+    session["recuperacao_id_utilizador"] = utilizador["id_utilizador"]
+    session["recuperacao_email"] = email
+    session["recuperacao_expira"] = time.time() + 300
+
+    try:
+        enviar_codigo_recuperacao(email, codigo)
+    except Exception:
+        session.pop("recuperacao_codigo", None)
+        session.pop("recuperacao_id_utilizador", None)
+        session.pop("recuperacao_email", None)
+        session.pop("recuperacao_expira", None)
+        raise
+
+    return "enviado", email_mascarado

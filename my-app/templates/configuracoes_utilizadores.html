@@ -13,45 +13,10 @@
         rel="stylesheet"
         href="{{ url_for('static', filename='css/style.css') }}"
     >
-
-    <style>
-        form p {
-            padding: 20px;
-            box-shadow: 0 3px 10px rgba(68, 67, 67, 0.08);
-        }
-            
-        form button {
-            margin-left: 20px;
-            padding: 10px;
-            font-size: 15px;
-        }
-
-        .submitContainer {
-            display: flex;
-            flex-direction: row;
-            gap: 20px;
-        }
-
-        .submitContainer div{
-            margin-top: 15px;
-        }
-
-                .breadcrumb {
-            margin-bottom: 25px;
-            color: #777;
-            font-size: 14px;
-        }
-
-        .breadcrumb a {
-            color: #4472C4;
-            text-decoration: none;
-        }
-
-        .breadcrumb a:hover {
-            text-decoration: underline;
-        }
-        
-    </style>
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='css/configuracoes_consistente.css') }}"
+    >
 
 </head>
 
@@ -59,7 +24,7 @@
 
     <header>
 
-        <h1>Criar Utilizador</h1>
+        <h1>Configurações</h1>
 
         <nav>
 
@@ -71,11 +36,11 @@
 
     </header>
 
-    <div class="container">
+    <main class="settings-shell">
 
         <!-- CAMINHO -->
 
-        <div class="breadcrumb">
+        <div class="settings-breadcrumb">
 
             <a href="{{ url_for('confirm_admin') }}">Dashboard</a>
 
@@ -85,13 +50,76 @@
 
             &nbsp; / &nbsp;
 
-            Criar Utilizadores
+            Criar Utilizador
 
         </div>
 
-        <div class="card">
+        <section class="settings-intro">
+            <p class="settings-kicker">Área de administração</p>
+            <h2>Criar Utilizador</h2>
+            <p>Criar uma nova conta ou importar vários utilizadores.</p>
+        </section>
+
+        <section class="settings-panel">
+
+            <div class="botao_container">
+
+                <form
+                    method="POST"
+                    action="{{ url_for('importar_utilizadores_admin') }}"
+                    enctype="multipart/form-data"
+                    id="formImportarExcel"
+                >
+                    <label for="ficheiroExcel" class="btn-importar-excel">
+                        📄 Importar Excel/CSV
+                    </label>
+
+                    <input
+                        type="file"
+                        id="ficheiroExcel"
+                        name="ficheiro_excel"
+                        accept=".xlsx,.xls,.csv"
+                        style="display:none;"
+                        onchange="document.getElementById('formImportarExcel').submit()"
+                    >
+                </form>
+
+                <a class="btn-download-produto"  href="{{ url_for('static', filename='data/Utilizadores_Modelo.xlsx') }}" download="Utilizadores_Modelo.xlsx">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 3v12"/>
+                        <path d="M7 10l5 5 5-5"/>
+                        <path d="M4 20h16"/>
+                    </svg>
+                    Download Template
+                </a>
+                
+            </div>
+
+            {% if sucesso %}
+            <div role="status" aria-live="polite" style="color: green; margin: 15px 0; font-weight: bold;">
+                {{ sucesso }}
+            </div>
+            {% endif %}
+
+            {% if erro %}
+            <div role="alert" style="color: red; margin: 15px 0; font-weight: bold;">
+                {{ erro }}
+            </div>
+            {% endif %}
+
+            {% if ficheiro_sem_email %}
+            <div style="margin: 15px 0;">
+                <a
+                    class="btn-download-produto"
+                    href="{{ url_for('download_utilizadores_sem_email', nome_ficheiro=ficheiro_sem_email) }}"
+                    download="{{ ficheiro_sem_email }}"
+                >
+                    Download utilizadores sem email
+                </a>
+            </div>
+            {% endif %}
             
-            <form method="POST">
+            <form method="POST" id="form-criar-utilizador" class="form_utilizadores">
 
                 <p>
                     <strong>Admin:</strong>
@@ -101,6 +129,7 @@
                         name="admin"
                         id="yes"
                         value="True"
+                        onchange="mudouTipoUtilizador()"
                         required
                     >
                     <label for="yes">Sim</label>
@@ -110,6 +139,7 @@
                         name="admin"
                         id="no"
                         value="False"
+                        onchange="mudouTipoUtilizador()"
                         required
                     >
                     <label for="no">Não</label>
@@ -126,27 +156,27 @@
                     >
                 </p>
 
-                <p>
+                <p class="campo-so-cliente" id="campoNif">
                     <strong>NIF:</strong>
                     <input
                         type="text"
                         name="nif"
                         value=""
-                        required
+                        id="inputNif"
                     >
                 </p>
 
-                <p>
+                <p class="campo-so-cliente" id="campoEmail">
                     <strong>Email:</strong>
                     <input
                         type="email"
                         name="email"
                         value=""
-                        required
+                        id="inputEmail"
                     >
                 </p>
 
-                <p>
+                <p class="campo-so-cliente" id="campoTelefone">
                     <strong>Telefone:</strong>
 
                     <input
@@ -154,19 +184,19 @@
                         name="ind"
                         value=""
                         placeholder="+351"
-                        required
                         style="width: 60px;"
+                        id="inputInd"
                     >
 
                     <input
                         type="tel"
                         name="tel"
                         value=""
-                        required
+                        id="inputTel"
                     >
                 </p>
 
-                <p>
+                <p class="campo-so-cliente" id="campoPostal">
                     <strong>Código Postal:</strong>
 
                     <input
@@ -174,8 +204,8 @@
                         name="postal"
                         value=""
                         placeholder="0000-000"
-                        required
                         style="width: 90px;"
+                        id="inputPostal"
                     >
 
                     <input
@@ -183,18 +213,18 @@
                         name="local"
                         value=""
                         placeholder="Localidade"
-                        required
+                        id="inputLocal"
                     >
                 </p>
 
-                <p>
+                <p class="campo-so-cliente" id="campoMorada">
                     <strong>Morada:</strong>
 
                     <input
                         type="text"
                         name="morada"
                         value=""
-                        required
+                        id="inputMorada"
                     >
                 </p>
 
@@ -209,14 +239,14 @@
                     >
                 </p>
 
-                <p>
+                <p class="campo-so-cliente" id="campoConfirmarPassword">
                     <strong>Confirmar Password:</strong>
 
                     <input
                         type="password"
                         name="confirmar_password"
                         value=""
-                        required
+                        id="inputConfirmarPassword"
                     >
                 </p>
 
@@ -227,22 +257,53 @@
                     <button class="animacao-botao" type="submit">
                         Criar Utilizador
                     </button>
-                    
-                    {% if sucesso %}
-                    <div style="color: green; margin-bottom: 15px; font-weight: bold;">
-                        {{ sucesso }}
-                    </div>
-                    {% endif %}
-
-                    {% if erro %}
-                    <div style="color: red; margin-bottom: 15px; font-weight: bold;">
-                        {{ erro }}
-                    </div>
-                    {% endif %}
 
                 </div>
 
             </form>
-        </div>
-    </div>
+        </section>
+    </main>
+
+    <script>
+
+        const camposSoCliente = document.querySelectorAll(".campo-so-cliente");
+
+        // Campos que só são obrigatórios quando o utilizador é um cliente normal
+        const inputsSoCliente = [
+            document.getElementById("inputNif"),
+            document.getElementById("inputEmail"),
+            document.getElementById("inputInd"),
+            document.getElementById("inputTel"),
+            document.getElementById("inputPostal"),
+            document.getElementById("inputLocal"),
+            document.getElementById("inputMorada"),
+            document.getElementById("inputConfirmarPassword")
+        ];
+
+        function mudouTipoUtilizador() {
+
+            const isAdmin = document.getElementById("yes").checked;
+
+            camposSoCliente.forEach(function (campo) {
+                campo.classList.toggle("visivel", !isAdmin);
+            });
+
+            inputsSoCliente.forEach(function (input) {
+
+                if (!input) {
+                    return;
+                }
+
+                input.required = !isAdmin;
+
+                if (isAdmin) {
+                    input.value = "";
+                }
+            });
+        }
+
+    </script>
+
 </body>
+
+</html>

@@ -12,74 +12,6 @@
         href="{{ url_for('static', filename='css/style.css') }}"
     >
 
-    <style>
-
-        .filtro_pesquisa form button {
-            padding: 10px;
-            background-color: #4472C4;
-            border-radius: 15px;
-            color: white;
-            box-shadow: 0 3px 8px rgba(68, 114, 196, 0.35);
-            font-weight: bold;
-        }
-
-        .filtro_pesquisa form input {
-            width: 85%;
-            padding: 10px;
-            border-radius: 5px;
-        }
-
-        .filtro_pesquisa form a {
-            padding: 10px;
-            background-color: #e0aa59;
-            border-radius: 15px;
-            color: white;
-            box-shadow: 0 3px 8px rgba(68, 114, 196, 0.35);
-            text-decoration: none;
-            font-weight: bold;
-        }
-
-        .cliente{
-            display: grid;
-            grid: 20px / 33% 33% 33%;
-            padding:10px;
-            margin-top: 8px;
-            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
-
-        }
-
-        .cliente_element_nome {
-            text-align: center;
-            margin-left: 0px;
-            margin-right: auto;
-        }
-
-        .cliente_element_nif{
-            text-align: center;
-        }
-
-        .cliente_element_editar{
-            text-align: center;
-            text-decoration: none;
-            color: white;
-            font-size: 18px;
-            height: 20px;
-            background-color: #2f6fed;
-            width: 40%;
-            border-radius: 8px;
-            margin-right: 0px;
-            margin-left: auto;
-        }
-
-        .info p{
-            margin-top: 8px;
-        }
-
-        .info button{
-            margin-top: 10px;
-        }
-
-    </style>
 </head>
 
 <body>
@@ -135,6 +67,10 @@
 
         </form>
 
+        <a class="botao_redirecionar" href="{{ url_for('configuracoes_utilizadores') }}">
+            Criar novo cliente
+        </a>
+
     </div>
 
 
@@ -163,6 +99,7 @@
                     <a
                         href="{{ url_for(
                             'clientes_admin',
+                            _anchor='edit',
                             cliente=c.id_cliente,
                             filtro=filtro
                         ) }}" class="cliente_element_editar"
@@ -170,6 +107,181 @@
                         Ver / Editar
                     </a>
 
+                    <!-- =========================
+                        EDITAR CLIENTE
+                    ========================= -->
+                    {% if cliente and c.id_cliente == cliente.id_cliente %}
+
+                        <div class="card" id="edit">
+
+                            <h2>
+                                Editar Cliente
+                            </h2>
+
+
+                            {% if request.args.get("sucesso") %}
+
+                                <p style="color: green;">
+                                    {{ request.args.get("sucesso") }}
+                                </p>
+
+                            {% endif %}
+
+
+                            {% if request.args.get("erro") %}
+
+                                <p style="color: red;">
+                                    {{ request.args.get("erro") }}
+                                </p>
+
+                            {% endif %}
+
+
+                            <form method="POST" class="info">
+
+                                <input
+                                    type="hidden"
+                                    name="id_cliente"
+                                    value="{{ cliente.id_cliente }}"
+                                >
+
+
+                                <p>
+
+                                    <strong>Nome:</strong>
+
+                                    <input
+                                        type="text"
+                                        name="nome"
+                                        value="{{ cliente.nome }}"
+                                        required
+                                    >
+
+                                </p>
+
+
+                                <p>
+
+                                    <strong>NIF:</strong>
+
+                                    <input
+                                        type="text"
+                                        name="nif"
+                                        value="{{ cliente.nif }}"
+                                        required
+                                    >
+
+                                </p>
+
+
+                                <p>
+
+                                    <strong>Email:</strong>
+
+                                    <input
+                                        type="email"
+                                        name="email"
+                                        value="{{ cliente.email }}"
+                                        required
+                                    >
+
+                                </p>
+
+
+                                <p>
+
+                                    <strong>Indicativo:</strong>
+
+                                    <input
+                                        type="text"
+                                        name="ind"
+                                        value="{{ cliente.indicativo }}"
+                                    >
+
+                                </p>
+
+
+                                <p>
+
+                                    <strong>Telefone:</strong>
+
+                                    <input
+                                        type="text"
+                                        name="tel"
+                                        value="{{ cliente.tel }}"
+                                    >
+
+                                </p>
+
+
+                                <p>
+
+                                    <strong>Código Postal:</strong>
+
+                                    <input
+                                        type="text"
+                                        name="postal"
+                                        value="{{ cliente.postal }}"
+                                    >
+
+                                </p>
+
+
+                                <p>
+
+                                    <strong>Localização:</strong>
+
+                                    <input
+                                        type="text"
+                                        name="local"
+                                        value="{{ cliente.local }}"
+                                    >
+
+                                </p>
+
+
+                                <p>
+
+                                    <strong>Morada:</strong>
+
+                                    <input
+                                        type="text"
+                                        name="morada"
+                                        value="{{ cliente.morada }}"
+                                    >
+
+                                </p>
+
+                                <p>
+                                    <strong>Nº Prédio:</strong>
+
+                                    <input
+                                        type="number"
+                                        name="predio"
+                                        value="{{ cliente.predio }}"
+                                    >   
+                                </p>
+
+                                <p>
+                                    <strong>Andar:</strong>
+
+                                    <input
+                                        type="text"
+                                        name="andar"
+                                        value="{{ cliente.andar }}"
+                                    >
+                                </p>
+
+
+                                <button type="submit">
+                                    Guardar Alterações
+                                </button>
+
+                            </form>
+
+                        </div>
+
+                    {% endif %}
                 </div>
 
             {% endfor %}
@@ -185,182 +297,7 @@
     </div>
 
 
-    <!-- =========================
-         EDITAR CLIENTE
-         ========================= -->
-
-    {% if cliente %}
-
-        <div class="card">
-
-            <h2>
-                Editar Cliente
-            </h2>
-
-
-            {% if request.args.get("sucesso") %}
-
-                <p style="color: green;">
-                    {{ request.args.get("sucesso") }}
-                </p>
-
-            {% endif %}
-
-
-            {% if request.args.get("erro") %}
-
-                <p style="color: red;">
-                    {{ request.args.get("erro") }}
-                </p>
-
-            {% endif %}
-
-
-            <form method="POST" class="info">
-
-                <input
-                    type="hidden"
-                    name="id_cliente"
-                    value="{{ cliente.id_cliente }}"
-                >
-
-
-                <p>
-
-                    <strong>Nome:</strong>
-
-                    <input
-                        type="text"
-                        name="nome"
-                        value="{{ cliente.nome }}"
-                        required
-                    >
-
-                </p>
-
-
-                <p>
-
-                    <strong>NIF:</strong>
-
-                    <input
-                        type="text"
-                        name="nif"
-                        value="{{ cliente.nif }}"
-                        required
-                    >
-
-                </p>
-
-
-                <p>
-
-                    <strong>Email:</strong>
-
-                    <input
-                        type="email"
-                        name="email"
-                        value="{{ cliente.email }}"
-                        required
-                    >
-
-                </p>
-
-
-                <p>
-
-                    <strong>Indicativo:</strong>
-
-                    <input
-                        type="text"
-                        name="ind"
-                        value="{{ cliente.indicativo }}"
-                    >
-
-                </p>
-
-
-                <p>
-
-                    <strong>Telefone:</strong>
-
-                    <input
-                        type="text"
-                        name="tel"
-                        value="{{ cliente.tel }}"
-                    >
-
-                </p>
-
-
-                <p>
-
-                    <strong>Código Postal:</strong>
-
-                    <input
-                        type="text"
-                        name="postal"
-                        value="{{ cliente.postal }}"
-                    >
-
-                </p>
-
-
-                <p>
-
-                    <strong>Localização:</strong>
-
-                    <input
-                        type="text"
-                        name="local"
-                        value="{{ cliente.local }}"
-                    >
-
-                </p>
-
-
-                <p>
-
-                    <strong>Morada:</strong>
-
-                    <input
-                        type="text"
-                        name="morada"
-                        value="{{ cliente.morada }}"
-                    >
-
-                </p>
-
-                <p>
-                    <strong>Nº Prédio:</strong>
-
-                    <input
-                        type="number"
-                        name="predio"
-                        value="{{ cliente.predio }}"
-                    >   
-                </p>
-
-                <p>
-                    <strong>Andar:</strong>
-
-                    <input
-                        type="text"
-                        name="andar"
-                        value="{{ cliente.andar }}"
-                    >
-                </p>
-
-
-                <button type="submit">
-                    Guardar Alterações
-                </button>
-
-            </form>
-
-        </div>
-
-    {% endif %}
+    
 
 
 </div>

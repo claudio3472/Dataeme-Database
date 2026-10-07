@@ -1,29 +1,116 @@
 import pandas as pd
 from config import supabase
-from services.admin_service import( traduzir_e_converter_cor)
-from gerar_barcode import (barcode_text)
+from services.admin_service import traduzir_e_converter_cor
+from gerar_barcode import barcode_text
+
+TAMANHO_LOTE = 500      # linhas por pedido à base de dados
+TAMANHO_PAGINA = 1000   # linhas por leitura (limite do Supabase)
 
 
 # ============================================================
-# FAMÍLIA
+# LEITURA / ESCRITA EM MASSA
 # ============================================================
 
-def obter_id_familia(nome, cor=None, descricao=None):
+def _ler_tudo(tabela, colunas, ordenar_por):
+    """Lê todas as linhas de uma tabela (o Supabase devolve no máximo
+    1000 por pedido, por isso lê em páginas)."""
 
-    response = (
-        supabase
-        .table("familia")
-        .select("id_familia")
-        .eq("nome", nome.strip())
-        .execute()
-    )
+    dados = []
+    inicio = 0
 
-    if response.data:
-        return response.data[0]["id_familia"]
+    while True:
 
-    return criar_id_familia(
-        nome, cor, descricao
-    )
+        resposta = (
+            supabase
+            .table(tabela)
+            .select(colunas)
+            .order(ordenar_por)
+            .range(inicio, inicio + TAMANHO_PAGINA - 1)
+            .execute()
+        )
+
+        pagina = resposta.data or []
+        dados.extend(pagina)
+
+        if len(pagina) < TAMANHO_PAGINA:
+            break
+
+        inicio += TAMANHO_PAGINA
+
+    return dados
+
+
+def _inserir_em_lotes(tabela, linhas):
+    """Insere várias linhas de uma vez. Se um lote falhar, tenta linha a
+    linha para que uma linha com erro não estrague as restantes.
+    Devolve (linhas_inseridas, numero_de_falhas)."""
+
+    inseridas = []
+    falhas = 0
+
+    for i in range(0, len(linhas), TAMANHO_LOTE):
+
+        lote = linhas[i:i + TAMANHO_LOTE]
+
+        try:
+
+            resposta = (
+                supabase
+                .table(tabela)
+                .insert(lote)
+                .execute()
+            )
+
+            inseridas.extend(resposta.data or [])
+
+        except Exception as erro:
+
+            print(
+                f"Lote de {tabela} falhou ({erro}). "
+                f"A inserir linha a linha..."
+            )
+
+            for linha in lote:
+
+                try:
+
+                    resposta = (
+                        supabase
+                        .table(tabela)
+                        .insert(linha)
+                        .execute()
+                    )
+
+                    inseridas.extend(resposta.data or [])
+
+                except Exception as erro_linha:
+
+                    falhas += 1
+
+                    print(
+                        f"ERRO em {tabela} {linha}: {erro_linha}"
+                    )
+
+        print(
+            f"{tabela}: {min(i + TAMANHO_LOTE, len(linhas))}"
+            f"/{len(linhas)} processadas"
+        )
+
+    return inseridas, falhas
+
+
+def _texto_obrigatorio(valor, campo):
+
+    if pd.isna(valor) or not str(valor).strip():
+        raise ValueError(f"Campo obrigatório em falta: {campo}")
+
+    return str(valor).strip()
+
+
+# ============================================================
+# CRIAÇÃO DE FAMÍLIA / SUBFAMÍLIA / COR / IVA
+# (só usadas quando ainda não existem)
+# ============================================================
 
 def criar_id_familia(nome, cor=None, descricao=None):
 
@@ -44,9 +131,7 @@ def criar_id_familia(nome, cor=None, descricao=None):
         .insert({
             "nome": nome,
             "cor": cor,
-            "descricao": descricao,
-            "pagina_inicial": 0,
-            "pagina_final": 0
+            "descricao": descricao
         })
         .execute()
     )
@@ -59,27 +144,6 @@ def criar_id_familia(nome, cor=None, descricao=None):
     return response.data[0]["id_familia"]
 
 
-# ============================================================
-# SUBFAMÍLIA
-# ============================================================
-
-def obter_id_subfamilia(nome, id_familia, descricao=None):
-
-    response = (
-        supabase
-        .table("subfamilia")
-        .select("id_subfamilia")
-        .eq("nome", nome.strip())
-        .execute()
-    )
-
-    if response.data:
-        return response.data[0]["id_subfamilia"]
-
-    return criar_id_subfamilia(
-        nome, id_familia, descricao
-    )
-
 def criar_id_subfamilia(nome, id_familia, descricao=None):
 
     if pd.isna(descricao):
@@ -91,7 +155,7 @@ def criar_id_subfamilia(nome, id_familia, descricao=None):
         .insert({
             "nome": nome,
             "descricao": descricao,
-            "pagina": 0,
+            "ordem": 0,
             "familia_id_familia": id_familia
         })
         .execute()
@@ -103,26 +167,6 @@ def criar_id_subfamilia(nome, id_familia, descricao=None):
         )
 
     return response.data[0]["id_subfamilia"]
-
-
-# ============================================================
-# COR
-# ============================================================
-
-def obter_id_cor(nome_cor):
-
-    response = (
-        supabase
-        .table("cores_produto")
-        .select("id_cor")
-        .eq("nome_cor", nome_cor.strip())
-        .execute()
-    )
-
-    if response.data:
-        return response.data[0]["id_cor"]
-
-    return None
 
 
 def criar_cor(nome_cor, codigo_cor):
@@ -147,122 +191,6 @@ def criar_cor(nome_cor, codigo_cor):
         )
 
     return response.data[0]["id_cor"]
-
-
-def obter_ou_criar_cor(nome_cor, codigo_cor):
-    if pd.isna(nome_cor):
-        nome_cor = "Sem Cor"
-        
-    id_cor = obter_id_cor(nome_cor)
-
-    if id_cor is not None:
-        return id_cor
-    
-    if nome_cor == "Sem Cor":
-        return criar_cor(
-            nome_cor,
-            "#ffffff"
-        )
-        
-    return criar_cor(
-        nome_cor,
-        codigo_cor
-    )
-
-
-# ============================================================
-# MODELO DO PRODUTO
-# ============================================================
-
-def obter_id_modelo(nome):
-
-    response = (
-        supabase
-        .table("produtos_modelo")
-        .select("id_modelo")
-        .eq("nome_catalogo", nome.strip())
-        .execute()
-    )
-
-    if response.data:
-        return response.data[0]["id_modelo"]
-
-    return None
-
-
-def criar_modelo(
-    nome,
-    id_subfamilia,
-    descricao_catalogo=None,
-    descricao_detalhada=None
-):
-    if pd.isna(descricao_catalogo):
-        descricao_catalogo = "Sem Descrição"
-        
-    if pd.isna(descricao_detalhada):
-        descricao_detalhada = "Sem Descrição"
-        
-    response = (
-        supabase
-        .table("produtos_modelo")
-        .insert({
-            "nome_catalogo": nome.strip(),
-            "descricao_catalogo": descricao_catalogo,
-            "descricao_detalhada": descricao_detalhada,
-            "id_subfamilia": id_subfamilia
-        })
-        .execute()
-    )
-
-    if not response.data:
-        raise Exception(
-            f"Erro ao criar modelo: {nome}"
-        )
-
-    return response.data[0]["id_modelo"]
-
-
-def obter_ou_criar_modelo(
-    nome,
-    id_subfamilia,
-    descricao_catalogo=None,
-    descricao_detalhada=None
-):
-
-    id_modelo = obter_id_modelo(nome)
-
-    if id_modelo is not None:
-        return id_modelo
-
-    return criar_modelo(
-        nome,
-        id_subfamilia,
-        descricao_catalogo,
-        descricao_detalhada,
-        
-    )
-
-
-# ============================================================
-# IVA
-# ============================================================
-
-def obter_id_iva(percentagem):
-
-    percentagem = float(percentagem)
-
-    response = (
-        supabase
-        .table("iva")
-        .select("id_iva")
-        .eq("percentagem", percentagem)
-        .execute()
-    )
-
-    if response.data:
-        return response.data[0]["id_iva"]
-
-    return None
 
 
 def criar_iva(percentagem, categoria=None):
@@ -290,33 +218,6 @@ def criar_iva(percentagem, categoria=None):
     return response.data[0]["id_iva"]
 
 
-def obter_ou_criar_iva(percentagem, categoria=None):
-
-    id_iva = obter_id_iva(percentagem)
-
-    if id_iva is not None:
-        return id_iva
-
-    return criar_iva(percentagem, categoria)
-
-
-# ============================================================
-# PRODUTO
-# ============================================================
-
-def produto_existe(referencia):
-
-    response = (
-        supabase
-        .table("produtos")
-        .select("referencia")
-        .eq("referencia", int(referencia))
-        .execute()
-    )
-
-    return bool(response.data)
-
-
 # ============================================================
 # IMPORTAÇÃO
 # ============================================================
@@ -336,97 +237,68 @@ def importar_produtos(ficheiro):
     else:
 
         df = pd.read_csv(
-                ficheiro,
-                sep=","
+            ficheiro,
+            sep=","
         )
+
+    # --------------------------------------------------------
+    # 1) CARREGAR TUDO O QUE JÁ EXISTE (poucos pedidos)
+    #    Assim não é preciso perguntar à base de dados linha a linha.
+    # --------------------------------------------------------
+
+    familias = {
+        f["nome"].strip(): f["id_familia"]
+        for f in _ler_tudo("familia", "id_familia,nome", "id_familia")
+    }
+
+    subfamilias = {
+        s["nome"].strip(): s["id_subfamilia"]
+        for s in _ler_tudo("subfamilia", "id_subfamilia,nome", "id_subfamilia")
+    }
+
+    cores = {
+        c["nome_cor"].strip(): c["id_cor"]
+        for c in _ler_tudo("cores_produto", "id_cor,nome_cor", "id_cor")
+    }
+
+    ivas = {
+        float(i["percentagem"]): i["id_iva"]
+        for i in _ler_tudo("iva", "id_iva,percentagem", "id_iva")
+    }
+
+    modelos = {
+        m["nome_catalogo"].strip(): m["id_modelo"]
+        for m in _ler_tudo("produtos_modelo", "id_modelo,nome_catalogo", "id_modelo")
+    }
+
+    existentes = {
+        int(p["referencia"])
+        for p in _ler_tudo("produtos", "referencia", "referencia")
+    }
+
+    # --------------------------------------------------------
+    # 2) PERCORRER O FICHEIRO (só em memória; cria apenas
+    #    famílias/subfamílias/cores/IVA que ainda não existam)
+    # --------------------------------------------------------
+
+    novos_modelos = {}   # nome -> dados do modelo a criar
+    pendentes = []       # produtos à espera do id do modelo
+    vistos = set()
+
+    ignorados = 0
+    erros = 0
 
     for _, row in df.iterrows():
 
-        referencia = int(
-            row["Referência"]
-        )
-
-        print(
-            f"\nProcessando produto: {referencia}"
-        )
-
-        # ------------------------------------------------
-        # VERIFICAR PRODUTO
-        # ------------------------------------------------
-
-        if produto_existe(referencia):
-
-            print(
-                f"Produto {referencia} "
-                f"já existe. Ignorado."
-            )
-
-            continue
-
         try:
 
-            # ------------------------------------------------
-            # FAMÍLIA
-            # ------------------------------------------------
-
-            id_familia = obter_id_familia(
-                row["Família"],
-                row["Cor da Família"],
-                row["Descrição Família"]
-            )
-
-            if id_familia is None:
+            if pd.isna(row["Referência"]):
                 continue
 
-            # ------------------------------------------------
-            # SUBFAMÍLIA
-            # ------------------------------------------------
+            referencia = int(row["Referência"])
 
-            id_subfamilia = obter_id_subfamilia(
-                row["Subfamília"],
-                id_familia,
-                row["Descrição Subfamília"]
-            )
-
-            if id_subfamilia is None:
-                continue
-
-            # ------------------------------------------------
-            # IVA
-            # ------------------------------------------------
-
-            id_iva = obter_ou_criar_iva(
-                row["Percentagem IVA"],
-                row["Categoria IVA"]
-            )
-
-            if id_iva is None:
-                continue
-
-            # ------------------------------------------------
-            # COR
-            # ------------------------------------------------
-
-            id_cor = obter_ou_criar_cor(
-                row["Nome Cor"],
-                row["Código Cor"]
-            )
-
-            if id_cor is None:
-                continue
-
-            # ------------------------------------------------
-            # MODELO
-            # ------------------------------------------------
-
-            id_modelo = obter_ou_criar_modelo(
-                row["Nome Produto"],
-                id_subfamilia,
-                row["Descrição Breve"],
-                row["Descrição Detalhada"]
-            )
-
-            if id_modelo is None:
+            if referencia in existentes or referencia in vistos:
+                ignorados += 1
                 continue
 
             # ------------------------------------------------
@@ -436,10 +308,102 @@ def importar_produtos(ficheiro):
             preco = row["Preço Base Sem IVA"]
 
             if pd.isna(preco):
+                ignorados += 1
                 continue
 
             # ------------------------------------------------
-            # STOCK
+            # FAMÍLIA
+            # ------------------------------------------------
+
+            nome_familia = _texto_obrigatorio(row["Família"], "Família")
+
+            id_familia = familias.get(nome_familia)
+
+            if id_familia is None:
+                id_familia = criar_id_familia(
+                    nome_familia,
+                    row["Cor da Família"],
+                    row["Descrição Família"]
+                )
+                familias[nome_familia] = id_familia
+
+            # ------------------------------------------------
+            # SUBFAMÍLIA
+            # ------------------------------------------------
+
+            nome_subfamilia = _texto_obrigatorio(row["Subfamília"], "Subfamília")
+
+            id_subfamilia = subfamilias.get(nome_subfamilia)
+
+            if id_subfamilia is None:
+                id_subfamilia = criar_id_subfamilia(
+                    nome_subfamilia,
+                    id_familia,
+                    row["Descrição Subfamília"]
+                )
+                subfamilias[nome_subfamilia] = id_subfamilia
+
+            # ------------------------------------------------
+            # IVA
+            # ------------------------------------------------
+
+            percentagem = float(row["Percentagem IVA"])
+
+            id_iva = ivas.get(percentagem)
+
+            if id_iva is None:
+                id_iva = criar_iva(percentagem, row["Categoria IVA"])
+                ivas[percentagem] = id_iva
+
+            # ------------------------------------------------
+            # COR
+            # ------------------------------------------------
+
+            if pd.isna(row["Nome Cor"]):
+                nome_cor = "Sem Cor"
+            else:
+                nome_cor = str(row["Nome Cor"]).strip()
+
+            id_cor = cores.get(nome_cor)
+
+            if id_cor is None:
+
+                if nome_cor == "Sem Cor":
+                    codigo_cor = "#ffffff"
+                elif pd.isna(row["Código Cor"]):
+                    codigo_cor = "#cccccc"
+                else:
+                    codigo_cor = str(row["Código Cor"]).strip()
+
+                id_cor = criar_cor(nome_cor, codigo_cor)
+                cores[nome_cor] = id_cor
+
+            # ------------------------------------------------
+            # MODELO (criados todos de uma vez mais à frente)
+            # ------------------------------------------------
+
+            nome_modelo = _texto_obrigatorio(row["Nome Produto"], "Nome Produto")
+
+            if nome_modelo not in modelos and nome_modelo not in novos_modelos:
+
+                descricao_breve = row["Descrição Breve"]
+                descricao_detalhada = row["Descrição Detalhada"]
+
+                novos_modelos[nome_modelo] = {
+                    "nome_catalogo": nome_modelo,
+                    "descricao_catalogo": (
+                        "Sem Descrição" if pd.isna(descricao_breve)
+                        else str(descricao_breve)
+                    ),
+                    "descricao_detalhada": (
+                        "Sem Descrição" if pd.isna(descricao_detalhada)
+                        else str(descricao_detalhada)
+                    ),
+                    "id_subfamilia": id_subfamilia
+                }
+
+            # ------------------------------------------------
+            # STOCK / DESCONTINUADO
             # ------------------------------------------------
 
             stock = row["Stock"]
@@ -447,47 +411,81 @@ def importar_produtos(ficheiro):
             if pd.isna(stock):
                 stock = 9999
 
-            # ------------------------------------------------
-            # DESCONTINUADO
-            # ------------------------------------------------
-
             descontinuado = row["Descontinuado?"]
 
             if pd.isna(descontinuado):
                 descontinuado = False
 
-            # ------------------------------------------------
-            # BARCODE
-            # ------------------------------------------------
+            pendentes.append({
+                "_modelo": nome_modelo,
+                "referencia": referencia,
+                "id_cor": int(id_cor),
+                "preco_base": float(preco),
+                "id_iva": int(id_iva),
+                "quantidade_stock": int(stock),
+                "codigo_barras_produto": barcode_text(referencia),
+                "descontinuado": bool(descontinuado)
+            })
 
-            barcode = barcode_text(referencia)
-
-            # ------------------------------------------------
-            # INSERIR PRODUTO
-            # ------------------------------------------------
-
-            supabase \
-                .table("produtos") \
-                .insert({
-                    "referencia": referencia,
-                    "id_modelo": id_modelo,
-                    "id_cor": id_cor,
-                    "preco_base": float(preco),
-                    "id_iva": id_iva,
-                    "quantidade_stock": int(stock),
-                    "codigo_barras_produto": barcode,
-                    "descontinuado": bool(descontinuado)
-                }) \
-                .execute()
-
-            print(
-                f"Produto {referencia} "
-                f"inserido com sucesso."
-            )
+            vistos.add(referencia)
 
         except Exception as erro:
 
+            erros += 1
+
             print(
-                f"ERRO no produto "
-                f"{referencia}: {erro}"
+                f"ERRO na linha do produto "
+                f"{row.get('Referência')}: {erro}"
             )
+
+    # --------------------------------------------------------
+    # 3) CRIAR OS MODELOS NOVOS (em lotes)
+    # --------------------------------------------------------
+
+    if novos_modelos:
+
+        criados, falhas = _inserir_em_lotes(
+            "produtos_modelo",
+            list(novos_modelos.values())
+        )
+
+        erros += falhas
+
+        for modelo in criados:
+            modelos[modelo["nome_catalogo"].strip()] = modelo["id_modelo"]
+
+    # --------------------------------------------------------
+    # 4) CRIAR OS PRODUTOS (em lotes)
+    # --------------------------------------------------------
+
+    linhas = []
+
+    for produto in pendentes:
+
+        id_modelo = modelos.get(produto.pop("_modelo"))
+
+        if id_modelo is None:
+            erros += 1
+            print(
+                f"ERRO: modelo não encontrado para o produto "
+                f"{produto['referencia']}"
+            )
+            continue
+
+        produto["id_modelo"] = int(id_modelo)
+        linhas.append(produto)
+
+    inseridos, falhas = _inserir_em_lotes("produtos", linhas)
+
+    erros += falhas
+
+    print(
+        f"\nImportação concluída: {len(inseridos)} produtos inseridos, "
+        f"{ignorados} ignorados (já existiam ou sem preço), {erros} erros."
+    )
+
+    return {
+        "inseridos": len(inseridos),
+        "ignorados": ignorados,
+        "erros": erros
+    }
