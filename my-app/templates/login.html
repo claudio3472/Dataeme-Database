@@ -291,6 +291,55 @@
             box-shadow: 0 0 0 4px rgba(127, 175, 0, 0.18);
         }
 
+        .login-input-box {
+            position: relative;
+        }
+
+        .login-input-box input {
+            padding-right: 52px;
+        }
+
+        .login-eye {
+            position: absolute;
+            top: 50%;
+            right: 7px;
+            width: 38px;
+            height: 38px;
+            display: grid;
+            place-items: center;
+            padding: 0;
+            color: var(--login-muted);
+            background: transparent;
+            border: 0;
+            border-radius: 10px;
+            cursor: pointer;
+            transform: translateY(-50%);
+            transition: color 150ms ease, background 150ms ease;
+        }
+
+        .login-eye:hover {
+            color: var(--login-ink);
+            background: #f1f5f9;
+        }
+
+        .login-eye:focus-visible {
+            outline: 3px solid rgba(127, 175, 0, 0.38);
+        }
+
+        .login-eye svg {
+            width: 20px;
+            height: 20px;
+        }
+
+        .login-eye .eye-off,
+        .login-eye.shown .eye-on {
+            display: none;
+        }
+
+        .login-eye.shown .eye-off {
+            display: block;
+        }
+
         .login-form-options {
             display: flex;
             justify-content: flex-end;
@@ -510,19 +559,38 @@
 
                     <div class="login-field">
                         <label for="password">Password</label>
-                        <input
-                            type="password"
-                            id="password"
-                            name="password"
-                            placeholder="Introduza a sua password"
-                            autocomplete="current-password"
-                            required
-                        >
+                        <div class="login-input-box">
+                            <input
+                                type="password"
+                                id="password"
+                                name="password"
+                                placeholder="Introduza a sua password"
+                                autocomplete="current-password"
+                                required
+                            >
+                            <button type="button" class="login-eye" id="togglePassword" aria-label="Mostrar password">
+                                <svg class="eye-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                    <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/>
+                                    <circle cx="12" cy="12" r="3"/>
+                                </svg>
+                                <svg class="eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                    <path d="M17.94 17.94A10.5 10.5 0 0 1 12 19c-6.5 0-10-7-10-7a18 18 0 0 1 4.06-5.06"/>
+                                    <path d="M9.9 5.24A9.7 9.7 0 0 1 12 5c6.5 0 10 7 10 7a18 18 0 0 1-2.16 3.19"/>
+                                    <path d="M3 3l18 18"/>
+                                </svg>
+                            </button>
+                        </div>
                     </div>
 
                     <div class="login-form-options">
                         <a class="login-recovery" href="{{ url_for('recuperar_password') }}">
                             Esqueci-me da password
+                        </a>
+                    </div>
+
+                    <div class="login-form-options">
+                        <a class="login-recovery" href="{{ url_for('registar') }}">
+                            Não tenho conta
                         </a>
                     </div>
 
@@ -545,5 +613,20 @@
             </div>
         </section>
     </main>
+
+    <script>
+        (function () {
+            var btn = document.getElementById("togglePassword");
+            var field = document.getElementById("password");
+
+            btn.addEventListener("click", function () {
+                var show = field.type === "password";
+                field.type = show ? "text" : "password";
+                btn.classList.toggle("shown", show);
+                btn.setAttribute("aria-label", show ? "Esconder password" : "Mostrar password");
+                field.focus();
+            });
+        })();
+    </script>
 </body>
 </html>

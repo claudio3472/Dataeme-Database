@@ -2,246 +2,708 @@
 <html lang="pt">
 <head>
     <meta charset="UTF-8">
-    <title>Registar</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#dce7ea">
+
+    <title>Criar conta</title>
 
     <style>
+        :root {
+            --blue: #1565C0;
+            --blue-deep: #0D3C8C;
+            --teal: #1FB5B5;
+            --teal-deep: #0E7C86;
+            --green-light: #A4C400;
+            --green: #7FAF00;
+            --green-deep: #598046;
+            --ink: #1F3A4D;
+            --muted: #647580;
+            --border: #d8e1e5;
+            --page: #DCE7EA;
+            --ok: #16a34a;
+            --danger: #a12b32;
+            --danger-bg: #fff3f2;
+        }
+
+        * { box-sizing: border-box; }
+
         body {
-            font-family: Arial, sans-serif;
-            max-width: 700px;
-            margin: 40px auto;
+            min-height: 100vh;
+            display: grid;
+            place-items: center;
+            margin: 0;
+            padding: 24px;
+            color: var(--ink);
+            background:
+                radial-gradient(800px 600px at 100% 0%, rgba(30, 136, 229, 0.26) 0%, transparent 68%),
+                radial-gradient(760px 560px at 0% 100%, rgba(164, 196, 0, 0.30) 0%, transparent 66%),
+                radial-gradient(620px 440px at 0% 0%, rgba(31, 181, 181, 0.18) 0%, transparent 65%),
+                radial-gradient(600px 420px at 85% 100%, rgba(127, 175, 0, 0.16) 0%, transparent 65%),
+                var(--page);
+            background-attachment: fixed;
+            font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
         }
 
-        h1 {
-            margin-bottom: 25px;
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            overflow: hidden;
+            clip: rect(0 0 0 0);
+            white-space: nowrap;
         }
 
-        .erro {
-            color: red;
-            margin-bottom: 20px;
+        /* ---------- Shell ---------- */
+        .shell {
+            width: min(100%, 1140px);
+            display: grid;
+            grid-template-columns: 0.62fr 1.38fr;
+            overflow: hidden;
+            background: #fff;
+            border: 1px solid rgba(255, 255, 255, 0.9);
+            border-radius: 28px;
+            box-shadow:
+                0 2px 6px rgba(13, 60, 140, 0.06),
+                0 30px 80px rgba(13, 60, 140, 0.24);
+            animation: enter 420ms ease-out both;
         }
 
-        .campo {
-            margin-bottom: 10px;
+        @keyframes enter {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
-        .campo label {
-            display: block;
-            font-weight: bold;
-            margin-bottom: 5px;
-        }
-
-        input {
-            width: 100%;
-            height: 38px;
-            box-sizing: border-box;
-            padding: 0 10px;
-        }
-
-        .linha {
+        /* ---------- Brand panel ---------- */
+        .brand {
+            position: relative;
             display: flex;
-            gap: 15px;
-            margin-bottom: 15px;
+            flex-direction: column;
+            padding: 38px 36px;
+            color: #fff;
+            background:
+                radial-gradient(ellipse 86% 72% at 100% 7%, rgba(31, 181, 181, 0.78) 0%, rgba(14, 124, 134, 0.72) 32%, transparent 79%),
+                radial-gradient(ellipse 80% 78% at 100% 100%, rgba(127, 175, 0, 0.78) 0%, rgba(89, 128, 70, 0.82) 34%, transparent 80%),
+                linear-gradient(145deg, var(--blue-deep) 0%, var(--blue) 47%, var(--blue-deep) 100%);
+            isolation: isolate;
+            overflow: hidden;
         }
 
-        .pequeno {
-            width: 140px;
+        .brand::before,
+        .brand::after {
+            position: absolute;
+            z-index: -1;
+            border-radius: 50%;
+            content: "";
+            pointer-events: none;
         }
 
-        .medio {
-            width: 180px;
+        .brand::before {
+            width: 420px;
+            height: 420px;
+            top: 36%;
+            right: -270px;
+            border: 1px solid rgba(31, 181, 181, 0.42);
+            box-shadow:
+                0 0 0 36px rgba(31, 181, 181, 0.13),
+                0 0 0 82px rgba(164, 196, 0, 0.10),
+                0 0 0 132px rgba(21, 101, 192, 0.09);
         }
 
-        .morada {
-            width: 500px;
-            font-weight: bold;
+        .brand::after {
+            width: 15px;
+            height: 15px;
+            right: 48px;
+            bottom: 17%;
+            background: var(--green-light);
+            box-shadow:
+                0 0 0 8px rgba(127, 175, 0, 0.24),
+                0 0 28px rgba(164, 196, 0, 0.58);
         }
 
-        .moradacampos {
-            width: 20px;
+        .brand-top {
+            display: flex;
+            align-items: center;
+            gap: 12px;
         }
 
-        .grande {
-            flex: 1;
+        .brand-mark {
+            width: 42px;
+            height: 42px;
+            display: grid;
+            place-items: center;
+            color: var(--blue-deep);
+            background: #fff;
+            border-radius: 13px;
         }
 
-        button {
-            padding: 10px 20px;
+        .brand-mark svg { width: 23px; height: 23px; }
+
+        .brand-name {
+            font-size: 1.08rem;
+            font-weight: 750;
+            letter-spacing: 0.02em;
+        }
+
+        .brand-copy {
+            max-width: 280px;
+            margin-top: auto;
+            margin-bottom: 70px;
+        }
+
+        .eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 9px;
+            margin-bottom: 16px;
+            color: #c8f1ec;
+            font-size: 0.73rem;
+            font-weight: 700;
+            letter-spacing: 0.16em;
+            text-transform: uppercase;
+        }
+
+        .eyebrow::before {
+            width: 22px;
+            height: 2px;
+            background: var(--green-light);
+            border-radius: 2px;
+            content: "";
+        }
+
+        .brand h2 {
+            margin: 0;
+            font-size: clamp(1.9rem, 3vw, 2.4rem);
+            font-weight: 680;
+            letter-spacing: -0.045em;
+            line-height: 1.08;
+        }
+
+        .brand-copy p {
+            margin: 16px 0 0;
+            color: rgba(255, 255, 255, 0.78);
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+
+        .brand-foot {
+            position: absolute;
+            right: 36px;
+            bottom: 28px;
+            left: 36px;
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            color: rgba(255, 255, 255, 0.67);
+            font-size: 0.7rem;
+            font-weight: 650;
+            letter-spacing: 0.13em;
+            text-transform: uppercase;
+        }
+
+        .brand-foot svg { width: 16px; height: 16px; color: var(--green-light); }
+
+        /* ---------- Form side ---------- */
+        .content {
+            display: flex;
+            align-items: center;
+            padding: 40px 48px 32px;
+        }
+
+        .form-wrap {
+            width: 100%;
+            max-width: 660px;
+            margin: 0 auto;
+        }
+
+        .content h1 {
+            margin: 0;
+            font-size: 1.75rem;
+            font-weight: 720;
+            letter-spacing: -0.04em;
+        }
+
+        .subtitle {
+            margin: 6px 0 22px;
+            color: var(--muted);
+            font-size: 0.9rem;
+        }
+
+        .error {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            margin: 0 0 18px;
+            padding: 12px 14px;
+            color: var(--danger);
+            background: var(--danger-bg);
+            border: 1px solid #f1c9c6;
+            border-radius: 12px;
+            font-size: 0.88rem;
+            line-height: 1.45;
+        }
+
+        .error svg { width: 18px; height: 18px; flex: none; margin-top: 1px; }
+
+        fieldset {
+            min-width: 0;
+            margin: 0;
+            padding: 0;
+            border: 0;
+        }
+
+        /* 6-column grid keeps the form to five short rows */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 14px 14px;
+        }
+
+        .s2 { grid-column: span 2; }
+        .s3 { grid-column: span 3; }
+        .s4 { grid-column: span 4; }
+        .s1 { grid-column: span 1; }
+
+        .field label {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 0.84rem;
+            font-weight: 650;
+        }
+
+        .optional { color: var(--muted); font-weight: 500; }
+
+        .input-box { position: relative; }
+
+        .field input {
+            width: 100%;
+            height: 46px;
+            padding: 0 13px;
+            color: var(--ink);
+            background: #fff;
+            border: 1.5px solid var(--border);
+            border-radius: 12px;
+            outline: none;
+            font: inherit;
+            font-size: 0.93rem;
+            transition: border-color 150ms ease, box-shadow 150ms ease;
+        }
+
+        .field input::placeholder { color: #9aa8b3; }
+        .field input:hover { border-color: #b7c8d5; }
+
+        .field input:focus {
+            border-color: var(--green);
+            box-shadow: 0 0 0 4px rgba(127, 175, 0, 0.18);
+        }
+
+        .field input.has-eye { padding-right: 46px; }
+
+        .field input.invalid {
+            border-color: #dc2626;
+            box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.10);
+        }
+
+        .phone-group {
+            display: grid;
+            grid-template-columns: 82px 1fr;
+            gap: 8px;
+        }
+
+        .eye {
+            position: absolute;
+            top: 50%;
+            right: 5px;
+            width: 36px;
+            height: 36px;
+            display: grid;
+            place-items: center;
+            padding: 0;
+            color: var(--muted);
+            background: transparent;
+            border: 0;
+            border-radius: 10px;
             cursor: pointer;
+            transform: translateY(-50%);
         }
 
-        .ajuda {
-            font-size: 12px;
-            color: #666;
-            margin-bottom: 5px;
+        .eye:hover { color: var(--ink); background: #f1f5f9; }
+        .eye:focus-visible { outline: 2px solid var(--teal-deep); }
+        .eye svg { width: 19px; height: 19px; }
+        .eye .eye-off, .eye.shown .eye-on { display: none; }
+        .eye.shown .eye-off { display: block; }
+
+        .strength-bar {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 5px;
+            margin-top: 9px;
+        }
+
+        .strength-bar span {
+            height: 5px;
+            background: #e5e7eb;
+            border-radius: 99px;
+            transition: background 200ms;
+        }
+
+        .strength[data-level="1"] .strength-bar span:nth-child(-n+1) { background: #ef4444; }
+        .strength[data-level="2"] .strength-bar span:nth-child(-n+2) { background: #f59e0b; }
+        .strength[data-level="3"] .strength-bar span:nth-child(-n+3) { background: #84cc16; }
+        .strength[data-level="4"] .strength-bar span:nth-child(-n+4) { background: var(--ok); }
+
+        .strength-text, .match {
+            min-height: 1.1em;
+            margin-top: 5px;
+            color: var(--muted);
+            font-size: 0.78rem;
+        }
+
+        .match.good { color: var(--ok); }
+        .match.bad { color: #dc2626; }
+
+        /* ---------- Submit ---------- */
+        .submit {
+            width: 100%;
+            min-height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 18px;
+            padding: 12px 18px;
+            color: #fff;
+            background: linear-gradient(105deg, var(--blue-deep) 0%, var(--blue) 34%, var(--teal-deep) 68%, var(--green-deep) 100%);
+            border: 0;
+            border-radius: 12px;
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12), 0 8px 18px rgba(21, 101, 192, 0.20);
+            cursor: pointer;
+            font: inherit;
+            font-size: 0.96rem;
+            font-weight: 680;
+            transition: box-shadow 150ms ease, transform 100ms ease;
+        }
+
+        .submit:hover {
+            transform: translateY(-1px);
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.16), 0 11px 22px rgba(21, 101, 192, 0.26);
+        }
+
+        .submit:active { transform: translateY(1px); }
+
+        .submit:focus-visible,
+        .alt-link a:focus-visible {
+            outline: 3px solid rgba(127, 175, 0, 0.38);
+            outline-offset: 3px;
+        }
+
+        .submit svg { width: 18px; height: 18px; }
+
+        .alt-link {
+            margin: 16px 0 0;
+            color: var(--muted);
+            font-size: 0.88rem;
+            text-align: center;
+        }
+
+        .alt-link a { color: var(--blue-deep); font-weight: 650; text-decoration: none; }
+        .alt-link a:hover { color: var(--teal-deep); text-decoration: underline; text-underline-offset: 3px; }
+
+        /* ---------- Responsive ---------- */
+        @media (max-width: 900px) {
+            body { display: block; padding: 16px; }
+
+            .shell {
+                width: min(100%, 680px);
+                grid-template-columns: 1fr;
+                margin: 0 auto;
+                border-radius: 23px;
+            }
+
+            .brand { padding: 22px 26px; }
+            .brand-copy { margin: 18px 0 0; max-width: none; }
+            .brand h2 { font-size: 1.5rem; }
+            .brand-copy p, .brand-foot, .eyebrow { display: none; }
+            .brand::before { top: -20px; right: -300px; }
+
+            .content { padding: 28px 26px 26px; }
+        }
+
+        @media (max-width: 600px) {
+            body { padding: 10px; }
+            .content { padding: 24px 18px 22px; }
+
+            .s2, .s3, .s4 { grid-column: span 6; }
+            .s1, .m3 { grid-column: span 3; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .shell { animation: none; }
+            *, *::before, *::after { transition: none !important; }
         }
     </style>
 </head>
+
 <body>
+<main class="shell">
 
-<h1>Criar Conta</h1>
+    <aside class="brand" aria-label="Dataeme">
+        <div class="brand-top">
+            <span class="brand-mark" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 3 20 7v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7l8-4Z"/>
+                    <path d="m8.5 12 2.2 2.2 4.8-5"/>
+                </svg>
+            </span>
+            <span class="brand-name">Dataeme</span>
+        </div>
 
-{% if erro %}
-<p class="erro">
-    {{ erro }}
-</p>
-{% endif %}
+        <div class="brand-copy">
+            <span class="eyebrow">Área de cliente</span>
+            <h2>Crie a sua conta.</h2>
+            <p>Preencha os seus dados uma vez e passe a gerir tudo num só lugar.</p>
+        </div>
 
-<form method="POST">
+        <div class="brand-foot">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect x="4" y="10" width="16" height="11" rx="2"/>
+                <path d="M8 10V7a4 4 0 0 1 8 0v3"/>
+            </svg>
+            Dados protegidos
+        </div>
+    </aside>
 
-    <div class="campo">
-        <label>NIF</label>
-        <input
-            type="text"
-            name="nif"
-            required
-            pattern="\d{9}"
-            title="O NIF deve conter exatamente 9 dígitos."
-        >
-    </div>
+    <section class="content" aria-labelledby="registarTitulo">
+        <div class="form-wrap">
+            <h1 id="registarTitulo">Criar conta</h1>
+            <p class="subtitle">Todos os campos são obrigatórios, exceto o andar.</p>
 
-    <div class="campo">
-        <label>Nome</label>
-        <input
-            type="text"
-            name="nome"
-            required
-        >
-    </div>
-
-    <div class="campo">
-        <label>Email</label>
-        <input
-            type="email"
-            name="email"
-            required
-        >
-    </div>
-
-    <div class="linha">
-
-        <div class="pequeno">
-            <div class="ajuda">
-                Indicativo
+            {% if erro %}
+            <div class="error" role="alert">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <circle cx="12" cy="12" r="9"/>
+                    <path d="M12 8v5"/>
+                    <circle cx="12" cy="16.5" r="0.6" fill="currentColor"/>
+                </svg>
+                <span>{{ erro }}</span>
             </div>
-            <input
-                type="text"
-                name="ind"
-                placeholder="+351"
-                required
-                pattern="\+\d{1,4}"
-                title="Exemplo: +351"
-            >
+            {% endif %}
+
+            <form method="POST" id="registarForm">
+
+                <fieldset>
+                    <legend class="sr-only">Dados pessoais</legend>
+                    <div class="grid">
+                        <div class="field s2">
+                            <label for="nif">NIF</label>
+                            <input type="text" id="nif" name="nif" inputmode="numeric" maxlength="9"
+                                   pattern="\d{9}" placeholder="9 dígitos"
+                                   title="O NIF deve conter exatamente 9 dígitos." required>
+                        </div>
+
+                        <div class="field s4">
+                            <label for="nome">Nome</label>
+                            <input type="text" id="nome" name="nome" autocomplete="name"
+                                   placeholder="Nome completo" required>
+                        </div>
+
+                        <div class="field s3">
+                            <label for="email">Email</label>
+                            <input type="email" id="email" name="email" autocomplete="email"
+                                   placeholder="nome@exemplo.pt" required>
+                        </div>
+
+                        <div class="field s3">
+                            <label for="tel">Telefone</label>
+                            <div class="phone-group">
+                                <input type="text" id="ind" name="ind" aria-label="Indicativo"
+                                       autocomplete="tel-country-code" placeholder="+351"
+                                       pattern="\+\d{1,4}" title="Indicativo. Exemplo: +351" required>
+                                <input type="tel" id="tel" name="tel" inputmode="numeric"
+                                       autocomplete="tel-national" placeholder="912345678"
+                                       pattern="\d{6,15}"
+                                       title="O telefone deve conter entre 6 e 15 dígitos." required>
+                            </div>
+                        </div>
+                    </div>
+                </fieldset>
+
+                <fieldset style="margin-top:14px">
+                    <legend class="sr-only">Morada</legend>
+                    <div class="grid">
+                        <div class="field s3">
+                            <label for="morada">Rua</label>
+                            <input type="text" id="morada" name="morada" autocomplete="address-line1"
+                                   placeholder="Nome da rua" required>
+                        </div>
+
+                        <div class="field s1 m3">
+                            <label for="predio">Nº</label>
+                            <input type="number" id="predio" name="predio" min="0" required>
+                        </div>
+
+                        <div class="field s2 m3">
+                            <label for="andar">Andar <span class="optional">(opc.)</span></label>
+                            <input type="text" id="andar" name="andar" placeholder="2º Esq."
+                                   pattern="[0-9].*"
+                                   title="Comece com o número do andar. Exemplo: 2º Esq.">
+                        </div>
+
+                        <div class="field s2">
+                            <label for="postal">Código postal</label>
+                            <input type="text" id="postal" name="postal" inputmode="numeric"
+                                   autocomplete="postal-code" maxlength="8" pattern="\d{4}-\d{3}"
+                                   placeholder="0000-000" title="Formato: 0000-000" required>
+                        </div>
+
+                        <div class="field s4">
+                            <label for="local">Localidade</label>
+                            <input type="text" id="local" name="local" autocomplete="address-level2"
+                                   placeholder="Lisboa" required>
+                        </div>
+                    </div>
+                </fieldset>
+
+                <fieldset style="margin-top:14px">
+                    <legend class="sr-only">Palavra-passe</legend>
+                    <div class="grid">
+                        <div class="field s3 strength" id="strength" data-level="0">
+                            <label for="password">Password</label>
+                            <div class="input-box">
+                                <input class="has-eye" type="password" id="password" name="password"
+                                       autocomplete="new-password" minlength="8"
+                                       placeholder="Mínimo 8 caracteres" required>
+                                <button type="button" class="eye" data-target="password" aria-label="Mostrar password">
+                                    <svg class="eye-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                        <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/>
+                                        <circle cx="12" cy="12" r="3"/>
+                                    </svg>
+                                    <svg class="eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                        <path d="M17.94 17.94A10.5 10.5 0 0 1 12 19c-6.5 0-10-7-10-7a18 18 0 0 1 4.06-5.06"/>
+                                        <path d="M9.9 5.24A9.7 9.7 0 0 1 12 5c6.5 0 10 7 10 7a18 18 0 0 1-2.16 3.19"/>
+                                        <path d="M3 3l18 18"/>
+                                    </svg>
+                                </button>
+                            </div>
+                            <div class="strength-bar"><span></span><span></span><span></span><span></span></div>
+                            <div class="strength-text" id="strengthText" aria-live="polite"></div>
+                        </div>
+
+                        <div class="field s3">
+                            <label for="confirmar_password">Confirmar password</label>
+                            <div class="input-box">
+                                <input class="has-eye" type="password" id="confirmar_password" name="confirmar_password"
+                                       autocomplete="new-password" minlength="8"
+                                       placeholder="Repita a password" required>
+                                <button type="button" class="eye" data-target="confirmar_password" aria-label="Mostrar password">
+                                    <svg class="eye-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                        <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/>
+                                        <circle cx="12" cy="12" r="3"/>
+                                    </svg>
+                                    <svg class="eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                        <path d="M17.94 17.94A10.5 10.5 0 0 1 12 19c-6.5 0-10-7-10-7a18 18 0 0 1 4.06-5.06"/>
+                                        <path d="M9.9 5.24A9.7 9.7 0 0 1 12 5c6.5 0 10 7 10 7a18 18 0 0 1-2.16 3.19"/>
+                                        <path d="M3 3l18 18"/>
+                                    </svg>
+                                </button>
+                            </div>
+                            <div class="match" id="match" aria-live="polite" style="margin-top:14px"></div>
+                        </div>
+                    </div>
+                </fieldset>
+
+                <button class="submit" type="submit">
+                    Criar conta
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M5 12h14"/>
+                        <path d="m13 6 6 6-6 6"/>
+                    </svg>
+                </button>
+            </form>
+
+            <p class="alt-link">
+                Já tem conta?
+                <a href="{{ url_for('login') }}">Iniciar sessão</a>
+            </p>
         </div>
+    </section>
+</main>
 
-        <div class="grande">
-            <div class="ajuda">
-                Telefone
-            </div>
-            <input
-                type="text"
-                name="tel"
-                required
-                pattern="\d{6,15}"
-                title="O telefone deve conter entre 6 e 15 dígitos."
-            >
-        </div>
+<script>
+    (function () {
+        const $ = function (id) { return document.getElementById(id); };
 
-    </div>
-    
-    <div class="linha"> 
+        const password = $("password");
+        const confirmar = $("confirmar_password");
+        const strength = $("strength");
+        const strengthText = $("strengthText");
+        const match = $("match");
+        const levelNames = ["", "Fraca", "Razoável", "Boa", "Forte"];
 
-        <div class="morada">
-            <label>Morada</label>
-            <input
-                type="text"
-                name="morada"
-                required
-            >
-        </div>
+        document.querySelectorAll(".eye").forEach(function (btn) {
+            btn.addEventListener("click", function () {
+                const field = $(btn.dataset.target);
+                const show = field.type === "password";
+                field.type = show ? "text" : "password";
+                btn.classList.toggle("shown", show);
+                btn.setAttribute("aria-label", show ? "Esconder password" : "Mostrar password");
+                field.focus();
+            });
+        });
 
-        <div class="moradacampo">
-            <label class="ajuda">Nº Prédio</label>
-            <input
-                type="number"
-                name="predio"
-                required
-            >
-        </div>
+        function update() {
+            const v = password.value;
+            let level = 0;
+            if (v) {
+                level += v.length >= 8 ? 1 : 0;
+                level += /[a-z]/.test(v) && /[A-Z]/.test(v) ? 1 : 0;
+                level += /\d/.test(v) ? 1 : 0;
+                level += /[^A-Za-z0-9]/.test(v) || v.length >= 12 ? 1 : 0;
+                level = Math.max(level, 1);
+            }
+            strength.dataset.level = level;
+            strengthText.textContent = levelNames[level];
 
-        <div class="moradacampo">
-            <label class="ajuda">Andar</label>
-            <input
-                type="text"
-                name="andar"
-                pattern="[0-9].+"               
-            >
-        </div>
+            const c = confirmar.value;
+            if (!c) {
+                match.textContent = "";
+                match.className = "match";
+                confirmar.classList.remove("invalid");
+                confirmar.setCustomValidity("");
+            } else if (c === v) {
+                match.textContent = "As passwords coincidem";
+                match.className = "match good";
+                confirmar.classList.remove("invalid");
+                confirmar.setCustomValidity("");
+            } else {
+                match.textContent = "As passwords não coincidem";
+                match.className = "match bad";
+                confirmar.classList.add("invalid");
+                confirmar.setCustomValidity("As passwords não coincidem.");
+            }
+        }
+        password.addEventListener("input", update);
+        confirmar.addEventListener("input", update);
 
-    </div>
+        function onlyDigits(el, max) {
+            el.addEventListener("input", function () {
+                el.value = el.value.replace(/\D/g, "").slice(0, max);
+            });
+        }
+        onlyDigits($("nif"), 9);
+        onlyDigits($("tel"), 15);
 
-    <div class="linha">
+        $("ind").addEventListener("input", function (e) {
+            const digits = e.target.value.replace(/\D/g, "").slice(0, 4);
+            e.target.value = digits ? "+" + digits : e.target.value.replace(/[^+]/g, "").slice(0, 1);
+        });
 
-        <div class="medio">
-            <div class="ajuda">
-                Código Postal
-            </div>
-            <input
-                type="text"
-                name="postal"
-                required
-                pattern="\d{4}-\d{3}"
-                placeholder="0000-000"
-                title="Formato: 0000-000"
-            >
-        </div>
+        $("postal").addEventListener("input", function (e) {
+            const d = e.target.value.replace(/\D/g, "").slice(0, 7);
+            e.target.value = d.length > 4 ? d.slice(0, 4) + "-" + d.slice(4) : d;
+        });
 
-        <div class="grande">
-            <div class="ajuda">
-                Localização
-            </div>
-            <input
-                type="text"
-                name="local"
-                placeholder="Localidade"
-                required
-            >
-        </div>
-
-    </div>
-
-    <div class="campo">
-        <label>Password</label>
-        <input
-            type="password"
-            name="password"
-            required
-            minlength="8"
-        >
-    </div>
-
-        <div class="campo">
-        <label>Confirmar Password</label>
-        <input
-            type="password"
-            name="confirmar_password"
-            required
-            minlength="8"
-        >
-    </div>
-
-
-    <button type="submit">
-        Criar Conta
-    </button>
-
-</form>
-
-<p>
-    Já tem conta?
-    <a href="/login">
-        Login
-    </a>
-</p>
-
+        update();
+    })();
+</script>
 </body>
 </html>
