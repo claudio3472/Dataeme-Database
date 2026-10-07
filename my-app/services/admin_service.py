@@ -1349,6 +1349,7 @@ def obter_info(filtro_cliente=None, data_inicio=None, data_fim=None):
         info.append({
             "data": ped["data_pedido"],
             "id_pedido": ped["id_pedido"],
+            "id_cliente": ped["id_cliente"],
             "valor_total": ped["valor_total"],
             "estado_pedido": ped["estado"],
             "observacoes": ped["observacoes"],
@@ -1404,6 +1405,66 @@ def obter_info(filtro_cliente=None, data_inicio=None, data_fim=None):
         info,
         key=lambda p: p["num_cliente"] or 0
     )
+
+
+def obter_produtos_relatorio():
+    """
+    Obtém as referências, nomes e cores do catálogo para filtrar relatórios,
+    incluindo produtos que ainda não aparecem em encomendas finalizadas.
+    """
+
+    por_pagina = 500
+    inicio = 0
+    produtos = []
+
+    while True:
+        response = (
+            supabase
+            .table("produtos")
+            .select("""
+                referencia,
+                cores_produto(
+                    nome_cor
+                ),
+                produtos_modelo(
+                    nome_catalogo
+                )
+            """)
+            .order("referencia")
+            .range(inicio, inicio + por_pagina - 1)
+            .execute()
+        )
+
+        pagina = response.data or []
+        produtos.extend(pagina)
+
+        if len(pagina) < por_pagina:
+            break
+
+        inicio += por_pagina
+
+    resultado = []
+
+    for produto in produtos:
+        referencia = produto.get("referencia")
+        modelo = produto.get("produtos_modelo") or {}
+        cor = produto.get("cores_produto") or {}
+        nome_produto = modelo.get("nome_catalogo") or f"Produto {referencia}"
+        nome_cor = cor.get("nome_cor")
+        label = f"{referencia} — {nome_produto}"
+
+        if nome_cor:
+            label += f" · {nome_cor}"
+
+        resultado.append({
+            "referencia": referencia,
+            "nome_produto": nome_produto,
+            "cor": nome_cor,
+            "label": label
+        })
+
+    return resultado
+
 
 def atualizar_estado_pedido_admin(id_pedido, estado):
 

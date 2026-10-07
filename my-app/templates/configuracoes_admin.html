@@ -17,6 +17,10 @@
         rel="stylesheet"
         href="{{ url_for('static', filename='css/style.css') }}"
     >
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='css/configuracoes_consistente.css') }}"
+    >
 
 
 </head>
@@ -37,15 +41,28 @@
 
     </header>
 
+    <main class="settings-shell">
 
-    <div class="dashboard_conf">
+        <div class="settings-breadcrumb">
+            <a href="{{ url_for('confirm_admin') }}">Dashboard</a>
+            &nbsp; / &nbsp;
+            Configurações
+        </div>
+
+        <section class="settings-intro">
+            <p class="settings-kicker">Área de administração</p>
+            <h2>Configurações</h2>
+            <p>Gerir utilizadores, impostos, famílias e relatórios.</p>
+        </section>
+
+        <section class="settings-grid" aria-label="Opções de configuração">
 
 
         <!-- CRIAR UTILIZADORES -->
 
-        <a href="{{ url_for('configuracoes_utilizadores') }}" class="dashboard_conf-card">
+        <a href="{{ url_for('configuracoes_utilizadores') }}" class="settings-choice">
 
-            <div class="dashboard_conf-icon">
+            <div class="settings-choice-icon" aria-hidden="true">
                 👤
             </div>
 
@@ -61,9 +78,9 @@
 
         <!-- IMPOSTOS / IVA -->
 
-        <a href="{{ url_for('configuracoes_impostos') }}" class="dashboard_conf-card">
+        <a href="{{ url_for('configuracoes_impostos') }}" class="settings-choice">
 
-            <div class="dashboard_conf-icon">
+            <div class="settings-choice-icon" aria-hidden="true">
                 💶
             </div>
 
@@ -79,9 +96,9 @@
 
         <!-- FAMÍLIAS -->
 
-        <a href="{{ url_for('configuracoes_familias') }}" class="dashboard_conf-card">
+        <a href="{{ url_for('configuracoes_familias') }}" class="settings-choice">
 
-            <div class="dashboard_conf-icon">
+            <div class="settings-choice-icon" aria-hidden="true">
                 📚
             </div>
 
@@ -95,8 +112,27 @@
 
         </a>
 
-    </div>
+        <!-- RELATÓRIOS -->
 
+        <a href="{{ url_for('relatorios_admin') }}" class="settings-choice">
+
+            <div class="settings-choice-icon" aria-hidden="true">
+                📊
+            </div>
+
+            <h2>
+                Relatórios
+            </h2>
+
+            <p>
+                Consultar vendas e compras por utilizador.
+            </p>
+
+        </a>
+
+        </section>
+
+    </main>
 
 </body>
 

@@ -1,342 +1,224 @@
-import csv
 import os
 import secrets
 import string
 from datetime import datetime
 
 import pandas as pd
+
 from config import supabase, ph
 
 
-# ============================================================
-# PASSWORD PROVISÓRIA
-# ============================================================
-# A parte aleatória tem sempre pelo menos 1 maiúscula, 1 minúscula
-# e 1 número (cumpre as regras de validar_password), e não usa
-# caracteres que se confundem (O/0, I/l/1) para ser fácil de ditar.
+PASTA_RELATORIOS = os.path.join("static", "data")
 
-PREFIXO_PASSWORD = "ProvDE-"     # <- parte fixa
-TAMANHO_ALEATORIO = 8             # <- quantos caracteres aleatórios
-
-MAIUSCULAS = "ABCDEFGHJKLMNPQRSTUVWXYZ"
-MINUSCULAS = "abcdefghijkmnopqrstuvwxyz"
-NUMEROS = "23456789"
-
-
-def gerar_password_provisoria():
-
-    # Garante pelo menos um de cada tipo
-    caracteres = [
-        secrets.choice(MAIUSCULAS),
-        secrets.choice(MINUSCULAS),
-        secrets.choice(NUMEROS)
-    ]
-
-    # Preenche o resto com uma mistura dos três
-    todos = MAIUSCULAS + MINUSCULAS + NUMEROS
-
-    caracteres += [
-        secrets.choice(todos)
-        for _ in range(TAMANHO_ALEATORIO - len(caracteres))
-    ]
-
-    # Baralha para o tipo de cada posição ser imprevisível
-    secrets.SystemRandom().shuffle(caracteres)
-
-    return PREFIXO_PASSWORD + "".join(caracteres)
-
-
-def guardar_passwords_provisorias(linhas):
-    """Guarda (NIF, nome, email, password) num CSV para o admin poder
-    entregar as passwords aos clientes. Devolve o caminho do ficheiro."""
-
-    if not linhas:
-        return None
-
-    pasta = "passwords_provisorias"
-
-    os.makedirs(pasta, exist_ok=True)
-
-    caminho = os.path.join(
-        pasta,
-        f"passwords_{datetime.now():%Y%m%d_%H%M%S}.csv"
-    )
-
-    # utf-8-sig + ";" para abrir bem no Excel português
-    with open(caminho, "w", newline="", encoding="utf-8-sig") as f:
-
-        escritor = csv.writer(f, delimiter=";")
-
-        escritor.writerow([
-            "NIF (username)",
-            "Nome",
-            "Email",
-            "Password provisória"
-        ])
-
-        escritor.writerows(linhas)
-
-    return caminho
-
-
-# ============================================================
-# AUXILIARES
-# ============================================================
 
 def _texto(valor):
-    """Converte uma célula do Excel em texto limpo (ou None se estiver vazia).
-    Números inteiros vindos como 123.0 passam a '123'."""
-
     if pd.isna(valor):
-        return None
+        return ""
 
     if isinstance(valor, float) and valor.is_integer():
-        valor = int(valor)
+        return str(int(valor))
 
-    valor = str(valor).strip()
-
-    return valor or None
+    return str(valor).strip()
 
 
-def _inteiro(valor):
-    texto = _texto(valor)
+def gerar_password_provisoria(tamanho=12):
+    caracteres = string.ascii_letters + string.digits
+    return "".join(secrets.choice(caracteres) for _ in range(tamanho))
 
-    if texto is None:
+
+def _ler_ficheiro(ficheiro):
+    nome = getattr(ficheiro, "filename", "") or ""
+    extensao = os.path.splitext(nome.lower())[1]
+
+    if extensao in (".xlsx", ".xls"):
+        return pd.read_excel(ficheiro, sheet_name=0)
+
+    if extensao == ".csv":
+        try:
+            return pd.read_csv(ficheiro)
+        except UnicodeDecodeError:
+            ficheiro.seek(0)
+            return pd.read_csv(ficheiro, encoding="latin-1")
+
+    raise ValueError("Formato não suportado. Envia um ficheiro .xlsx, .xls ou .csv.")
+
+
+def _normalizar_email(email):
+    email = _texto(email).lower()
+
+    if not email:
+        return ""
+
+    return email
+
+
+def _guardar_utilizadores_sem_email(utilizadores_sem_email):
+    if not utilizadores_sem_email:
         return None
 
-    try:
-        return int(texto)
-    except ValueError:
-        return None
+    os.makedirs(PASTA_RELATORIOS, exist_ok=True)
 
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    nome_ficheiro = f"utilizadores_sem_email_{timestamp}.xlsx"
+    caminho = os.path.join(PASTA_RELATORIOS, nome_ficheiro)
 
-def _e_admin(valor):
-    if pd.isna(valor):
-        return False
+    colunas = [
+        "Nome / Empresa",
+        "NIF",
+        "Morada",
+        "Indicativo",
+        "Telefone",
+        "Código Postal",
+        "Localização",
+        "E-mail",
+        "Motivo"
+    ]
 
-    return str(valor).strip().lower() in ("true", "1", "sim", "s", "yes", "verdadeiro")
+    df = pd.DataFrame(utilizadores_sem_email, columns=colunas)
+    df.to_excel(caminho, index=False)
 
+    return nome_ficheiro
 
-# ============================================================
-# VERIFICAÇÕES
-# ============================================================
-
-def username_existe(username):
-    response = (
-        supabase
-        .table("utilizador")
-        .select("username")
-        .eq("username", username)
-        .execute()
-    )
-
-    return bool(response.data)
-
-
-def numero_cliente_existe(numero_cliente):
-    response = (
-        supabase
-        .table("cliente")
-        .select("numero_cliente")
-        .eq("numero_cliente", numero_cliente)
-        .execute()
-    )
-
-    return bool(response.data)
-
-
-# ============================================================
-# IMPORTAÇÃO
-# ============================================================
 
 def importar_utilizadores(ficheiro):
-    extensoes_aceites = (".xlsx", ".xls")
+    df = _ler_ficheiro(ficheiro)
 
-    if ficheiro.filename.lower().endswith(extensoes_aceites):
+    campos_obrigatorios = [
+        "Nome / Empresa",
+        "NIF",
+        "Morada",
+        "Indicativo",
+        "Telefone",
+        "Código Postal",
+        "Localização"
+    ]
 
-        df = pd.read_excel(
-            ficheiro,
-            sheet_name=0,
-            usecols=range(10)
+    campos_em_falta = [
+        campo for campo in campos_obrigatorios
+        if campo not in df.columns
+    ]
+
+    if campos_em_falta:
+        raise ValueError(
+            "Faltam colunas obrigatórias no ficheiro: "
+            + ", ".join(campos_em_falta)
         )
 
-    else:
+    if "E-mail" not in df.columns:
+        df["E-mail"] = ""
 
-        df = pd.read_csv(
-            ficheiro,
-            sep=","
-        )
-
-    # (NIF, nome, email, password) de cada cliente criado
     passwords_criadas = []
+    utilizadores_sem_email = []
+    utilizadores_importados = 0
+    utilizadores_ignorados = 0
 
     for _, row in df.iterrows():
-
         nome = _texto(row["Nome / Empresa"])
         nif = _texto(row["NIF"])
+        morada = _texto(row["Morada"])
+        indicativo = _texto(row["Indicativo"])
+        telefone = _texto(row["Telefone"])
+        codigo_postal = _texto(row["Código Postal"])
+        localizacao = _texto(row["Localização"])
+        email = _normalizar_email(row["E-mail"])
 
-        if not nome or not nif:
+        if not email:
+            utilizadores_sem_email.append({
+                "Nome / Empresa": nome,
+                "NIF": nif,
+                "Morada": morada,
+                "Indicativo": indicativo,
+                "Telefone": telefone,
+                "Código Postal": codigo_postal,
+                "Localização": localizacao,
+                "E-mail": "",
+                "Motivo": "Sem email"
+            })
+            utilizadores_ignorados += 1
             continue
 
-        print(f"\nProcessando utilizador: {nome}")
+        password_provisoria = gerar_password_provisoria()
+        password_hash = ph.hash(password_provisoria)
 
-        if _e_admin(row["Admin?"]):
-            print(
-                f"{nome} é admin. Ignorado "
-                f"(criar em Configurações)."
+        resposta_utilizador = (
+            supabase
+            .table("utilizador")
+            .insert({
+                "username": nif,
+                "password": password_hash,
+                "is_admin": False,
+                "deve_alterar_password": True
+            })
+            .execute()
+        )
+
+        if not resposta_utilizador.data:
+            raise ValueError(
+                f"Não foi possível criar o utilizador com NIF {nif}."
             )
-            continue
 
-        if username_existe(nif):
-            print(
-                f"Utilizador {nome} (NIF {nif}) "
-                f"já existe. Ignorado."
-            )
-            continue
-
-        id_utilizador = None
+        utilizador_criado = resposta_utilizador.data[0]
+        id_utilizador = utilizador_criado["id_utilizador"]
 
         try:
-
-            morada = _texto(row["Morada"])
-            indicativo = _texto(row["Indicativo"])
-            telefone = _inteiro(row["Telefone"])
-            postal = _texto(row["Código Postal"])
-            local = _texto(row["Localização"])
-
-            if not all([
-                morada,
-                indicativo,
-                telefone,
-                postal,
-                local
-            ]):
-                print(
-                    f"Dados obrigatórios em falta "
-                    f"para {nome}. Ignorado."
-                )
-                continue
-
-            if not indicativo.startswith("+"):
-                indicativo = f"+{indicativo}"
-
-            numero_cliente = _inteiro(
-                row["Número Cliente"]
-            )
-
-            if (
-                numero_cliente is not None
-                and numero_cliente_existe(numero_cliente)
-            ):
-                print(
-                    f"Número de cliente "
-                    f"{numero_cliente} já existe. "
-                    f"{nome} ignorado."
-                )
-                continue
-
-            email = _texto(row["E-mail"])
-
-            if email:
-                email = email.lower()
-            else:
-                email = (
-                    f"sem-email-{nif}"
-                    f"@dataeme.invalid"
-                )
-
-            # Password provisória (fica guardada só como hash na base
-            # de dados; o texto simples vai para o CSV no fim)
-            password_provisoria = gerar_password_provisoria()
-
-            password_hash = ph.hash(password_provisoria)
-
-            resposta_utilizador = (
+            resposta_cliente = (
                 supabase
-                .table("utilizador")
+                .table("cliente")
                 .insert({
-                    "username": nif,
-                    "password": password_hash,
-                    "is_admin": False
+                    "id_utilizador": id_utilizador,
+                    "nif": nif,
+                    "nome": nome,
+                    "morada": morada,
+                    "email": email,
+                    "telefone": telefone,
+                    "indicativo": indicativo,
+                    "codigo_postal": codigo_postal,
+                    "localizacao": localizacao
                 })
                 .execute()
             )
 
-            id_utilizador = (
-                resposta_utilizador
-                .data[0]["id_utilizador"]
-            )
+            if not resposta_cliente.data:
+                raise ValueError(
+                    f"Não foi possível criar o cliente com NIF {nif}."
+                )
 
-            cliente = {
-                "nif": nif,
-                "nome": nome,
-                "morada": morada,
-                "email": email,
-                "telefone": telefone,
-                "codigo_postal": postal,
-                "localizacao": local,
-                "indicativo": indicativo,
-                "id_utilizador": id_utilizador
-            }
+        except Exception:
+            supabase.table("utilizador").delete().eq(
+                "id_utilizador", id_utilizador
+            ).execute()
+            raise
 
-            if numero_cliente is not None:
-                cliente["numero_cliente"] = numero_cliente
+        passwords_criadas.append({
+            "NIF": nif,
+            "Nome / Empresa": nome,
+            "E-mail": email,
+            "Password provisória": password_provisoria
+        })
 
-            (
-                supabase
-                .table("cliente")
-                .insert(cliente)
-                .execute()
-            )
+        utilizadores_importados += 1
 
-            passwords_criadas.append(
-                (nif, nome, email, password_provisoria)
-            )
+    nome_ficheiro_sem_email = _guardar_utilizadores_sem_email(
+        utilizadores_sem_email
+    )
 
-            print(
-                f"Utilizador {nome} "
-                f"inserido com sucesso."
-            )
+    if passwords_criadas:
+        os.makedirs(PASTA_RELATORIOS, exist_ok=True)
 
-        except Exception as erro:
-
-            print(
-                f"ERRO no utilizador "
-                f"{nome}: {erro}"
-            )
-
-            if id_utilizador is not None:
-
-                try:
-
-                    (
-                        supabase
-                        .table("utilizador")
-                        .delete()
-                        .eq(
-                            "id_utilizador",
-                            id_utilizador
-                        )
-                        .execute()
-                    )
-
-                except Exception as erro_rollback:
-
-                    print(
-                        "Não foi possível desfazer "
-                        f"o utilizador: {erro_rollback}"
-                    )
-
-    # --------------------------------------------------------
-    # GUARDAR AS PASSWORDS PROVISÓRIAS NUM CSV
-    # --------------------------------------------------------
-
-    caminho = guardar_passwords_provisorias(passwords_criadas)
-
-    if caminho:
-        print(
-            f"\n{len(passwords_criadas)} passwords provisórias "
-            f"guardadas em: {caminho}"
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        caminho_passwords = os.path.join(
+            PASTA_RELATORIOS,
+            f"passwords_criadas_{timestamp}.csv"
         )
 
-    return caminho
+        pd.DataFrame(passwords_criadas).to_csv(
+            caminho_passwords,
+            index=False,
+            encoding="utf-8-sig"
+        )
+
+    return {
+        "importados": utilizadores_importados,
+        "sem_email": utilizadores_ignorados,
+        "ficheiro_sem_email": nome_ficheiro_sem_email
+    }

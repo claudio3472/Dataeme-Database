@@ -644,41 +644,27 @@
 
     });
 
-
-    // ============================================================
-    // DADOS DE FAMÍLIAS / SUBFAMÍLIAS
-    // ============================================================
-    //
-    // Estes dados já vêm do Flask.
-    //
-    // Antes:
-    //      Cada modelo fazia um fetch à API.
-    //
-    // Agora:
-    //      Os dados são carregados uma única vez nesta página.
-    //
-
     const familiasSubfamilias = {
 
-    {% for familia in categorias %}
+        {% for familia in categorias %}
 
-        "{{ familia.id_familia }}": [
+            "{{ familia.id_familia }}": [
 
-            {% for sub in familia.subfamilias %}
-                {
-                    id_subfamilia: "{{ sub.id_subfamilia }}",
-                    nome: {{ sub.nome | tojson }}
-                }
-                {% if not loop.last %},{% endif %}
-            {% endfor %}
+                {% for sub in familia.subfamilias %}
+                    {
+                        id_subfamilia: "{{ sub.id_subfamilia }}",
+                        nome: {{ sub.nome | tojson }}
+                    }
+                    {% if not loop.last %},{% endif %}
+                {% endfor %}
 
-        ]
+            ]
 
-        {% if not loop.last %},{% endif %}
+            {% if not loop.last %},{% endif %}
 
-    {% endfor %}
+        {% endfor %}
 
-};
+    };
 
 
     // ============================================================

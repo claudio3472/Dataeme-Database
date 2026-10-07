@@ -16,6 +16,10 @@
         rel="stylesheet"
         href="{{ url_for('static', filename='css/style.css') }}"
     >
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='css/configuracoes_consistente.css') }}"
+    >
 
 </head>
 
@@ -36,11 +40,11 @@
     </header>
 
 
-    <div class="container_familias">
+    <main class="settings-shell">
 
         <!-- CAMINHO -->
 
-        <div class="breadcrumb">
+        <div class="settings-breadcrumb">
 
             <a href="{{ url_for('confirm_admin') }}">Dashboard</a>
 
@@ -55,11 +59,11 @@
         </div>
 
 
-        <div class="pagina-titulo">Famílias</div>
-
-        <div class="pagina-subtitulo">
-            Gerir as famílias de produtos.
-        </div>
+        <section class="settings-intro">
+            <p class="settings-kicker">Área de administração</p>
+            <h2>Famílias</h2>
+            <p>Gerir as famílias de produtos.</p>
+        </section>
 
         {% if sucesso %}
 
@@ -78,7 +82,7 @@
         {% endif %}
 
 
-        <div class="painel">
+        <section class="settings-panel">
 
             <div class="painel-cabecalho">
 
@@ -156,9 +160,9 @@
 
             </form>
 
-        </div>
+        </section>
 
-    </div>
+    </main>
 
 
     <!-- =========================

@@ -13,6 +13,10 @@
         rel="stylesheet"
         href="{{ url_for('static', filename='css/style.css') }}"
     >
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='css/configuracoes_consistente.css') }}"
+    >
 
 </head>
 
@@ -20,7 +24,7 @@
 
     <header>
 
-        <h1>Criar Utilizador</h1>
+        <h1>Configurações</h1>
 
         <nav>
 
@@ -32,11 +36,11 @@
 
     </header>
 
-    <div class="container">
+    <main class="settings-shell">
 
         <!-- CAMINHO -->
 
-        <div class="breadcrumb">
+        <div class="settings-breadcrumb">
 
             <a href="{{ url_for('confirm_admin') }}">Dashboard</a>
 
@@ -46,11 +50,17 @@
 
             &nbsp; / &nbsp;
 
-            Criar Utilizadores
+            Criar Utilizador
 
         </div>
 
-        <div class="card">
+        <section class="settings-intro">
+            <p class="settings-kicker">Área de administração</p>
+            <h2>Criar Utilizador</h2>
+            <p>Criar uma nova conta ou importar vários utilizadores.</p>
+        </section>
+
+        <section class="settings-panel">
 
             <div class="botao_container">
 
@@ -84,6 +94,30 @@
                 </a>
                 
             </div>
+
+            {% if sucesso %}
+            <div role="status" aria-live="polite" style="color: green; margin: 15px 0; font-weight: bold;">
+                {{ sucesso }}
+            </div>
+            {% endif %}
+
+            {% if erro %}
+            <div role="alert" style="color: red; margin: 15px 0; font-weight: bold;">
+                {{ erro }}
+            </div>
+            {% endif %}
+
+            {% if ficheiro_sem_email %}
+            <div style="margin: 15px 0;">
+                <a
+                    class="btn-download-produto"
+                    href="{{ url_for('download_utilizadores_sem_email', nome_ficheiro=ficheiro_sem_email) }}"
+                    download="{{ ficheiro_sem_email }}"
+                >
+                    Download utilizadores sem email
+                </a>
+            </div>
+            {% endif %}
             
             <form method="POST" id="form-criar-utilizador" class="form_utilizadores">
 
@@ -223,24 +257,12 @@
                     <button class="animacao-botao" type="submit">
                         Criar Utilizador
                     </button>
-                    
-                    {% if sucesso %}
-                    <div style="color: green; margin-bottom: 15px; font-weight: bold;">
-                        {{ sucesso }}
-                    </div>
-                    {% endif %}
-
-                    {% if erro %}
-                    <div style="color: red; margin-bottom: 15px; font-weight: bold;">
-                        {{ erro }}
-                    </div>
-                    {% endif %}
 
                 </div>
 
             </form>
-        </div>
-    </div>
+        </section>
+    </main>
 
     <script>
 
@@ -283,3 +305,5 @@
     </script>
 
 </body>
+
+</html>

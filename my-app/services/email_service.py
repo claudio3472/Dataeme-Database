@@ -114,3 +114,49 @@ def enviar_nota_encomenda(email, PDF):
         smtp.ehlo()
         smtp.login(EMAIL_REMETENTE, PASSWORD_EMAIL)
         smtp.send_message(mensagem)
+
+
+def enviar_password_provisoria(email, nome, nif, password):
+
+    if not EMAIL_REMETENTE:
+        raise ValueError(
+            "SMTP_EMAIL não está definido no ficheiro .env"
+        )
+
+    if not PASSWORD_EMAIL:
+        raise ValueError(
+            "SMTP_PASSWORD não está definido no ficheiro .env"
+        )
+
+    mensagem = EmailMessage()
+
+    mensagem["Subject"] = "Dados de acesso à sua conta"
+    mensagem["From"] = EMAIL_REMETENTE
+    mensagem["To"] = email
+
+    mensagem.set_content(
+        f"""
+Olá {nome},
+
+Já tínhamos criado uma conta para si na Dataeme.
+
+Para entrar, utilize:
+
+Utilizador (NIF): {nif}
+Password provisória: {password}
+
+Ao iniciar sessão ser-lhe-á pedido que escolha a sua própria password.
+
+Se não foi você que pediu este email, pode ignorá-lo.
+
+Cumprimentos,
+Dataeme
+"""
+    )
+
+    with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as smtp:
+        smtp.ehlo()
+        smtp.starttls()
+        smtp.ehlo()
+        smtp.login(EMAIL_REMETENTE, PASSWORD_EMAIL)
+        smtp.send_message(mensagem)

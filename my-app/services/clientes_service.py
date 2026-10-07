@@ -1,5 +1,16 @@
 import re
+from datetime import datetime, timedelta, timezone
+
 from config import supabase, ph
+from load_utilizadores import gerar_password_provisoria
+from services.email_service import (enviar_password_provisoria, enviar_codigo_recuperacao)
+import secrets
+import time
+
+from flask import session
+
+
+import secrets 
 
 """ MUDAR PARA USAR O PRIMEIRO DIGITO DO NIF PARA ESCOLHER SE É EMPRESA OU NÃO
 E AJUSTAR O NOME CONSOANTE. 
@@ -446,3 +457,89 @@ def obter_cliente_por_email(email):
         return response.data[0]
 
     return None
+
+
+# ============================================================
+# CONTAS CRIADAS PELO ADMIN (password provisória)
+# ============================================================
+
+COOLDOWN_PASSWORD_PROVISORIA = timedelta(minutes=10)
+DOMINIO_EMAIL_FALSO = "@dataeme.invalid"
+
+
+def _mascarar_email(email):
+    nome, _, dominio = email.partition("@")
+    return f"{nome[:1]}***@{dominio}"
+
+
+def tratar_registo_conta_pre_criada(nif):
+    """
+    Chamar no registo. Se o NIF pertencer a uma conta criada pelo admin
+    que ainda não foi ativada, envia um código de recuperação para o email
+    guardado na ficha do cliente (nunca para um email escrito no formulário).
+
+    O código usa a sessão e a rota existente /confirmar-codigo para o cliente
+    definir uma password nova. A password existente nunca é desencriptada
+    nem enviada por email.
+
+    Devolve (estado, email_mascarado):
+        (None, None)       -> não é uma conta pré-criada; seguir o registo normal
+        ("enviado", email) -> código enviado para a conta pré-criada
+        ("sem_email", None)-> a conta não tem um email válido
+    """
+
+    resposta_utilizador = (
+        supabase
+        .table("utilizador")
+        .select("id_utilizador, deve_alterar_password")
+        .eq("username", nif)
+        .limit(1)
+        .execute()
+    )
+
+    if not resposta_utilizador.data:
+        return None, None
+
+    utilizador = resposta_utilizador.data[0]
+
+    if not utilizador.get("deve_alterar_password"):
+        return None, None
+
+    resposta_cliente = (
+        supabase
+        .table("cliente")
+        .select("nome, email")
+        .eq("id_utilizador", utilizador["id_utilizador"])
+        .limit(1)
+        .execute()
+    )
+
+    if not resposta_cliente.data:
+        return None, None
+
+    cliente = resposta_cliente.data[0]
+    email = (cliente.get("email") or "").strip()
+
+    if not email or email.endswith(DOMINIO_EMAIL_FALSO):
+        return "sem_email", None
+
+    email_mascarado = _mascarar_email(email)
+    codigo = str(secrets.randbelow(900000) + 100000)
+
+    # A página confirmar_codigo() existente usa estas chaves para validar
+    # o código e guardar a password escolhida pelo cliente.
+    session["recuperacao_codigo"] = codigo
+    session["recuperacao_id_utilizador"] = utilizador["id_utilizador"]
+    session["recuperacao_email"] = email
+    session["recuperacao_expira"] = time.time() + 300
+
+    try:
+        enviar_codigo_recuperacao(email, codigo)
+    except Exception:
+        session.pop("recuperacao_codigo", None)
+        session.pop("recuperacao_id_utilizador", None)
+        session.pop("recuperacao_email", None)
+        session.pop("recuperacao_expira", None)
+        raise
+
+    return "enviado", email_mascarado

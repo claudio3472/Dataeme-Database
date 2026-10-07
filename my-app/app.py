@@ -23,6 +23,7 @@ from services.clientes_service import (
     registar_cliente_web,
     obter_cliente,
     obter_cliente_por_email,    
+    tratar_registo_conta_pre_criada,
     validar_password,
     validar_nome,
     validar_nif,
@@ -65,6 +66,7 @@ from services.admin_service import (
     obter_produtos_admin,
     atualizar_produto_admin,
     obter_info,
+    obter_produtos_relatorio,
     atualizar_estado_pedido_admin,
     obter_ivas,
     atualizar_ivas,
@@ -169,6 +171,21 @@ def login():
         )
 
     # ========================================================
+    # PASSWORD PROVISÓRIA: tem de escolher uma nova password
+    # antes de entrar (ainda NÃO fica com sessão iniciada)
+    # ========================================================
+
+    if utilizador.get("deve_alterar_password"):
+
+        session["definir_password_id_utilizador"] = (
+            utilizador["id_utilizador"]
+        )
+
+        return redirect(
+            url_for("definir_password")
+        )
+
+    # ========================================================
     # GUARDAR DADOS DO UTILIZADOR NA SESSION
     # ========================================================
 
@@ -247,6 +264,53 @@ def registar():
         return render_template(
             "registar.html"
         )
+
+    # ========================================================
+    # NIF JÁ TEM CONTA CRIADA PELO ADMIN (importação)?
+    # Enviamos um código de recuperação para o email guardado na ficha
+    # e encaminhamos o cliente para a confirmação do código.
+    # ========================================================
+
+    nif_form = request.form.get("nif", "").strip()
+
+    if nif_form:
+
+        try:
+
+            estado, email_mascarado = tratar_registo_conta_pre_criada(
+                nif_form
+            )
+
+        except Exception as e:
+
+            print(
+                "Erro ao enviar código de recuperação:",
+                e
+            )
+
+            return render_template(
+                "registar.html",
+                erro="Já existe uma conta criada para este NIF, mas não "
+                     "foi possível enviar o email. Tente novamente mais tarde."
+            )
+
+        if estado == "enviado":
+
+            session["recuperacao_conta_pre_criada"] = True
+            session["recuperacao_email_mascarado"] = email_mascarado
+
+            return redirect(
+                url_for("confirmar_codigo")
+            )
+
+        if estado == "sem_email":
+
+            return render_template(
+                "registar.html",
+                erro="Já existe uma conta criada para este NIF, mas sem um "
+                     "email associado. Contacte a Dataeme para receber os "
+                     "dados de acesso."
+            )
 
     try:
 
@@ -542,7 +606,8 @@ def confirmar_codigo():
     if request.method == "GET":
 
         return render_template(
-            "confirmar_codigo.html"
+            "confirmar_codigo.html",
+            sucesso=mensagem_conta_pre_criada()
         )
 
     codigo = request.form[
@@ -574,14 +639,16 @@ def confirmar_codigo():
 
         return render_template(
             "confirmar_codigo.html",
-            erro="Código inválido."
+            erro="Código inválido.",
+            sucesso=mensagem_conta_pre_criada()
         )
 
     if password != password_confirmacao:
 
         return render_template(
             "confirmar_codigo.html",
-            erro="As passwords não coincidem."
+            erro="As passwords não coincidem.",
+            sucesso=mensagem_conta_pre_criada()
         )
 
     try:
@@ -594,7 +661,8 @@ def confirmar_codigo():
 
         return render_template(
             "confirmar_codigo.html",
-            erro=str(e)
+            erro=str(e),
+            sucesso=mensagem_conta_pre_criada()
         )
 
     id_utilizador = session[
@@ -609,7 +677,9 @@ def confirmar_codigo():
         supabase
         .table("utilizador")
         .update({
-            "password": password_hash
+            "password": password_hash,
+            "deve_alterar_password": False,
+            "prov_enviada_em": None
         })
         .eq(
             "id_utilizador",
@@ -622,7 +692,8 @@ def confirmar_codigo():
 
         return render_template(
             "confirmar_codigo.html",
-            erro="Não foi possível alterar a password."
+            erro="Não foi possível alterar a password.",
+            sucesso=mensagem_conta_pre_criada()
         )
 
     limpar_recuperacao()
@@ -656,6 +727,158 @@ def limpar_recuperacao():
     session.pop(
         "recuperacao_expira",
         None
+    )
+
+    session.pop(
+        "recuperacao_conta_pre_criada",
+        None
+    )
+
+    session.pop(
+        "recuperacao_email_mascarado",
+        None
+    )
+
+
+def mensagem_conta_pre_criada():
+
+    if not session.get("recuperacao_conta_pre_criada"):
+        return None
+
+    email_mascarado = session.get("recuperacao_email_mascarado")
+
+    if email_mascarado:
+        return (
+            "Já existe uma conta criada para este NIF. Enviámos um código "
+            f"de recuperação para {email_mascarado}. Introduza o código "
+            "para escolher uma nova password."
+        )
+
+    return (
+        "Já existe uma conta criada para este NIF. Enviámos um código "
+        "de recuperação para o email associado à conta."
+    )
+
+
+# ============================================================
+# ESCOLHER PASSWORD (1.º LOGIN COM PASSWORD PROVISÓRIA)
+# ============================================================
+
+@app.route(
+    "/definir-password",
+    methods=["GET", "POST"]
+)
+def definir_password():
+
+    id_utilizador = session.get(
+        "definir_password_id_utilizador"
+    )
+
+    if not id_utilizador:
+
+        return redirect(
+            url_for("login")
+        )
+
+    if request.method == "GET":
+
+        return render_template(
+            "definir_password.html"
+        )
+
+    password = request.form["password"]
+
+    password_confirmacao = request.form["password_confirmacao"]
+
+    if password != password_confirmacao:
+
+        return render_template(
+            "definir_password.html",
+            erro="As passwords não coincidem."
+        )
+
+    try:
+
+        validar_password(password)
+
+    except ValueError as e:
+
+        return render_template(
+            "definir_password.html",
+            erro=str(e)
+        )
+
+    resposta = (
+        supabase
+        .table("utilizador")
+        .select("password, is_admin")
+        .eq("id_utilizador", id_utilizador)
+        .limit(1)
+        .execute()
+    )
+
+    if not resposta.data:
+
+        session.pop("definir_password_id_utilizador", None)
+
+        return redirect(
+            url_for("login")
+        )
+
+    utilizador = resposta.data[0]
+
+    # A nova password não pode ser igual à provisória
+    try:
+
+        ph.verify(utilizador["password"], password)
+
+        igual_a_provisoria = True
+
+    except Exception:
+
+        igual_a_provisoria = False
+
+    if igual_a_provisoria:
+
+        return render_template(
+            "definir_password.html",
+            erro="A nova password tem de ser diferente da provisória."
+        )
+
+    atualizacao = (
+        supabase
+        .table("utilizador")
+        .update({
+            "password": ph.hash(password),
+            "deve_alterar_password": False,
+            "prov_enviada_em": None
+        })
+        .eq("id_utilizador", id_utilizador)
+        .execute()
+    )
+
+    if not atualizacao.data:
+
+        return render_template(
+            "definir_password.html",
+            erro="Não foi possível guardar a password."
+        )
+
+    # Agora sim: iniciar sessão
+    session.pop("definir_password_id_utilizador", None)
+
+    session["id_utilizador"] = id_utilizador
+
+    session["is_admin"] = utilizador["is_admin"]
+
+    if utilizador["is_admin"]:
+
+        return redirect(
+            url_for("confirm_admin")
+        )
+
+    return redirect(
+        url_for("catalogo")
     )
 
 
@@ -1674,13 +1897,64 @@ def importar_utilizadores_admin():
             )
         )
 
-    importar_utilizadores(ficheiro)
-    
+    try:
+        resultado = importar_utilizadores(ficheiro)
+    except ValueError as e:
+        return redirect(
+            url_for(
+                "configuracoes_utilizadores",
+                erro=str(e)
+            )
+        )
+    except Exception as e:
+        print("Erro ao importar utilizadores:", e)
+        return redirect(
+            url_for(
+                "configuracoes_utilizadores",
+                erro="Ocorreu um erro ao importar os utilizadores."
+            )
+        )
+
+    sucesso = (
+        f"Importação concluída. {resultado['importados']} utilizador(es) "
+        f"foram importados."
+    )
+
+    if resultado["sem_email"]:
+        sucesso += (
+            f" {resultado['sem_email']} utilizador(es) não foram importados "
+            "por não terem email."
+        )
+
     return redirect(
         url_for(
             "configuracoes_utilizadores",
-            sucesso=f"Ficheiro '{ficheiro.filename}' foi carregado."
+            sucesso=sucesso,
+            sem_email=resultado.get("ficheiro_sem_email", "")
         )
+    )
+
+
+@app.route("/configuracoes_utilizadores/download/<path:nome_ficheiro>")
+def download_utilizadores_sem_email(nome_ficheiro):
+    if "id_utilizador" not in session:
+        return redirect(url_for("login"))
+
+    if not session.get("is_admin", False):
+        return redirect(url_for("login"))
+
+    if not nome_ficheiro.startswith("utilizadores_sem_email_"):
+        return redirect(
+            url_for(
+                "configuracoes_utilizadores",
+                erro="Ficheiro inválido."
+            )
+        )
+
+    return send_from_directory(
+        "static/data",
+        nome_ficheiro,
+        as_attachment=True
     )
 
 # ============================================================
@@ -1784,6 +2058,234 @@ def configuracoes_admin():
 
     return render_template(
         "configuracoes_admin.html"
+    )
+
+
+@app.route("/configuracoes_admin/relatorios")
+def relatorios_admin():
+
+    if "id_utilizador" not in session:
+        return redirect(url_for("login"))
+
+    if not session.get("is_admin", False):
+        return redirect(url_for("login"))
+
+    tipo_pedido = request.args.get("tipo", "").strip().lower()
+    tipos_validos = {"vendas", "utilizador", "produto"}
+    tipo = tipo_pedido if tipo_pedido in tipos_validos else ""
+    erro = None
+
+    if tipo_pedido and not tipo:
+        erro = "Tipo de relatório inválido."
+
+    data_inicio = request.args.get("data_inicio", "").strip()
+    data_fim = request.args.get("data_fim", "").strip()
+    id_cliente_raw = request.args.get("id_cliente", "").strip()
+    referencia_produto_raw = request.args.get(
+        "referencia_produto",
+        ""
+    ).strip()
+    id_cliente = None
+    referencia_produto = None
+
+    if tipo == "utilizador" and id_cliente_raw:
+        try:
+            id_cliente = int(id_cliente_raw)
+        except ValueError:
+            erro = "Selecione um utilizador válido."
+
+    if tipo == "produto" and referencia_produto_raw:
+        try:
+            referencia_produto = int(referencia_produto_raw)
+        except ValueError:
+            erro = "Selecione um produto válido."
+
+    data_inicio_validada = None
+    data_fim_validada = None
+
+    if data_inicio:
+        try:
+            data_inicio_validada = date.fromisoformat(data_inicio)
+        except ValueError:
+            erro = "A data de início é inválida."
+
+    if data_fim:
+        try:
+            data_fim_validada = date.fromisoformat(data_fim)
+        except ValueError:
+            erro = "A data de fim é inválida."
+
+    if (
+        data_inicio_validada
+        and data_fim_validada
+        and data_inicio_validada > data_fim_validada
+    ):
+        erro = "A data de início não pode ser posterior à data de fim."
+
+    clientes = []
+    cliente_selecionado = None
+    produtos_disponiveis = []
+    produto_selecionado = None
+    linhas_produto_finalizadas = []
+
+    if tipo == "utilizador":
+        clientes = [
+            {
+                "id_cliente": cliente.get("id_cliente"),
+                "nome": cliente.get("nome"),
+                "numero_cliente": cliente.get("numero_cliente")
+            }
+            for cliente in obter_clientes()
+        ]
+
+        if id_cliente is not None:
+            cliente_selecionado = next(
+                (
+                    cliente for cliente in clientes
+                    if cliente["id_cliente"] == id_cliente
+                ),
+                None
+            )
+
+            if cliente_selecionado is None:
+                erro = "O utilizador selecionado não existe."
+
+    if tipo == "produto":
+        linhas_produto_finalizadas = [
+            linha for linha in obter_info()
+            if (linha.get("estado_pedido") or "").strip().casefold()
+            == "finalizado"
+        ]
+
+        for item in agrupar_itens_pedidos(linhas_produto_finalizadas):
+            referencia = item.get("referencia")
+            nome_produto = item.get("nome_produto") or f"Produto {referencia}"
+            cor = item.get("cor")
+            label = f"{referencia} — {nome_produto}"
+
+            if cor:
+                label += f" · {cor}"
+
+            produtos_disponiveis.append({
+                "referencia": referencia,
+                "nome_produto": nome_produto,
+                "cor": cor,
+                "label": label
+            })
+
+        if referencia_produto is not None:
+            produto_selecionado = next(
+                (
+                    produto for produto in produtos_disponiveis
+                    if str(produto["referencia"]) == str(referencia_produto)
+                ),
+                None
+            )
+
+            if produto_selecionado is None:
+                erro = "O produto selecionado não tem compras finalizadas."
+
+    linhas = []
+    produtos = []
+    resumo = {
+        "quantidade": 0,
+        "valor": 0,
+        "encomendas": 0,
+        "produtos": 0,
+        "utilizadores": 0
+    }
+
+    if tipo == "produto" and not erro and produto_selecionado is not None:
+        linhas = [
+            linha for linha in linhas_produto_finalizadas
+            if str(linha.get("referencia")) == str(referencia_produto)
+            and (
+                not data_inicio
+                or (linha.get("data") and linha["data"] >= data_inicio)
+            )
+            and (
+                not data_fim
+                or (linha.get("data") and linha["data"] <= data_fim)
+            )
+        ]
+
+        produtos = agrupar_itens_pedidos(linhas)
+        resumo = {
+            "quantidade": sum(
+                int(item.get("quantidade_total") or 0)
+                for item in produtos
+            ),
+            "valor": round(
+                sum(float(item.get("valor_total") or 0) for item in produtos),
+                2
+            ),
+            "encomendas": len({
+                linha.get("id_pedido")
+                for linha in linhas
+                if linha.get("id_pedido") is not None
+            }),
+            "produtos": len(produtos),
+            "utilizadores": len({
+                linha.get("id_cliente")
+                for linha in linhas
+                if linha.get("id_cliente") is not None
+            })
+        }
+
+    elif tipo and not erro and (
+        tipo == "vendas" or cliente_selecionado is not None
+    ):
+        linhas = obter_info(
+            data_inicio=data_inicio or None,
+            data_fim=data_fim or None
+        )
+
+        # Só conta encomendas finalizadas; carrinhos e encomendas abertas
+        # não são vendas concluídas.
+        linhas = [
+            linha for linha in linhas
+            if (linha.get("estado_pedido") or "").strip().casefold()
+            == "finalizado"
+        ]
+
+        if tipo == "utilizador":
+            linhas = [
+                linha for linha in linhas
+                if linha.get("id_cliente") == id_cliente
+            ]
+
+        produtos = agrupar_itens_pedidos(linhas)
+        resumo = {
+            "quantidade": sum(
+                int(item.get("quantidade_total") or 0)
+                for item in produtos
+            ),
+            "valor": round(
+                sum(float(item.get("valor_total") or 0) for item in produtos),
+                2
+            ),
+            "encomendas": len({
+                linha.get("id_pedido")
+                for linha in linhas
+                if linha.get("id_pedido") is not None
+            }),
+            "produtos": len(produtos)
+        }
+
+    return render_template(
+        "relatorios_admin.html",
+        tipo=tipo,
+        data_inicio=data_inicio,
+        data_fim=data_fim,
+        id_cliente=id_cliente,
+        clientes=clientes,
+        cliente_selecionado=cliente_selecionado,
+        referencia_produto=referencia_produto,
+        produtos_disponiveis=produtos_disponiveis,
+        produto_selecionado=produto_selecionado,
+        produtos=produtos,
+        resumo=resumo,
+        erro=erro
     )
 
 
@@ -1934,9 +2436,24 @@ def traduzir_erro_iva(e):
 def configuracoes_utilizadores():
 
     if request.method == "GET":
-    
+
+        sucesso = request.args.get("sucesso")
+        erro = request.args.get("erro")
+        sem_email = request.args.get("sem_email")
+
+        if sem_email:
+            sucesso = (
+                (sucesso + " ") if sucesso else ""
+            ) + (
+                f"Ficheiro com os utilizadores sem email: {sem_email}. "
+                "O ficheiro foi guardado em static/data."
+            )
+
         return render_template(
-            "configuracoes_utilizadores.html"
+            "configuracoes_utilizadores.html",
+            sucesso=sucesso,
+            erro=erro,
+            ficheiro_sem_email=sem_email
         )
 
     try:
