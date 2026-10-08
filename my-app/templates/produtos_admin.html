@@ -29,9 +29,9 @@
             Dashboard
         </a>
 
-        <a href="{{ url_for('logout') }}">
+        <a href="#" onclick="event.preventDefault(); this.nextElementSibling.submit();">
             Logout
-        </a>
+        </a><form method="POST" action="{{ url_for('logout') }}" style="display:none"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"></form>
     </nav>
 
 </header>
@@ -51,6 +51,7 @@
             enctype="multipart/form-data"
             id="formImportarExcel"
         >
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <label for="ficheiroExcel" class="btn-importar-excel">
                 📄 Importar Excel/CSV
             </label>
@@ -195,6 +196,7 @@
                     action="{{ url_for('atualizar_familia_modelo_admin') }}"
                     class="form-familia-modelo"
                 >
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
                     <input type="hidden" name="id_modelo" value="{{ produto.id_modelo }}">
 
@@ -259,6 +261,7 @@
                                 method="POST"
                                 action="{{ url_for('produtos_admin') }}"
                             >
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
                                 <input
                                     type="hidden"
@@ -482,6 +485,7 @@
         <h2>Novo Produto</h2>
 
         <form method="POST" action="{{ url_for('criar_produto_admin_route') }}">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
             <!-- FAMÍLIA -->
             <div class="campo">

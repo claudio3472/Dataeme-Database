@@ -459,6 +459,7 @@
     {% endif %}
 
     <form method="POST" id="dpForm">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="dp-campo">
             <label for="dpCodigo">Código de recuperação</label>
             <p class="dp-ajuda-campo" id="dpCodigoAjuda">Introduza o código de 6 dígitos que recebeu por email.</p>
@@ -563,6 +564,11 @@
             </svg>
         </button>
     </form>
+
+    <p>
+        Não recebeu o código ou falhou demasiadas vezes?
+        <a href="{{ url_for('recuperar_password') }}">Pedir novo código</a>
+    </p>
 
     <p class="dp-rodape">
         O código é válido durante 5 minutos. Por segurança, não o partilhe.

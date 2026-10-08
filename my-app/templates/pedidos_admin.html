@@ -30,9 +30,9 @@
             Dashboard
         </a>
 
-        <a href="{{ url_for('logout') }}">
+        <a href="#" onclick="event.preventDefault(); this.nextElementSibling.submit();">
             Logout
-        </a>
+        </a><form method="POST" action="{{ url_for('logout') }}" style="display:none"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"></form>
 
     </nav>
 
@@ -224,6 +224,7 @@
                         method="POST"
                         action="{{ url_for('pedidos_admin', cliente=filtro_cliente, periodo=periodo, data_inicio=data_inicio, data_fim=data_fim, agrupar=('1' if agrupar else '')) }}"
                     >
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                           
                         <input
                             type="hidden"

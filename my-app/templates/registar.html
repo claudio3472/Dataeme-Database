@@ -489,6 +489,7 @@
             {% endif %}
 
             <form method="POST" id="registarForm">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
                 <fieldset>
                     <legend class="sr-only">Dados pessoais</legend>
@@ -496,32 +497,32 @@
                         <div class="field s2">
                             <label for="nif">NIF</label>
                             <input type="text" id="nif" name="nif" inputmode="numeric" maxlength="9"
-                                   pattern="\d{9}" placeholder="9 dígitos"
-                                   title="O NIF deve conter exatamente 9 dígitos." required>
+                                pattern="\d{9}" placeholder="9 dígitos"
+                                title="O NIF deve conter exatamente 9 dígitos." required>
                         </div>
 
                         <div class="field s4">
                             <label for="nome">Nome</label>
                             <input type="text" id="nome" name="nome" autocomplete="name"
-                                   placeholder="Nome completo" required>
+                                placeholder="Nome completo" required>
                         </div>
 
                         <div class="field s3">
                             <label for="email">Email</label>
                             <input type="email" id="email" name="email" autocomplete="email"
-                                   placeholder="nome@exemplo.pt" required>
+                                placeholder="nome@exemplo.pt" required>
                         </div>
 
                         <div class="field s3">
                             <label for="tel">Telefone</label>
                             <div class="phone-group">
                                 <input type="text" id="ind" name="ind" aria-label="Indicativo"
-                                       autocomplete="tel-country-code" placeholder="+351"
-                                       pattern="\+\d{1,4}" title="Indicativo. Exemplo: +351" required>
+                                    autocomplete="tel-country-code" placeholder="+351"
+                                    pattern="\+\d{1,4}" title="Indicativo. Exemplo: +351" required>
                                 <input type="tel" id="tel" name="tel" inputmode="numeric"
-                                       autocomplete="tel-national" placeholder="912345678"
-                                       pattern="\d{6,15}"
-                                       title="O telefone deve conter entre 6 e 15 dígitos." required>
+                                    autocomplete="tel-national" placeholder="912345678"
+                                    pattern="\d{6,15}"
+                                    title="O telefone deve conter entre 6 e 15 dígitos." required>
                             </div>
                         </div>
                     </div>
@@ -533,7 +534,7 @@
                         <div class="field s3">
                             <label for="morada">Rua</label>
                             <input type="text" id="morada" name="morada" autocomplete="address-line1"
-                                   placeholder="Nome da rua" required>
+                                placeholder="Nome da rua" required>
                         </div>
 
                         <div class="field s1 m3">
@@ -558,7 +559,7 @@
                         <div class="field s4">
                             <label for="local">Localidade</label>
                             <input type="text" id="local" name="local" autocomplete="address-level2"
-                                   placeholder="Lisboa" required>
+                                placeholder="Lisboa" required>
                         </div>
                     </div>
                 </fieldset>
@@ -570,8 +571,8 @@
                             <label for="password">Password</label>
                             <div class="input-box">
                                 <input class="has-eye" type="password" id="password" name="password"
-                                       autocomplete="new-password" minlength="8"
-                                       placeholder="Mínimo 8 caracteres" required>
+                                    autocomplete="new-password" minlength="8"
+                                    placeholder="Mínimo 8 caracteres" required>
                                 <button type="button" class="eye" data-target="password" aria-label="Mostrar password">
                                     <svg class="eye-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                                         <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/>
@@ -592,8 +593,8 @@
                             <label for="confirmar_password">Confirmar password</label>
                             <div class="input-box">
                                 <input class="has-eye" type="password" id="confirmar_password" name="confirmar_password"
-                                       autocomplete="new-password" minlength="8"
-                                       placeholder="Repita a password" required>
+                                    autocomplete="new-password" minlength="8"
+                                    placeholder="Repita a password" required>
                                 <button type="button" class="eye" data-target="confirmar_password" aria-label="Mostrar password">
                                     <svg class="eye-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                                         <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/>

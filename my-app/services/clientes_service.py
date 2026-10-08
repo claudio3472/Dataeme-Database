@@ -7,7 +7,8 @@ from services.email_service import (enviar_password_provisoria, enviar_codigo_re
 import secrets
 import time
 
-from flask import session
+from flask import session  # noqa: F401
+from services.recuperacao_service import iniciar_recuperacao, iniciar_recuperacao_falsa
 
 
 import secrets 
@@ -183,10 +184,18 @@ def validar_morada(morada):
         )
 
 
+PASSWORD_MAX = 128
+
+
 def validar_password(password):
     if len(password) < 8:
         raise ValueError(
             "A password deve ter pelo menos 8 caracteres."
+        )
+
+    if len(password) > PASSWORD_MAX:
+        raise ValueError(
+            f"A password não pode ter mais de {PASSWORD_MAX} caracteres."
         )
 
     if not any(c.isupper() for c in password):
@@ -478,14 +487,17 @@ def tratar_registo_conta_pre_criada(nif):
     que ainda não foi ativada, envia um código de recuperação para o email
     guardado na ficha do cliente (nunca para um email escrito no formulário).
 
-    O código usa a sessão e a rota existente /confirmar-codigo para o cliente
-    definir uma password nova. A password existente nunca é desencriptada
-    nem enviada por email.
+    O código fica guardado no SERVIDOR (tabela recuperacao_codigo, só o hash);
+    a sessão guarda apenas um token aleatório. A password existente nunca é
+    desencriptada nem enviada por email.
 
-    Devolve (estado, email_mascarado):
-        (None, None)       -> não é uma conta pré-criada; seguir o registo normal
-        ("enviado", email) -> código enviado para a conta pré-criada
-        ("sem_email", None)-> a conta não tem um email válido
+    Devolve (estado, None):
+        (None, None)        -> não é uma conta pré-criada; seguir o registo normal
+        ("enviado", None)   -> código enviado (ou já enviado há instantes)
+        ("sem_email", None) -> a conta não tem um email válido
+
+    (O segundo valor mantém-se por compatibilidade; o email mascarado deixou
+    de ser mostrado para não revelar parte do email da conta.)
     """
 
     resposta_utilizador = (
@@ -523,23 +535,7 @@ def tratar_registo_conta_pre_criada(nif):
     if not email or email.endswith(DOMINIO_EMAIL_FALSO):
         return "sem_email", None
 
-    email_mascarado = _mascarar_email(email)
-    codigo = str(secrets.randbelow(900000) + 100000)
+    # Lança exceção se o envio falhar (tratado em app.py)
+    iniciar_recuperacao(utilizador["id_utilizador"], email)
 
-    # A página confirmar_codigo() existente usa estas chaves para validar
-    # o código e guardar a password escolhida pelo cliente.
-    session["recuperacao_codigo"] = codigo
-    session["recuperacao_id_utilizador"] = utilizador["id_utilizador"]
-    session["recuperacao_email"] = email
-    session["recuperacao_expira"] = time.time() + 300
-
-    try:
-        enviar_codigo_recuperacao(email, codigo)
-    except Exception:
-        session.pop("recuperacao_codigo", None)
-        session.pop("recuperacao_id_utilizador", None)
-        session.pop("recuperacao_email", None)
-        session.pop("recuperacao_expira", None)
-        raise
-
-    return "enviado", email_mascarado
+    return "enviado", None

@@ -19,7 +19,8 @@
                             <div class="linha_nome_container">{{ l.nome }} {{ l.cor }}</div>
                             
                             
-                            <form id="form_atualizar_linha_{{ l.id }}" class="form_horizontal" method="POST"></form>
+                            <form id="form_atualizar_linha_{{ l.id }}" class="form_horizontal" method="POST">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}"></form>
 
                             <input 
                                 class="linhanum"
@@ -47,6 +48,7 @@
                             <div class="linha_botoes">
 
                                 <form class="form_horizontal" method="POST" onsubmit="return confirm ('Tem a certeza que quer apagar esta linha?');">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
                                     <input
                                         type="hidden"
@@ -74,6 +76,7 @@
                 
 
                 <form class="form_horizontal" method="POST" action="/carrinhofinalizar" onsubmit="return confirm ('O pagamento será efetuado na loja, pretende continuar?');">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     
                     <p><label>Observações:</label></p>
                     <textarea name="observacoes" rows="6" cols="70" placeholder="Notas acerca do pedido">{% if observacoes %}{{ observacoes }}{% endif %}</textarea>

@@ -39,7 +39,7 @@
 
             <a href="/admin">Admin</a>
 
-            <a href="/logout">Logout</a>
+            <a href="#" onclick="event.preventDefault(); this.nextElementSibling.submit();">Logout</a><form method="POST" action="{{ url_for('logout') }}" style="display:none"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"></form>
 
         </nav>
 

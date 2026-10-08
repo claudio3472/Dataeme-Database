@@ -17,7 +17,31 @@ from datetime import date, timedelta
 
 from config import supabase, ph
 
-from services.auth_service import autenticar
+from services.auth_service import (
+    autenticar,
+    provisoria_expirada,
+    invalidar_sessoes
+)
+
+from services.recuperacao_service import (
+    iniciar_recuperacao,
+    iniciar_recuperacao_falsa,
+    validar_codigo,
+    apagar_token,
+    RecuperacaoErro
+)
+
+from security import (
+    configurar_seguranca,
+    admin_required,
+    limiter,
+    chave_username,
+    chave_email,
+    chave_nif,
+    DEBUG,
+    PASSWORD_MAX,
+    USERNAME_MAX
+)
 
 from services.clientes_service import (
     registar_cliente_web,
@@ -100,7 +124,8 @@ from load_utilizadores import (
 
 app = Flask(__name__)
 
-app.secret_key = "ALTERAR_PARA_UMA_CHAVE_SECRETA"
+# SECRET_KEY (variável de ambiente), cookies seguros, CSRF e rate limiting
+configurar_seguranca(app)
 
 
 # ============================================================
@@ -120,6 +145,8 @@ def home():
 # ============================================================
 
 @app.route("/login", methods=["GET", "POST"])
+@limiter.limit("10 per minute", methods=["POST"])
+@limiter.limit("8 per 15 minutes", methods=["POST"], key_func=chave_username)
 def login():
 
     if request.method == "GET":
@@ -128,46 +155,32 @@ def login():
             "login.html"
         )
 
-    username = request.form["username"].strip()
-    password = request.form["password"]
+    username = request.form.get("username", "").strip()
+    password = request.form.get("password", "")
 
-    response = (
-        supabase
-        .table("utilizador")
-        .select("*")
-        .eq(
-            "username",
-            username
+    erro_generico = "User ou password incorretos."
+
+    if (
+        not username
+        or len(username) > USERNAME_MAX
+        or len(password) > PASSWORD_MAX
+    ):
+
+        return render_template(
+            "login.html",
+            erro=erro_generico
         )
-        .limit(1)
-        .execute()
+
+    utilizador = autenticar(
+        username,
+        password
     )
 
-    if not response.data:
+    if utilizador is None:
 
         return render_template(
             "login.html",
-            erro="User ou password incorretos."
-        )
-
-    utilizador = response.data[0]
-
-    try:
-
-        password_correta = ph.verify(
-            utilizador["password"],
-            password
-        )
-
-    except Exception:
-
-        password_correta = False
-
-    if not password_correta:
-
-        return render_template(
-            "login.html",
-            erro="User ou password incorretos."
+            erro=erro_generico
         )
 
     # ========================================================
@@ -177,9 +190,22 @@ def login():
 
     if utilizador.get("deve_alterar_password"):
 
+        if provisoria_expirada(utilizador):
+
+            return render_template(
+                "login.html",
+                erro="A password provisória expirou. Use "
+                     "\"Esqueci-me da password\" para definir uma nova."
+            )
+
+        # Limpar qualquer estado anterior (recuperação, outro login...)
+        session.clear()
+
         session["definir_password_id_utilizador"] = (
             utilizador["id_utilizador"]
         )
+
+        session["definir_password_expira"] = time.time() + 600
 
         return redirect(
             url_for("definir_password")
@@ -187,15 +213,22 @@ def login():
 
     # ========================================================
     # GUARDAR DADOS DO UTILIZADOR NA SESSION
+    # (session.clear() evita fixação de sessão e estado antigo)
     # ========================================================
+
+    session.clear()
+
+    session.permanent = True
 
     session["id_utilizador"] = (
         utilizador["id_utilizador"]
     )
 
-    session["is_admin"] = (
+    session["is_admin"] = bool(
         utilizador["is_admin"]
     )
+
+    session["sv"] = utilizador["session_version"]
 
     # ========================================================
     # REDIRECIONAR CONSOANTE O TIPO DE UTILIZADOR
@@ -217,21 +250,8 @@ def login():
 # ============================================================
 
 @app.route("/admin")
+@admin_required
 def confirm_admin():
-
-    # Primeiro verificar se existe sessão
-    if "id_utilizador" not in session:
-
-        return redirect(
-            url_for("login")
-        )
-
-    # Depois verificar se é administrador
-    if not session.get("is_admin", False):
-
-        return redirect(
-            url_for("login")
-        )
 
     return render_template(
         "admin.html"
@@ -242,7 +262,20 @@ def confirm_admin():
 # LOGOUT
 # ============================================================
 
-@app.route("/logout")
+def terminar_sessao():
+    """Termina a sessão e vai para o login (para uso interno em redirecionamentos)."""
+
+    session.clear()
+
+    return redirect(
+        url_for("login")
+    )
+
+
+# Só POST (com token CSRF): um link/imagem noutro site já não consegue
+# terminar a sessão do utilizador.
+
+@app.route("/logout", methods=["POST"])
 def logout():
 
     session.clear()
@@ -257,6 +290,8 @@ def logout():
 # ============================================================
 
 @app.route("/registar", methods=["GET", "POST"])
+@limiter.limit("20 per hour", methods=["POST"])
+@limiter.limit("10 per hour", methods=["POST"], key_func=chave_nif)
 def registar():
 
     if request.method == "GET":
@@ -290,14 +325,12 @@ def registar():
 
             return render_template(
                 "registar.html",
-                erro="Já existe uma conta criada para este NIF, mas não "
-                     "foi possível enviar o email. Tente novamente mais tarde."
+                erro="Não foi possível processar o pedido. Tente novamente mais tarde."
             )
 
         if estado == "enviado":
 
             session["recuperacao_conta_pre_criada"] = True
-            session["recuperacao_email_mascarado"] = email_mascarado
 
             return redirect(
                 url_for("confirmar_codigo")
@@ -307,7 +340,7 @@ def registar():
 
             return render_template(
                 "registar.html",
-                erro="Já existe uma conta criada para este NIF, mas sem um "
+                erro="Já existe uma conta criada para este NIF administrativamente, mas sem um "
                      "email associado. Contacte a Dataeme para receber os "
                      "dados de acesso."
             )
@@ -404,9 +437,7 @@ def perfil():
 
     if cliente is None:
 
-        return redirect(
-            url_for("logout")
-        )
+        return terminar_sessao()
 
     # ========================================================
     # ALTERAR DADOS
@@ -507,10 +538,21 @@ def perfil():
 # RECUPERAR PASSWORD
 # ============================================================
 
+# O código NÃO vai para a sessão (o cookie do Flask é legível pelo cliente).
+# Fica guardado (hash) na tabela recuperacao_codigo; a sessão só tem um token.
+
+MSG_CODIGO_ENVIADO = (
+    "Se os dados estiverem corretos, enviámos um código para o email "
+    "associado à conta. O código é válido durante 5 minutos."
+)
+
+
 @app.route(
     "/recuperar-password",
     methods=["GET", "POST"]
 )
+@limiter.limit("5 per 10 minutes", methods=["POST"])
+@limiter.limit("3 per 15 minutes", methods=["POST"], key_func=chave_email)
 def recuperar_password():
 
     if request.method == "GET":
@@ -519,65 +561,39 @@ def recuperar_password():
             "recuperar_password.html"
         )
 
-    email = request.form[
-        "email"
-    ].strip().lower()
+    email = request.form.get(
+        "email", ""
+    ).strip().lower()
+
+    # Estado de uma tentativa anterior não deve contaminar esta
+    limpar_recuperacao()
 
     cliente = obter_cliente_por_email(
         email
-    )
+    ) if email else None
 
     if cliente is None:
 
-        return render_template(
-            "recuperar_password.html",
-            erro="Não foi encontrada nenhuma conta com esse email."
-        )
+        # Mesma resposta que para um email existente (sem enumeração)
+        iniciar_recuperacao_falsa()
 
-    codigo = str(
-        secrets.randbelow(900000) + 100000
-    )
+    else:
 
-    session[
-        "recuperacao_codigo"
-    ] = codigo
+        try:
 
-    session[
-        "recuperacao_id_utilizador"
-    ] = cliente[
-        "id_utilizador"
-    ]
+            iniciar_recuperacao(
+                cliente["id_utilizador"],
+                email
+            )
 
-    session[
-        "recuperacao_email"
-    ] = email
+        except Exception:
 
-    session[
-        "recuperacao_expira"
-    ] = (
-        time.time() + 300
-    )
+            app.logger.exception(
+                "Erro ao enviar código de recuperação"
+            )
 
-    try:
-
-        enviar_codigo_recuperacao(
-            email,
-            codigo
-        )
-
-    except Exception as e:
-
-        print(
-            "Erro ao enviar email:",
-            e
-        )
-
-        limpar_recuperacao()
-
-        return render_template(
-            "recuperar_password.html",
-            erro="Não foi possível enviar o email."
-        )
+            # Resposta neutra: não revelar que a conta existe
+            iniciar_recuperacao_falsa()
 
     return redirect(
         url_for("confirmar_codigo")
@@ -592,12 +608,12 @@ def recuperar_password():
     "/confirmar-codigo",
     methods=["GET", "POST"]
 )
+@limiter.limit("10 per 10 minutes", methods=["POST"])
 def confirmar_codigo():
 
-    if (
-        "recuperacao_codigo"
-        not in session
-    ):
+    token = session.get("recuperacao_token")
+
+    if not token:
 
         return redirect(
             url_for("recuperar_password")
@@ -610,38 +626,19 @@ def confirmar_codigo():
             sucesso=mensagem_conta_pre_criada()
         )
 
-    codigo = request.form[
-        "codigo"
-    ].strip()
+    codigo = request.form.get(
+        "codigo", ""
+    ).strip()
 
-    password = request.form[
-        "password"
-    ]
+    password = request.form.get(
+        "password", ""
+    )
 
-    password_confirmacao = request.form[
-        "password_confirmacao"
-    ]
+    password_confirmacao = request.form.get(
+        "password_confirmacao", ""
+    )
 
-    if time.time() > session[
-        "recuperacao_expira"
-    ]:
-
-        limpar_recuperacao()
-
-        return render_template(
-            "confirmar_codigo.html",
-            erro="O código expirou."
-        )
-
-    if codigo != session[
-        "recuperacao_codigo"
-    ]:
-
-        return render_template(
-            "confirmar_codigo.html",
-            erro="Código inválido.",
-            sucesso=mensagem_conta_pre_criada()
-        )
+    # Validar as passwords ANTES de gastar uma tentativa do código
 
     if password != password_confirmacao:
 
@@ -665,9 +662,20 @@ def confirmar_codigo():
             sucesso=mensagem_conta_pre_criada()
         )
 
-    id_utilizador = session[
-        "recuperacao_id_utilizador"
-    ]
+    try:
+
+        id_utilizador = validar_codigo(
+            token,
+            codigo
+        )
+
+    except RecuperacaoErro as e:
+
+        return render_template(
+            "confirmar_codigo.html",
+            erro=str(e),
+            sucesso=mensagem_conta_pre_criada()
+        )
 
     password_hash = ph.hash(
         password
@@ -690,13 +698,18 @@ def confirmar_codigo():
 
     if not response.data:
 
+        limpar_recuperacao()
+
         return render_template(
             "confirmar_codigo.html",
-            erro="Não foi possível alterar a password.",
-            sucesso=mensagem_conta_pre_criada()
+            erro="Não foi possível alterar a password. Peça um novo código."
         )
 
-    limpar_recuperacao()
+    # Todas as sessões abertas (outros dispositivos) deixam de valer
+    invalidar_sessoes(id_utilizador)
+
+    # Código já foi destruído em validar_codigo (uso único)
+    session.clear()
 
     return redirect(
         url_for("login")
@@ -709,55 +722,36 @@ def confirmar_codigo():
 
 def limpar_recuperacao():
 
-    session.pop(
-        "recuperacao_codigo",
+    token = session.pop(
+        "recuperacao_token",
         None
     )
 
-    session.pop(
-        "recuperacao_id_utilizador",
-        None
-    )
+    if token:
 
-    session.pop(
-        "recuperacao_email",
-        None
-    )
-
-    session.pop(
-        "recuperacao_expira",
-        None
-    )
+        try:
+            apagar_token(token)
+        except Exception:
+            app.logger.exception(
+                "Erro ao apagar código de recuperação"
+            )
 
     session.pop(
         "recuperacao_conta_pre_criada",
         None
     )
 
-    session.pop(
-        "recuperacao_email_mascarado",
-        None
-    )
-
 
 def mensagem_conta_pre_criada():
 
-    if not session.get("recuperacao_conta_pre_criada"):
-        return None
-
-    email_mascarado = session.get("recuperacao_email_mascarado")
-
-    if email_mascarado:
+    if session.get("recuperacao_conta_pre_criada"):
         return (
-            "Já existe uma conta criada para este NIF. Enviámos um código "
-            f"de recuperação para {email_mascarado}. Introduza o código "
-            "para escolher uma nova password."
+            "Já existe uma conta criada administrativamente para este NIF. "
+            "Enviámos um código de recuperação para o email associado à conta. "
+            "Introduza o código para escolher uma nova password."
         )
 
-    return (
-        "Já existe uma conta criada para este NIF. Enviámos um código "
-        "de recuperação para o email associado à conta."
-    )
+    return MSG_CODIGO_ENVIADO
 
 
 # ============================================================
@@ -768,6 +762,7 @@ def mensagem_conta_pre_criada():
     "/definir-password",
     methods=["GET", "POST"]
 )
+@limiter.limit("10 per 10 minutes", methods=["POST"])
 def definir_password():
 
     id_utilizador = session.get(
@@ -780,15 +775,24 @@ def definir_password():
             url_for("login")
         )
 
+    # O passo intermédio expira (10 minutos desde o login com a provisória)
+    if time.time() > session.get("definir_password_expira", 0):
+
+        session.clear()
+
+        return redirect(
+            url_for("login")
+        )
+
     if request.method == "GET":
 
         return render_template(
             "definir_password.html"
         )
 
-    password = request.form["password"]
+    password = request.form.get("password", "")
 
-    password_confirmacao = request.form["password_confirmacao"]
+    password_confirmacao = request.form.get("password_confirmacao", "")
 
     if password != password_confirmacao:
 
@@ -819,7 +823,7 @@ def definir_password():
 
     if not resposta.data:
 
-        session.pop("definir_password_id_utilizador", None)
+        session.clear()
 
         return redirect(
             url_for("login")
@@ -864,14 +868,21 @@ def definir_password():
             erro="Não foi possível guardar a password."
         )
 
-    # Agora sim: iniciar sessão
-    session.pop("definir_password_id_utilizador", None)
+    # Outras sessões desta conta deixam de valer; esta recebe a versão nova
+    nova_versao = invalidar_sessoes(id_utilizador)
+
+    # Agora sim: iniciar sessão (estado limpo)
+    session.clear()
+
+    session.permanent = True
 
     session["id_utilizador"] = id_utilizador
 
-    session["is_admin"] = utilizador["is_admin"]
+    session["is_admin"] = bool(utilizador["is_admin"])
 
-    if utilizador["is_admin"]:
+    session["sv"] = nova_versao
+
+    if session["is_admin"]:
 
         return redirect(
             url_for("confirm_admin")
@@ -950,9 +961,7 @@ def carrinho():
 
     if cliente is None:
 
-        return redirect(
-            url_for("logout")
-        )
+        return terminar_sessao()
 
     # ========================================================
     # OBTER PEDIDO
@@ -1118,9 +1127,7 @@ def finalizar_compra():
 
     if cliente is None:
 
-        return redirect(
-            url_for("logout")
-        )
+        return terminar_sessao()
 
     pedido = obter_pedido(
         cliente["id_cliente"]
@@ -1229,9 +1236,7 @@ def adicionar_carrinho(referencia):
 
     if cliente is None:
 
-        return redirect(
-            url_for("logout")
-        )
+        return terminar_sessao()
 
     # ========================================================
     # PEDIDO
@@ -2372,6 +2377,7 @@ def configuracoes_impostos():
 
 
 @app.route("/configuracoes_admin/impostos/apagar_iva", methods=["POST"])
+@admin_required
 def apagar_iva():
     id_iva = request.form["id_iva_apagar"]
     novo_iva = request.form["iva_dropdown"]
@@ -2433,6 +2439,7 @@ def traduzir_erro_iva(e):
 # ============================================================
 
 @app.route("/configuracoes_utilizadores", methods=["GET", "POST"])
+@admin_required
 def configuracoes_utilizadores():
 
     if request.method == "GET":
@@ -2457,7 +2464,6 @@ def configuracoes_utilizadores():
         )
 
     try:
-        print(dict(request.form))
         admin = request.form["admin"] == "True"
 
         registar_cliente_web(
@@ -2559,6 +2565,7 @@ def configuracoes_familias():
 
 
 @app.route("/configuracoes_admin/impostos/apagar_familia", methods=["POST"])
+@admin_required
 def apagar_familia():
 
     id_familia = request.form["id_familia_apagar"]
@@ -2627,5 +2634,5 @@ def media(filename):
 if __name__ == "__main__":
 
     app.run(
-        debug=True
+        debug=DEBUG
     )

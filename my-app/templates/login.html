@@ -545,6 +545,7 @@
                 {% endif %}
 
                 <form method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <div class="login-field">
                         <label for="username">NIF ou utilizador</label>
                         <input
@@ -553,6 +554,7 @@
                             name="username"
                             placeholder="Introduza o seu NIF ou utilizador"
                             autocomplete="username"
+                            maxlength="100"
                             required
                         >
                     </div>
@@ -566,6 +568,7 @@
                                 name="password"
                                 placeholder="Introduza a sua password"
                                 autocomplete="current-password"
+                                maxlength="128"
                                 required
                             >
                             <button type="button" class="login-eye" id="togglePassword" aria-label="Mostrar password">
@@ -596,15 +599,15 @@
 
                     <button class="login-submit" type="submit">
                         Entrar
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                             <path d="M5 12h14"/>
                             <path d="m13 6 6 6-6 6"/>
-                        </svg>
+                        </svg> 
                     </button>
                 </form>
 
                 <p class="login-secure-note">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                         <path d="M12 3 20 7v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7l8-4Z"/>
                         <path d="m8.5 12 2.2 2.2 4.8-5"/>
                     </svg>

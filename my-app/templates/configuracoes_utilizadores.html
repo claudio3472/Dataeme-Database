@@ -30,7 +30,7 @@
 
             <a href="{{ url_for('confirm_admin') }}">Dashboard</a>
 
-            <a href="/logout">Logout</a>
+            <a href="#" onclick="event.preventDefault(); this.nextElementSibling.submit();">Logout</a><form method="POST" action="{{ url_for('logout') }}" style="display:none"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"></form>
 
         </nav>
 
@@ -70,6 +70,7 @@
                     enctype="multipart/form-data"
                     id="formImportarExcel"
                 >
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <label for="ficheiroExcel" class="btn-importar-excel">
                         📄 Importar Excel/CSV
                     </label>
@@ -120,6 +121,7 @@
             {% endif %}
             
             <form method="POST" id="form-criar-utilizador" class="form_utilizadores">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
                 <p>
                     <strong>Admin:</strong>
